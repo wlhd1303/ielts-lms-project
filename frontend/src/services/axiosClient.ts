@@ -1,12 +1,7 @@
 import axios from 'axios';
 
-// BƯỚC FIX LỖI: Kiểm tra và làm sạch URL backend
-let backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
-// Nếu vì lý do nào đó Render truyền vào chuỗi trống hoặc không hợp lệ, ép về localhost khi dev
-if (!backendUrl || backendUrl.trim() === '' || backendUrl === 'undefined') {
-  backendUrl = 'http://localhost:8080';
-}
+// Gán thẳng link backend Render của bạn vào đây, không qua biến môi trường nữa để tránh lỗi build của Vite
+const backendUrl = 'https://ielts-lms-project.onrender.com';
 
 // Khởi tạo một instance của axios với cấu hình linh hoạt
 const axiosClient = axios.create({
