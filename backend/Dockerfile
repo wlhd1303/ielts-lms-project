@@ -1,10 +1,12 @@
-# Bước 1: Dùng image Maven với OpenJDK 25 để build dự án
-FROM maven:3.9.9-openjdk-25-slim AS build
+# Bước 1: Dùng OpenJDK 25 gốc và cài thêm maven
+FROM openjdk:25-ea-slim AS build
+RUN apt-get update && apt-get install -y maven
+
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# Bước 2: Dùng image OpenJDK 25 siêu nhẹ để chạy file jar
+# Bước 2: Khởi chạy ứng dụng với Java 25 siêu nhẹ
 FROM openjdk:25-ea-slim
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
