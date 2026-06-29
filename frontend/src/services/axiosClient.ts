@@ -1,9 +1,16 @@
 import axios from 'axios';
 
+// BƯỚC FIX LỖI: Kiểm tra và làm sạch URL backend
+let backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
+// Nếu vì lý do nào đó Render truyền vào chuỗi trống hoặc không hợp lệ, ép về localhost khi dev
+if (!backendUrl || backendUrl.trim() === '' || backendUrl === 'undefined') {
+  backendUrl = 'http://localhost:8080';
+}
+
 // Khởi tạo một instance của axios với cấu hình linh hoạt
 const axiosClient = axios.create({
-  // Ưu tiên đọc URL Render khi live, nếu không có (chạy dưới local) sẽ dùng localhost:8080
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080', 
+  baseURL: backendUrl,
   headers: {
     'Content-Type': 'application/json',
   },
