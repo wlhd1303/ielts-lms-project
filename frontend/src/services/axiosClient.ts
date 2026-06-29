@@ -35,13 +35,17 @@ axiosClient.interceptors.response.use(
   (response) => {
     let data = response.data;
     
-    // ĐÂY LÀ DÒNG CHỐNG LỖI: Nếu dữ liệu bị vón cục thành String, rã nó ra thành Object
-    if (typeof data === 'string') {
+    // BƯỚC FIX LỖI: Chỉ thực hiện parse nếu chuỗi có nội dung thực sự
+    if (typeof data === 'string' && data.trim() !== '') {
       try {
         data = JSON.parse(data);
       } catch (e) {
         console.error("Không thể parse dữ liệu JSON từ Backend", e);
       }
+    } else if (typeof data === 'string' && data.trim() === '') {
+      // Nếu Backend trả về chuỗi trống (Empty Response Body khi tạo mới/đăng ký thành công)
+      // Ép về object rỗng để hàm gọi API phía sau không bị crash JSON.parse
+      data = {};
     }
     
     return data;
