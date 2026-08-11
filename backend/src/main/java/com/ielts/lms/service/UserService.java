@@ -12,10 +12,11 @@ import com.ielts.lms.repository.StudentClassRepository;
 import com.ielts.lms.repository.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList; // Bắt buộc phải có thư viện này
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,13 +27,20 @@ public class UserService {
     private final RefreshTokenService refreshTokenService;
     private final StudentClassRepository studentClassRepository;
     private final PermissionRepository permissionRepository; 
+    private final PasswordEncoder passwordEncoder; // 👈 Inject thêm PasswordEncoder
 
-    public UserService(UserRepository userRepository, JwtService jwtService, RefreshTokenService refreshTokenService, StudentClassRepository studentClassRepository, PermissionRepository permissionRepository) {
+    public UserService(UserRepository userRepository, 
+                       JwtService jwtService, 
+                       RefreshTokenService refreshTokenService, 
+                       StudentClassRepository studentClassRepository, 
+                       PermissionRepository permissionRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.studentClassRepository = studentClassRepository;
         this.permissionRepository = permissionRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<User> getAllUsers() {
@@ -42,7 +50,8 @@ public class UserService {
     public User registerUser(RegisterRequest request) {
         User newUser = new User();
         newUser.setUsername(request.getUsername());
-        newUser.setPasswordHash(request.getPassword());
+        // ⚡ MÃ HÓA BCRYPT TRƯỚC KHIN LƯU VÀO CSDL
+        newUser.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         newUser.setRole("ROLE_USER");
         newUser.setStatus("PENDING"); 
         return userRepository.save(newUser);
@@ -52,7 +61,8 @@ public class UserService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản!"));
 
-        if (!user.getPasswordHash().equals(request.getPassword())) {
+        // ⚡ DÙNG MATCHES() ĐỂ SO SÁNH PLAIN-TEXT VỚI BCRYPT HASH
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Lỗi: Sai mật khẩu!");
         }
 
@@ -132,6 +142,29 @@ public class UserService {
             }
         }
         
+        return userRepository.save(user);
+    }
+
+    // --- TÍNH NĂNG MỚI: ADMIN TẠO LỚP HỌC MỚI ---
+    public StudentClass createClass(String className) {
+        if (className == null || className.trim().isEmpty()) {
+            throw new RuntimeException("Lỗi: Tên lớp học không được để trống!");
+        }
+        StudentClass studentClass = new StudentClass();
+        studentClass.setName(className.trim());
+        return studentClassRepository.save(studentClass);
+    }
+
+    // --- TÍNH NĂNG MỚI: ADMIN ĐỔI LỚP HỌC VIÊN ---
+    @Transactional
+    public User updateStudentClass(Long userId, Long classId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy học viên!"));
+
+        StudentClass studentClass = studentClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Lớp học!"));
+
+        user.setStudentClass(studentClass);
         return userRepository.save(user);
     }
 }

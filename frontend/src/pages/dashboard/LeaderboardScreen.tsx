@@ -1,114 +1,154 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axiosClient from '../../services/axiosClient';
+
+interface LeaderboardItem {
+  username: string;
+  totalScore: number;
+}
 
 const LeaderboardScreen = () => {
   const navigate = useNavigate();
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const leaderboardData = [
-    { rank: 1, name: "La Hoàng Đại Phong", className: "IELTS Nâng Cao", score: 9.0, correct: "40/40", time: "45p 12s", date: "Hôm nay" },
-    { rank: 2, name: "Nguyễn Lê Tuấn", className: "IELTS Nâng Cao", score: 8.5, correct: "38/40", time: "48p 00s", date: "Hôm nay" },
-    { rank: 3, name: "Trần Mai Anh", className: "IELTS Nền Tảng", score: 8.0, correct: "35/40", time: "50p 30s", date: "Hôm qua" },
-    { rank: 4, name: "Lý Hải", className: "IELTS Nâng Cao", score: 7.5, correct: "33/40", time: "55p 15s", date: "Hôm qua" },
-    { rank: 5, name: "Phạm Thảo", className: "IELTS Nền Tảng", score: 6.5, correct: "28/40", time: "59p 40s", date: "2 ngày trước" },
-  ];
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const res: any = await axiosClient.get('/api/records/leaderboard');
+        const rawData = Array.isArray(res) ? res : res.data || [];
+        
+        // Mảng trả về dạng Object[]: [ [username, totalScore], ... ]
+        const formatted = rawData.map((item: any) => ({
+          username: item[0] || 'Học viên',
+          totalScore: Math.round((item[1] || 0) * 10) / 10
+        }));
+
+        setLeaderboardData(formatted);
+      } catch (error) {
+        console.error("Lỗi lấy bảng xếp hạng:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLeaderboard();
+  }, []);
 
   const renderMedal = (rank: number) => {
     switch (rank) {
-      case 1: return <span className="text-3xl drop-shadow-md">🥇</span>;
-      case 2: return <span className="text-3xl drop-shadow-md">🥈</span>;
-      case 3: return <span className="text-3xl drop-shadow-md">🥉</span>;
-      default: return <span className="text-xl font-black text-gray-400 bg-gray-100 w-10 h-10 flex items-center justify-center rounded-full">{rank}</span>;
+      case 1: 
+        return <span className="text-3xl filter drop-shadow-sm">🥇</span>;
+      case 2: 
+        return <span className="text-3xl filter drop-shadow-sm">🥈</span>;
+      case 3: 
+        return <span className="text-3xl filter drop-shadow-sm">🥉</span>;
+      default: 
+        return (
+          <span className="text-sm font-black text-slate-400 bg-slate-100/80 w-8 h-8 flex items-center justify-center rounded-xl font-mono">
+            {rank}
+          </span>
+        );
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-50 font-sans flex flex-col text-slate-800">
       
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+      {/* HEADER */}
+      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/dashboard')}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors group"
+            className="p-2.5 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800 rounded-xl transition-all group cursor-pointer"
           >
-            <svg className="w-6 h-6 text-gray-500 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            ←
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-800 tracking-tight">Bảng Vàng Thành Tích</h1>
-            <p className="text-xs text-gray-500 font-medium hidden md:block">Cập nhật thời gian thực từ hệ thống</p>
+            <h1 className="text-lg font-black text-slate-900 tracking-tight">Bảng Vàng Thành Tích</h1>
+            <p className="text-xs text-slate-400 font-semibold hidden md:block">Cập nhật tổng điểm thi đua học tập theo thời gian thực</p>
           </div>
         </div>
-        
-        <select className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-semibold outline-none cursor-pointer">
-          <option>Tuần này</option>
-          <option>Tháng này</option>
-          <option>Tất cả</option>
-        </select>
       </header>
 
+      {/* MAIN CONTENT */}
       <main className="flex-1 p-4 md:p-8 overflow-hidden flex flex-col">
-        
-        <div className="max-w-6xl w-full mx-auto bg-white rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex-1 flex flex-col overflow-hidden">
+        <div className="max-w-4xl w-full mx-auto bg-white rounded-3xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden">
           
-          <div className="overflow-x-auto flex-1 p-1">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50/80 text-gray-500 text-xs uppercase font-black tracking-wider border-b border-gray-100">
-                  <th className="px-6 py-5 rounded-tl-2xl w-20 text-center">Hạng</th>
-                  <th className="px-6 py-5 w-64 min-w-[200px]">Học viên</th>
-                  <th className="px-6 py-5 hidden md:table-cell">Lớp học</th>
-                  <th className="px-6 py-5 text-center">Điểm số</th>
-                  <th className="px-6 py-5 text-center hidden sm:table-cell">Số câu đúng</th>
-                  <th className="px-6 py-5 hidden lg:table-cell text-right">Thời gian</th>
-                  <th className="px-6 py-5 rounded-tr-2xl text-right hidden lg:table-cell">Ngày nộp</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {leaderboardData.map((student) => (
-                  <tr 
-                    key={student.rank} 
-                    className={`hover:bg-blue-50/50 transition-colors group ${student.rank <= 3 ? 'bg-orange-50/20' : ''}`}
-                  >
-                    <td className="px-6 py-4 flex justify-center items-center h-full mt-2">
-                      {renderMedal(student.rank)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm ${student.rank === 1 ? 'bg-yellow-400' : student.rank === 2 ? 'bg-gray-400' : student.rank === 3 ? 'bg-orange-400' : 'bg-blue-600'}`}>
-                          {student.name.charAt(0)}
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-800 whitespace-normal line-clamp-2 md:whitespace-nowrap">{student.name}</p>
-                          <p className="text-xs text-gray-500 md:hidden mt-0.5">{student.className}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-600 font-medium">
-                      <span className="bg-gray-100 px-3 py-1 rounded-full">{student.className}</span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`text-lg font-black ${student.rank === 1 ? 'text-blue-600' : 'text-gray-800'}`}>
-                        {student.score.toFixed(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center hidden sm:table-cell text-sm font-semibold text-gray-600">
-                      {student.correct}
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell text-right text-sm text-gray-500 font-medium">
-                      {student.time}
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell text-right text-sm text-gray-400">
-                      {student.date}
-                    </td>
+          <div className="overflow-x-auto flex-1 p-2 custom-scrollbar">
+            {leaderboardData.length === 0 ? (
+              <div className="text-center py-20 text-slate-400 font-semibold text-xs">Chưa có dữ liệu bảng xếp hạng.</div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 text-slate-400 text-[11px] uppercase font-black tracking-wider border-b border-slate-100">
+                    <th className="px-6 py-4 rounded-tl-2xl w-20 text-center">Hạng</th>
+                    <th className="px-6 py-4">Học viên</th>
+                    <th className="px-6 py-4 text-right rounded-tr-2xl">Tổng điểm tích lũy</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {leaderboardData.map((student, idx) => {
+                    const rank = idx + 1;
+                    return (
+                      <tr 
+                        key={idx} 
+                        className={`hover:bg-blue-50/40 transition-colors ${
+                          rank === 1 ? 'bg-amber-50/30' :
+                          rank === 2 ? 'bg-slate-50/40' :
+                          rank === 3 ? 'bg-orange-50/20' : ''
+                        }`}
+                      >
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center">
+                            {renderMedal(rank)}
+                          </div>
+                        </td>
 
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white text-sm shadow-md shrink-0 uppercase ${
+                              rank === 1 ? 'bg-gradient-to-tr from-amber-400 to-yellow-500 shadow-amber-500/20' : 
+                              rank === 2 ? 'bg-gradient-to-tr from-slate-400 to-slate-500 shadow-slate-500/20' : 
+                              rank === 3 ? 'bg-gradient-to-tr from-orange-400 to-amber-600 shadow-orange-500/20' : 
+                              'bg-gradient-to-tr from-blue-600 to-indigo-600 shadow-blue-500/20'
+                            }`}>
+                              {student.username.charAt(0)}
+                            </div>
+                            <p className="font-extrabold text-slate-900 text-xs md:text-sm">
+                              {student.username}
+                            </p>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4 text-right">
+                          <span className={`text-base font-black px-3 py-1 rounded-xl inline-block ${
+                            rank === 1 
+                              ? 'text-blue-700 bg-blue-50 border border-blue-200/60' 
+                              : 'text-slate-800'
+                          }`}>
+                            {student.totalScore} pts
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+        </div>
       </main>
+
     </div>
   );
 };

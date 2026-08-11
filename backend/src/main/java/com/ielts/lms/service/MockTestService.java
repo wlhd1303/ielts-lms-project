@@ -5,8 +5,8 @@ import com.ielts.lms.repository.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class MockTestService {
@@ -16,17 +16,26 @@ public class MockTestService {
     private final StudyRecordRepository studyRecordRepository;
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
+    private final StreakService streakService;
+    private final UserMockVocabRepository userMockVocabRepository;
+    private final VocabWordRepository vocabWordRepository;
 
     public MockTestService(MockTestRepository mockTestRepository, 
                            MockQuestionRepository mockQuestionRepository, 
                            StudyRecordRepository studyRecordRepository, 
                            UserRepository userRepository,
-                           StudentClassRepository studentClassRepository) {
+                           StudentClassRepository studentClassRepository,
+                           StreakService streakService,
+                           UserMockVocabRepository userMockVocabRepository,
+                           VocabWordRepository vocabWordRepository) {
         this.mockTestRepository = mockTestRepository;
         this.mockQuestionRepository = mockQuestionRepository;
         this.studyRecordRepository = studyRecordRepository;
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
+        this.streakService = streakService;
+        this.userMockVocabRepository = userMockVocabRepository;
+        this.vocabWordRepository = vocabWordRepository;
     }
 
     // --- LẤY DỮ LIỆU ĐỂ HIỂN THỊ (HỌC VIÊN) ---
@@ -51,7 +60,6 @@ public class MockTestService {
 
     public void saveAnswerKey(Long testId, List<MockQuestion> questions) {
         MockTest test = mockTestRepository.findById(testId).orElseThrow();
-        // Xóa đáp án cũ (nếu có) để nhập lại từ đầu
         mockQuestionRepository.deleteAll(mockQuestionRepository.findByMockTestId(testId));
         
         for (MockQuestion q : questions) {
@@ -60,7 +68,7 @@ public class MockTestService {
         mockQuestionRepository.saveAll(questions);
     }
 
-    // --- HÀM CHẤM ĐIỂM (CỦA BẠN) ---
+    // --- HÀM CHẤM ĐIỂM ĐỀ THI MOCK ---
     public StudyRecord gradeMockTest(Long testId, Map<Integer, String> studentAnswers, int duration) {
         List<MockQuestion> correctAnswers = mockQuestionRepository.findByMockTestId(testId);
         int correctCount = 0;
@@ -87,22 +95,146 @@ public class MockTestService {
         record.setScore(score);
         record.setDurationSeconds(duration);
         
-        return studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordRepository.save(record);
+
+        // TỰ ĐỘNG CẬP NHẬT STREAK VÀ LOG LƯU VÀO CSDL
+        streakService.updateStreakProgress(user, "MOCK_TEST", testId);
+
+        return savedRecord;
     }
+
+    // ⚡ 1. TÍNH NĂNG MỚI: LƯU TỪ 5 TỚI 10 TỪ VỰNG SAU BÀI READING
+    public void saveExtractedVocabularies(Long testId, List<Map<String, String>> vocabList) {
+        if (vocabList == null || vocabList.size() < 5 || vocabList.size() > 10) {
+            throw new RuntimeException("Số lượng từ vựng bắt buộc từ 5 đến 10 từ!");
+        }
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+        MockTest test = mockTestRepository.findById(testId).orElseThrow();
+
+        List<UserMockVocab> entities = new ArrayList<>();
+        for (Map<String, String> item : vocabList) {
+            String english = item.get("englishWord");
+            String vietnamese = item.get("vietnameseMeaning");
+
+            if (english != null && !english.trim().isEmpty() && vietnamese != null && !vietnamese.trim().isEmpty()) {
+                UserMockVocab vocab = new UserMockVocab();
+                vocab.setUser(user);
+                vocab.setMockTest(test);
+                vocab.setEnglishWord(english.trim());
+                vocab.setVietnameseMeaning(vietnamese.trim());
+                vocab.setTested(false);
+                entities.add(vocab);
+            }
+        }
+        userMockVocabRepository.saveAll(entities);
+    }
+
+    // ⚡ 2. TÍNH NĂNG MỚI: LẤY CÂU HỎI TRẮC NGHIỆM TỪ VỰNG CHƯA TEST CHO BÀI MOCK TIẾP THEO
+    public List<Map<String, Object>> getPendingVocabularyQuiz() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        List<UserMockVocab> pendingVocabs = userMockVocabRepository.findByUserIdAndIsTestedFalse(user.getId());
+        if (pendingVocabs.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<VocabWord> allVocabWords = vocabWordRepository.findAll();
+        List<String> allMeanings = allVocabWords.stream()
+                .map(VocabWord::getVietnameseMeaning)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        if (allMeanings.size() < 10) {
+            allMeanings.addAll(List.of("Khả năng", "Sự phát triển", "Môi trường", "Thách thức", "Giải pháp", "Kết quả", "Tác động", "Phương pháp"));
+        }
+
+        List<Map<String, Object>> quizList = new ArrayList<>();
+        Random random = new Random();
+
+        for (UserMockVocab item : pendingVocabs) {
+            Map<String, Object> quizMap = new HashMap<>();
+            quizMap.put("id", item.getId());
+            quizMap.put("englishWord", item.getEnglishWord());
+            quizMap.put("correctAnswer", item.getVietnameseMeaning());
+
+            Set<String> optionsSet = new HashSet<>();
+            optionsSet.add(item.getVietnameseMeaning());
+
+            while (optionsSet.size() < 4) {
+                String randomMeaning = allMeanings.get(random.nextInt(allMeanings.size()));
+                if (!randomMeaning.equalsIgnoreCase(item.getVietnameseMeaning())) {
+                    optionsSet.add(randomMeaning);
+                }
+            }
+
+            List<String> optionsList = new ArrayList<>(optionsSet);
+            Collections.shuffle(optionsList);
+
+            quizMap.put("options", optionsList);
+            quizList.add(quizMap);
+        }
+
+        return quizList;
+    }
+
+    // ⚡ 3. ĐÃ SỬA: Thay null thành 0L để tránh lỗi NullPointerException / DataIntegrityViolationException khi lưu UserStreakLog
+    public StudyRecord submitVocabTest(float score, int durationSeconds) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        List<UserMockVocab> pendingVocabs = userMockVocabRepository.findByUserIdAndIsTestedFalse(user.getId());
+        for (UserMockVocab v : pendingVocabs) {
+            v.setTested(true);
+        }
+        userMockVocabRepository.saveAll(pendingVocabs);
+
+        StudyRecord record = new StudyRecord();
+        record.setUser(user);
+        record.setModuleType("READING_VOCAB_TEST");
+        record.setRefId(0L);
+        record.setScore(score);
+        record.setDurationSeconds(durationSeconds);
+        StudyRecord savedRecord = studyRecordRepository.save(record);
+
+        // Truyền 0L làm refId thay vì null
+        streakService.updateStreakProgress(user, "VOCAB", 0L);
+
+        return savedRecord;
+    }
+
+    // ⚡ 4. TÍNH NĂNG MỚI: LẤY DANH SÁCH TỪ VỰNG REVIEW THEO ID BÀI READING
+    public List<Map<String, Object>> getExtractedWordsByTestId(Long testId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        List<UserMockVocab> vocabs = userMockVocabRepository.findByUserId(user.getId());
+        
+        return vocabs.stream()
+                .filter(v -> v.getMockTest() != null && v.getMockTest().getId().equals(testId))
+                .map(v -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", v.getId());
+                    map.put("englishWord", v.getEnglishWord());
+                    map.put("vietnameseMeaning", v.getVietnameseMeaning());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
     public List<MockQuestion> getAnswers(Long testId) {
         return mockQuestionRepository.findByMockTestId(testId);
     }
 
-
-    // Lấy câu hỏi cho học viên (Ẩn đáp án)
     public List<Map<String, Object>> getQuestionsForStudent(Long testId) {
         List<MockQuestion> questions = mockQuestionRepository.findByMockTestId(testId);
         return questions.stream().map(q -> {
-            Map<String, Object> map = new java.util.HashMap<>();
+            Map<String, Object> map = new HashMap<>();
             map.put("questionNumber", q.getQuestionNumber());
             map.put("questionText", q.getQuestionText());
-            // KHÔNG TRẢ VỀ correctAnswer
             return map;
-        }).collect(java.util.stream.Collectors.toList());
+        }).collect(Collectors.toList());
     }
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
+import { streakService } from '../../services/streakService';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -9,10 +10,12 @@ const StudentDashboard = () => {
   const [studentInfo, setStudentInfo] = useState({
     username: "Đang tải...",
     className: "Đang chờ xếp lớp",
-    examDate: "31/05/2025",
+    examDate: "31/05/2026",
     isLocked: true,
     activeFeatures: [] as string[] 
   });
+
+  const [streakData, setStreakData] = useState<any>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -21,33 +24,37 @@ const StudentDashboard = () => {
       return;
     }
 
-    const fetchProfile = async () => {
+    const fetchProfileAndStreak = async () => {
       try {
         const response: any = await authService.getProfile();
-        
-        // In ra màn hình Console để xem chính xác Backend trả về cấu trúc thế nào
-        console.log("DỮ LIỆU PROFILE TỪ API:", response); 
-
-        // Lưới lọc 3 lớp: Bất chấp Axios bọc bao nhiêu chữ "data", ta vẫn chọc tới lõi
         const userData = response?.data?.data || response?.data || response;
         
         const isUserLocked = !userData.studentClass;
         
-        // ĐÃ SỬA: Thêm điều kiện p.active để bắt đúng định dạng JSON của Spring Boot
         const grantedFeatures = userData.permissions 
           ? userData.permissions.filter((p: any) => p.active || p.isActive || p.is_active).map((p: any) => p.feature_key || p.featureKey)
           : [];
 
         setStudentInfo({
-          // Đào tìm username ở mọi định dạng có thể có
           username: userData.username || userData.userName || userData.name || "Học viên",
           className: userData.studentClass ? userData.studentClass.name : "Đang chờ xếp lớp", 
-          examDate: "31/05/2025",
+          examDate: "31/05/2026",
           isLocked: isUserLocked,
           activeFeatures: grantedFeatures
         });
+
+        if (!isUserLocked) {
+          try {
+            const streakRes: any = await streakService.getTodayStreak();
+            const streakPayload = streakRes?.data || streakRes;
+            setStreakData(streakPayload);
+          } catch (streakErr) {
+            console.error("Lỗi khi tải dữ liệu Streak:", streakErr);
+          }
+        }
+
       } catch (error) {
-        console.error("Lỗi lấy thông tin:", error);
+        console.error("Lỗi lấy thông tin học viên:", error);
         localStorage.removeItem('token');
         navigate('/login');
       } finally {
@@ -55,7 +62,7 @@ const StudentDashboard = () => {
       }
     };
 
-    fetchProfile();
+    fetchProfileAndStreak();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -68,206 +75,366 @@ const StudentDashboard = () => {
     return !studentInfo.activeFeatures.includes(featureKey);
   };
 
+  // Kiểm tra khóa các tính năng
   const isMockTestLocked = checkLocked('MOCK_TEST');
   const isDictationLocked = checkLocked('DICTATION');
   const isVocabLocked = checkLocked('VOCAB');
+  const isListeningVocabLocked = checkLocked('LISTENING_VOCAB') && checkLocked('VOCAB'); 
   const isSpeakingLocked = checkLocked('SPEAKING');
   const isWritingLocked = checkLocked('WRITING');
+
+  // ⚡ ĐÃ CẬP NHẬT: Mở thẳng màn hình làm bài chi tiết của bài tập Streak
+  const handleGoToStreakExercise = () => {
+    if (!streakData || !streakData.moduleType) return;
+    
+    const exerciseId = streakData.exercise?.id;
+    
+    const modulePathMap: Record<string, string> = {
+      'DICTATION': exerciseId ? `/dictation?streakAudioId=${exerciseId}` : '/dictation',
+      'VOCAB': exerciseId ? `/vocabulary?streakTopicId=${exerciseId}` : '/vocabulary',
+      'LISTENING_VOCAB_TEST': exerciseId ? `/listening-vocab/${exerciseId}` : '/listening-vocab',
+      'SPEAKING': exerciseId ? `/speaking?streakLessonId=${exerciseId}` : '/speaking',
+      'WRITING': exerciseId ? `/writing?streakPromptId=${exerciseId}` : '/writing',
+      'MOCK_TEST': exerciseId ? `/mock-test/${exerciseId}?fromStreak=true` : '/mock-test'
+    };
+
+    const targetPath = modulePathMap[streakData.moduleType] || '/dashboard';
+    navigate(targetPath);
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <svg className="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-slate-400">Đang khởi tạo không gian học tập...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50/60 font-sans flex flex-col md:flex-row text-slate-800">
       
-      {/* --- Sidebar --- */}
-      <aside className="w-full md:w-72 bg-white border-r border-gray-100 flex flex-col hidden md:flex shrink-0 h-screen sticky top-0">
-        <div className="p-8 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-blue-500/30">
+      {/* Sidebar Desktop */}
+      <aside className="w-full md:w-72 bg-white border-r border-slate-200/80 flex flex-col hidden md:flex shrink-0 h-screen sticky top-0 shadow-sm">
+        <div className="h-20 px-8 flex items-center gap-3.5 border-b border-slate-100">
+          <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-md shadow-blue-500/20">
             T
           </div>
-          <span className="text-xl font-bold text-gray-800 tracking-tight">Thầy Thành</span>
+          <div>
+            <span className="text-base font-black text-slate-900 tracking-tight block leading-none">Thầy Thành</span>
+            <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest block mt-1">IELTS LMS Portal</span>
+          </div>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-          <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-semibold transition-all">
-            <span className="text-xl">🏠</span> Tổng quan
+        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+          <button className="w-full flex items-center gap-3.5 px-4 py-3 bg-blue-50/80 text-blue-700 rounded-2xl font-bold text-xs transition-all shadow-sm">
+            <span className="text-base">🏠</span> Tổng quan Lộ trình
           </button>
+          
           <button 
             onClick={() => !studentInfo.isLocked && navigate('/leaderboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${studentInfo.isLocked ? 'text-gray-400 opacity-50 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer ${
+              studentInfo.isLocked ? 'text-slate-300 opacity-60 cursor-not-allowed' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+            }`}
           >
-            <span className="text-xl">🏆</span> Bảng xếp hạng
-          </button>
-          <button className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${studentInfo.isLocked ? 'text-gray-400 opacity-50 cursor-not-allowed' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}>
-            <span className="text-xl">📚</span> Lịch sử làm bài
+            <span className="text-base">🏆</span> Bảng Xếp Hạng
           </button>
         </nav>
 
-        {/* Khu vực thông tin & Đăng xuất */}
-        <div className="p-6 border-t border-gray-100 bg-white">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-purple-500 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white font-bold text-xl uppercase">
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+          <div className="p-3 bg-white rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-sm uppercase shadow-sm shrink-0">
                 {studentInfo?.username?.charAt(0) || "U"}
+              </div>
+              <div className="truncate">
+                <p className="text-xs font-black text-slate-900 uppercase truncate">{studentInfo.username}</p>
+                <p className="text-[10px] font-bold text-slate-400 truncate mt-0.5">{studentInfo.className}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold text-gray-800 uppercase">{studentInfo.username}</p>
-              <button onClick={handleLogout} className="text-xs font-medium text-gray-500 hover:text-red-500 cursor-pointer transition-colors mt-0.5 text-left">
-                Đăng xuất
-              </button>
-            </div>
+
+            <button onClick={handleLogout} title="Đăng xuất" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shrink-0 cursor-pointer">
+              🚪
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* --- Main Content --- */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen">
+      {/* Main Content Workspace */}
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen space-y-8">
         
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
               Chào mừng, <span className="text-blue-600 uppercase">{studentInfo.username}</span> 👋
             </h1>
-            <p className="text-gray-500 mt-2 font-medium">Tiếp tục hành trình chinh phục IELTS của bạn nhé!</p>
+            <p className="text-xs font-semibold text-slate-500 mt-1">Tiếp tục hành trình chinh phục mục tiêu IELTS của bạn nhé!</p>
           </div>
           
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-2xl">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 shrink-0">
+            <div className="w-11 h-11 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
               🎯
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Mục tiêu thi chính thức</p>
-              <p className="text-lg font-black text-gray-800">{studentInfo.examDate}</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Mục tiêu thi chính thức</p>
+              <p className="text-sm font-black text-slate-800 mt-0.5">{studentInfo.examDate}</p>
             </div>
           </div>
         </header>
 
-        {/* --- KHU VỰC THÔNG BÁO KHÓA TÀI KHOẢN --- */}
         {studentInfo.isLocked && (
-          <div className="mb-8 bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-4 shadow-sm animate-[fadeIn_0.5s_ease-out]">
-            <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-2xl shrink-0">
+          <div className="bg-amber-50/80 border border-amber-200/80 rounded-3xl p-6 flex flex-col md:flex-row items-center gap-4 shadow-sm animate-[fadeIn_0.3s_ease-out]">
+            <div className="w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-inner">
               🔒
             </div>
             <div>
-              <h3 className="text-lg font-bold text-amber-800">Tài khoản đang chờ duyệt</h3>
-              <p className="text-amber-700 font-medium text-sm mt-1">
-                Bạn chưa được Thầy Thành xếp lớp. Các tính năng học tập sẽ bị khóa cho đến khi Admin phê duyệt.
+              <h3 className="text-sm font-black text-amber-900">Tài khoản đang chờ xếp lớp</h3>
+              <p className="text-amber-800/90 font-medium text-xs mt-0.5 leading-relaxed">
+                Bạn chưa được Thầy Thành phê duyệt vào lớp học. Các tính năng luyện tập sẽ tự động mở khóa sau khi tài khoản được xếp lớp.
               </p>
             </div>
           </div>
         )}
 
-        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          Lộ trình: <span className={studentInfo.isLocked ? "text-amber-600" : "text-blue-600"}>{studentInfo.className}</span>
-        </h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!studentInfo.isLocked && streakData && (
+          <div className="bg-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden animate-[fadeIn_0.3s_ease-out]">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex items-center gap-5 z-10">
+              <div className="w-16 h-16 md:w-20 md:h-20 bg-white/10 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center border border-white/10 shadow-inner shrink-0">
+                <span className="text-2xl md:text-3xl">🔥</span>
+                <span className="text-xs font-black mt-0.5">{streakData.currentStreak} ngày</span>
+              </div>
+              
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-lg md:text-xl font-black tracking-tight">Thử Thách Lộ Trình 80 Ngày</h3>
+                  <span className="bg-blue-600/90 text-white text-[11px] font-black px-3 py-0.5 rounded-full">
+                    Ngày {streakData.currentDayIndex} / 80
+                  </span>
+                </div>
+                
+                <p className="text-slate-300 text-xs mt-1.5 font-medium leading-relaxed max-w-xl">
+                  {streakData.completedToday 
+                    ? "🎉 Tuyệt vời! Bạn đã hoàn thành nhiệm vụ Streak hôm nay. Hãy tiếp tục giữ vững phong độ vào ngày mai nhé!" 
+                    : `Nhiệm vụ hôm nay: Vượt qua 1 bài tập thử thách thuộc kỹ năng ${
+                        streakData.moduleType === 'MOCK_TEST' ? 'Thi Thử (Mock Test) 📝' :
+                        streakData.moduleType === 'DICTATION' ? 'Nghe Chép Chính Tả 🎧' :
+                        streakData.moduleType === 'VOCAB' ? 'Trắc Nghiệm Từ Vựng 📚' :
+                        streakData.moduleType === 'LISTENING_VOCAB_TEST' ? 'Kiểm Tra Phản Xạ Listening ⚡' :
+                        streakData.moduleType === 'SPEAKING' ? 'Luyện Nói Phát Âm 🎙️' : 'Dịch Câu Luyện Viết ✍️'
+                      }`}
+                </p>
+              </div>
+            </div>
+
+            <div className="z-10 shrink-0 w-full md:w-auto flex justify-end">
+              {!streakData.completedToday && streakData.exercise ? (
+                <button 
+                  onClick={handleGoToStreakExercise}
+                  className="w-full md:w-auto px-7 py-3.5 bg-blue-600 hover:bg-blue-500 active:scale-95 font-extrabold rounded-2xl text-xs shadow-lg shadow-blue-600/30 transition-all cursor-pointer text-white"
+                >
+                  Vào Làm Bài Ngay ➔
+                </button>
+              ) : !streakData.completedToday && !streakData.exercise ? (
+                <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-4 py-2.5 rounded-xl font-bold">
+                  Lớp học hiện đã hết bài tập mới!
+                </span>
+              ) : (
+                <div className="flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-5 py-3 rounded-2xl font-bold text-xs">
+                  <span>✓</span> Đã Hoàn Thành Hôm Nay
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <h2 className="text-xs font-black uppercase text-slate-400 tracking-wider flex items-center gap-2">
+            Lớp học: <span className={studentInfo.isLocked ? "text-amber-600" : "text-blue-600"}>{studentInfo.className}</span>
+          </h2>
           
-          {/* Card Mock Test */}
-          <div 
-            onClick={() => !isMockTestLocked && navigate('/mock-test')}
-            className={`group bg-white p-6 rounded-3xl border relative overflow-hidden ${isMockTestLocked ? 'border-gray-200 opacity-60 cursor-not-allowed grayscale-[30%]' : 'border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-blue-200 transition-all duration-300 cursor-pointer'}`}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-            <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-sm">
-              📝
+          {/* GRID 6 CARD KỸ NĂNG */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            
+            {/* Card 1: Mock Test */}
+            <div 
+              onClick={() => !isMockTestLocked && navigate('/mock-test')}
+              className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                isMockTestLocked 
+                  ? 'bg-slate-100/60 border-slate-200/60 opacity-60 cursor-not-allowed' 
+                  : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer active:scale-[0.99] group'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-blue-100">
+                  📝
+                </div>
+                {isMockTestLocked ? (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-lg">🔒 Đang khóa</span>
+                ) : (
+                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">Môi trường thi</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">Mock Test</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Đề thi thật Reading & Listening mô phỏng chuẩn giao diện thi.</p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2 flex justify-between items-center">
-              Mock Test
-              {isMockTestLocked && <span className="text-gray-400 text-sm">🔒</span>}
-            </h3>
-            <p className="text-gray-500 text-sm font-medium leading-relaxed">Đề thi thật Reading & Listening mô phỏng môi trường thi.</p>
-          </div>
 
-          {/* Card Dictation */}
-          <div 
-            onClick={() => !isDictationLocked && navigate('/dictation')}
-            className={`group bg-white p-6 rounded-3xl border relative overflow-hidden ${isDictationLocked ? 'border-gray-200 opacity-60 cursor-not-allowed grayscale-[30%]' : 'border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-green-200 transition-all duration-300 cursor-pointer'}`}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-            <div className="w-14 h-14 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-sm">
-              🎧
+            {/* Card 2: Dictation */}
+            <div 
+              onClick={() => !isDictationLocked && navigate('/dictation')}
+              className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                isDictationLocked 
+                  ? 'bg-slate-100/60 border-slate-200/60 opacity-60 cursor-not-allowed' 
+                  : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-emerald-300 cursor-pointer active:scale-[0.99] group'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-emerald-100">
+                  🎧
+                </div>
+                {isDictationLocked ? (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-lg">🔒 Đang khóa</span>
+                ) : (
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">Nghe chép</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-600 transition-colors">Dictation</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Luyện nghe chép chính tả chính xác từng từ bám sát bài học.</p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2 flex justify-between items-center">
-              Dictation
-              {isDictationLocked && <span className="text-gray-400 text-sm">🔒</span>}
-            </h3>
-            <p className="text-gray-500 text-sm font-medium leading-relaxed">Luyện nghe chép chính tả bám sát nội dung bài học.</p>
-          </div>
 
-          {/* Card Vocabulary */}
-          <div 
-            onClick={() => !isVocabLocked && navigate('/vocabulary')}
-            className={`group bg-white p-6 rounded-3xl border relative overflow-hidden ${isVocabLocked ? 'border-gray-200 opacity-60 cursor-not-allowed grayscale-[30%]' : 'border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-purple-200 transition-all duration-300 cursor-pointer'}`}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-            <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-sm">
-              📚
+            {/* Card 3: Vocabulary */}
+            <div 
+              onClick={() => !isVocabLocked && navigate('/vocabulary')}
+              className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                isVocabLocked 
+                  ? 'bg-slate-100/60 border-slate-200/60 opacity-60 cursor-not-allowed' 
+                  : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-purple-300 cursor-pointer active:scale-[0.99] group'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-purple-100">
+                  📚
+                </div>
+                {isVocabLocked ? (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-lg">🔒 Đang khóa</span>
+                ) : (
+                  <span className="text-[10px] font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md">Từ vựng</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-purple-600 transition-colors">Vocabulary</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Trắc nghiệm từ vựng phản xạ nhanh theo các chủ đề IELTS.</p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2 flex justify-between items-center">
-              Vocabulary
-              {isVocabLocked && <span className="text-gray-400 text-sm">🔒</span>}
-            </h3>
-            <p className="text-gray-500 text-sm font-medium leading-relaxed">Trắc nghiệm từ vựng 4 lựa chọn có hỗ trợ phát âm tự động.</p>
-          </div>
-          
-          {/* Card Speaking */}
-          <div 
-            onClick={() => !isSpeakingLocked && navigate('/speaking')}
-            className={`group bg-white p-6 rounded-3xl border relative overflow-hidden ${isSpeakingLocked ? 'border-gray-200 opacity-60 cursor-not-allowed grayscale-[30%]' : 'border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-orange-200 transition-all duration-300 cursor-pointer'}`}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-            <div className="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-sm">
-              🎙️
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2 flex justify-between items-center">
-              Speaking
-              {isSpeakingLocked && <span className="text-gray-400 text-sm">🔒</span>}
-            </h3>
-            <p className="text-gray-500 text-sm font-medium leading-relaxed">Thu âm và phân tích lỗi sai IPA trực tiếp từ AI.</p>
-          </div>
 
-          {/* Card Writing */}
-          <div 
-            onClick={() => !isWritingLocked && navigate('/writing')}
-            className={`group bg-white p-6 rounded-3xl border relative overflow-hidden ${isWritingLocked ? 'border-gray-200 opacity-60 cursor-not-allowed grayscale-[30%]' : 'border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-rose-200 transition-all duration-300 cursor-pointer'}`}
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-            <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-sm">
-              ✍️
+            {/* Card 4: Listening Vocab */}
+            <div 
+              onClick={() => !isListeningVocabLocked && navigate('/listening-vocab')}
+              className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                isListeningVocabLocked 
+                  ? 'bg-slate-100/60 border-slate-200/60 opacity-60 cursor-not-allowed' 
+                  : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-amber-300 cursor-pointer active:scale-[0.99] group'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-amber-100">
+                  ⚡
+                </div>
+                {isListeningVocabLocked ? (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-lg">🔒 Đang khóa</span>
+                ) : (
+                  <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md">Phản xạ nghe</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-amber-600 transition-colors">Listening Vocab</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Kiểm tra phản xạ từ vựng nghe tốc độ 5 giây/câu.</p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2 flex justify-between items-center">
-              Writing
-              {isWritingLocked && <span className="text-gray-400 text-sm">🔒</span>}
-            </h3>
-            <p className="text-gray-500 text-sm font-medium leading-relaxed">Dịch câu tiếng Việt sang tiếng Anh sử dụng Keywords.</p>
-          </div>
 
+            {/* Card 5: Speaking */}
+            <div 
+              onClick={() => !isSpeakingLocked && navigate('/speaking')}
+              className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                isSpeakingLocked 
+                  ? 'bg-slate-100/60 border-slate-200/60 opacity-60 cursor-not-allowed' 
+                  : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-indigo-300 cursor-pointer active:scale-[0.99] group'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-indigo-100">
+                  🎙️
+                </div>
+                {isSpeakingLocked ? (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-lg">🔒 Đang khóa</span>
+                ) : (
+                  <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">Luyện nói IPA</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">Speaking</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Thu âm shadowing và phân tích độ chuẩn phát âm chuẩn IPA.</p>
+              </div>
+            </div>
+
+            {/* Card 6: Writing */}
+            <div 
+              onClick={() => !isWritingLocked && navigate('/writing')}
+              className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden ${
+                isWritingLocked 
+                  ? 'bg-slate-100/60 border-slate-200/60 opacity-60 cursor-not-allowed' 
+                  : 'bg-white border-slate-200/80 shadow-sm hover:shadow-md hover:border-rose-300 cursor-pointer active:scale-[0.99] group'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-rose-100">
+                  ✍️
+                </div>
+                {isWritingLocked ? (
+                  <span className="text-[11px] font-bold text-slate-400 bg-slate-200/60 px-2.5 py-1 rounded-lg">🔒 Đang khóa</span>
+                ) : (
+                  <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md">Dịch câu</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-rose-600 transition-colors">Writing</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Luyện dịch câu tiếng Việt sang tiếng Anh chuẩn Keywords & Cấu trúc.</p>
+              </div>
+            </div>
+
+          </div>
         </div>
 
       </main>
 
-      {/* --- Thanh Điều Hướng Dưới Đáy (Mobile Only) --- */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around p-3 pb-safe z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.03)]">
-        <button className="flex flex-col items-center gap-1 text-blue-600">
-          <span className="text-xl">🏠</span>
-          <span className="text-[10px] font-bold">Home</span>
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-slate-200 flex justify-around p-2.5 pb-safe z-50 shadow-lg">
+        <button className="flex flex-col items-center gap-1 text-blue-600 font-bold p-1 cursor-pointer">
+          <span className="text-lg">🏠</span>
+          <span className="text-[10px]">Lộ trình</span>
         </button>
-        <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors">
-          <span className="text-xl">🏆</span>
-          <span className="text-[10px] font-bold">Rank</span>
+        
+        <button 
+          onClick={() => !studentInfo.isLocked && navigate('/leaderboard')} 
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-slate-800 font-bold p-1 transition-colors cursor-pointer"
+        >
+          <span className="text-lg">🏆</span>
+          <span className="text-[10px]">Xếp hạng</span>
         </button>
-        <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-800 transition-colors">
-          <span className="text-xl">👤</span>
-          <span className="text-[10px] font-bold">Profile</span>
+        
+        <button 
+          onClick={handleLogout} 
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-rose-600 font-bold p-1 transition-colors cursor-pointer"
+        >
+          <span className="text-lg">🚪</span>
+          <span className="text-[10px]">Thoát</span>
         </button>
       </div>
 

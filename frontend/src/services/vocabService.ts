@@ -9,5 +9,11 @@ export const vocabService = {
   },
   submitQuiz: async (topicId: number, answers: Record<number, string>, duration: number) => {
     return await axiosClient.post(`/api/vocab/${topicId}/submit?duration=${duration}`, answers);
+  },
+  // ⚡ MỚI: NỘP BÀI KIỂM TRA PHẢN XẠ LISTENING VOCAB
+  submitListeningVocabScore: async (topicId: number, score: number, durationSeconds: number) => {
+    return await axiosClient.post(`/api/vocab/topics/${topicId}/listening-submit`, { score }, {
+      params: { duration: durationSeconds }
+    });
   }
 };

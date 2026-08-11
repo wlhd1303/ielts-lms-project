@@ -17,7 +17,8 @@ public class Permission {
     @Column(name = "feature_key", nullable = false)
     private String featureKey; // Ví dụ: "SPEAKING", "DICTATION", "MOCK_TEST"
 
-    @Column(name = "is_active", nullable = false)
+    // ⚡ ĐÃ SỬA: Bổ sung columnDefinition = "BIT(1)" để khớp tuyệt đối với MySQL bit(1)
+    @Column(name = "is_active", nullable = false, columnDefinition = "BIT(1)")
     private boolean isActive = false; // Mặc định tạo ra là bị khóa (false)
 
     // Quyền này thuộc về Học viên nào?

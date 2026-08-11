@@ -12,25 +12,39 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/vocab")
 public class VocabController {
+
     private final VocabService vocabService;
 
     public VocabController(VocabService vocabService) {
         this.vocabService = vocabService;
     }
 
-    // API HỌC VIÊN
+    // --- API HỌC VIÊN ---
     @GetMapping("/class/{classId}/topics")
-    public List<VocabTopic> getTopicsByClass(@PathVariable Long classId) { return vocabService.getTopicsByClass(classId); }
+    public List<VocabTopic> getTopicsByClass(@PathVariable Long classId) { 
+        return vocabService.getTopicsByClass(classId); 
+    }
 
     @GetMapping("/topics/{topicId}/words")
-    public List<VocabWord> getWordsByTopic(@PathVariable Long topicId) { return vocabService.getWordsByTopic(topicId); }
+    public List<VocabWord> getWordsByTopic(@PathVariable Long topicId) { 
+        return vocabService.getWordsByTopic(topicId); 
+    }
 
     @PostMapping("/{topicId}/submit")
     public StudyRecord submit(@PathVariable Long topicId, @RequestBody Map<Long, String> answers, @RequestParam int duration) {
         return vocabService.gradeVocabTest(topicId, answers, duration);
     }
 
-    // API ADMIN (THÊM, XÓA)
+    // ⚡ MỚI: API NỘP BÀI KIỂM TRA PHẢN XẠ LISTENING VOCAB
+    @PostMapping("/topics/{topicId}/listening-submit")
+    public StudyRecord submitListeningVocabScore(@PathVariable Long topicId, 
+                                                 @RequestBody Map<String, Float> payload,
+                                                 @RequestParam int duration) {
+        float score = payload.get("score");
+        return vocabService.submitListeningVocabScore(topicId, score, duration);
+    }
+
+    // --- API ADMIN (THÊM, XÓA) ---
     @PostMapping("/class/{classId}/topics")
     public VocabTopic createTopic(@PathVariable Long classId, @RequestBody VocabTopic topic) {
         return vocabService.createTopic(classId, topic);

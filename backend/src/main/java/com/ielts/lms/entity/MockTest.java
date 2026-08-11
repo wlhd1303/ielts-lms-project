@@ -22,6 +22,7 @@ public class MockTest {
     @Column(nullable = false, length = 20)
     private String type; // READING hoặc LISTENING
 
+    // Đảm bảo có 2 dòng mapping này:
     @Column(name = "pdf_url")
     private String pdfUrl;
 

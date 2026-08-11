@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../../services/authService'; // Import service gọi API
+import { authService } from '../../services/authService';
 
 const LoginScreen = () => {
   const navigate = useNavigate();
@@ -10,7 +10,7 @@ const LoginScreen = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrorMessage(''); // Xóa lỗi khi người dùng bắt đầu gõ lại
+    setErrorMessage('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,68 +19,62 @@ const LoginScreen = () => {
     setErrorMessage('');
 
     try {
-      // Gọi API xuống Spring Boot
       const response: any = await authService.login(formData);
-      
-      // Thành công: Lưu accessToken vào localStorage
       localStorage.setItem('token', response.accessToken);
       
-      // Kiểm tra Role để phân luồng (Lấy từ AuthResponse)
       if (response.role === 'ROLE_ADMIN') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
       }
     } catch (error: any) {
-      // Bắt lỗi từ Backend (Sai mật khẩu, không tìm thấy tài khoản...)
-      setErrorMessage(error.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại!');
+      setErrorMessage(error.response?.data?.message || 'Tên đăng nhập hoặc mật khẩu không đúng!');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center font-sans relative">
-      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-br from-blue-600 to-blue-800 rounded-b-[4rem] shadow-lg opacity-90 transform -skew-y-2"></div>
+    <div className="min-h-screen bg-slate-900 font-sans flex items-center justify-center p-4 relative overflow-hidden text-slate-800">
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.07)] p-10 overflow-hidden">
+      <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-8 md:p-10">
         
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 mb-4 shadow-sm">
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center font-black text-2xl mx-auto mb-3 shadow-lg shadow-blue-500/20">
+            T
           </div>
-          <h2 className="text-3xl font-bold text-gray-800 tracking-tight">IELTS LMS</h2>
-          <p className="text-sm text-gray-500 mt-2 font-medium">Nền tảng học thuật Thầy Thành</p>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">IELTS LMS PORTAL</h2>
+          <p className="text-xs font-semibold text-slate-400 mt-1">Hệ thống Luyện thi & Chấm điểm IELTS Thầy Thành</p>
         </div>
 
         {errorMessage && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm font-semibold text-center">
-            {errorMessage}
+          <div className="mb-6 p-3.5 bg-rose-50 border border-rose-200/60 rounded-2xl text-rose-700 text-xs font-bold text-center">
+            ⚠️ {errorMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-sm font-semibold text-gray-700 ml-1">Tên đăng nhập</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Tên đăng nhập</label>
             <input
               type="text"
               name="username"
-              placeholder="Ví dụ: student2026"
-              className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-all duration-300"
+              placeholder="Nhập tên đăng nhập..."
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-blue-600 focus:bg-white transition-all"
               onChange={handleChange}
               required
             />
           </div>
 
-          <div className="space-y-1 relative">
-            <label className="text-sm font-semibold text-gray-700 ml-1">Mật khẩu</label>
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Mật khẩu</label>
             <input
               type="password"
               name="password"
               placeholder="••••••••"
-              className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 focus:bg-white transition-all duration-300 tracking-widest"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 outline-none focus:border-blue-600 focus:bg-white transition-all tracking-widest"
               onChange={handleChange}
               required
             />
@@ -89,31 +83,25 @@ const LoginScreen = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-base font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 active:scale-[0.98] transition-all duration-200 shadow-lg shadow-blue-600/30 overflow-hidden"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/25 active:scale-[0.98] mt-2 flex items-center justify-center"
           >
             {isLoading ? (
-              <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              "Vào Lớp Học"
+              "Đăng Nhập Vào Học"
             )}
-            <div className="absolute inset-0 -translate-x-full group-hover:animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           </button>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="mt-8 text-center border-t border-slate-100 pt-4">
+          <p className="text-xs text-slate-400 font-semibold">
             Chưa có tài khoản?{' '}
-            <span 
-              onClick={() => navigate('/register')} 
-              className="font-semibold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
-            >
-              Đăng ký ngay
+            <span onClick={() => navigate('/register')} className="text-blue-600 hover:underline font-extrabold cursor-pointer">
+              Đăng ký xét duyệt
             </span>
           </p>
         </div>
+
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ package com.ielts.lms.controller;
 import com.ielts.lms.dto.AuthResponse;
 import com.ielts.lms.dto.LoginRequest;
 import com.ielts.lms.dto.RegisterRequest;
+import com.ielts.lms.entity.StudentClass;
 import com.ielts.lms.entity.User;
 import com.ielts.lms.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -56,10 +57,24 @@ public class UserController {
         return userService.approveAndAssignClass(userId, classId, features);
     }
 
-    // --- ĐƯỜNG LINK MỚI: CẬP NHẬT QUYỀN CHO HỌC VIÊN ĐANG HỌC ---
+    // --- ĐƯỜNG LINK: CẬP NHẬT QUYỀN CHO HỌC VIÊN ĐANG HỌC ---
     @PutMapping("/{userId}/permissions")
     public User updatePermissions(@PathVariable Long userId, @RequestBody Map<String, List<String>> body) {
         List<String> features = body.get("features");
         return userService.updatePermissions(userId, features);
+    }
+
+    // --- TÍNH NĂNG MỚI: ADMIN TẠO LỚP HỌC MỚI ---
+    @PostMapping("/classes")
+    public StudentClass createClass(@RequestBody Map<String, String> body) {
+        String className = body.get("name");
+        return userService.createClass(className);
+    }
+
+    // --- TÍNH NĂNG MỚI: ADMIN ĐỔI LỚP HỌC VIÊN ---
+    @PutMapping("/{userId}/class")
+    public User updateStudentClass(@PathVariable Long userId, @RequestBody Map<String, Long> body) {
+        Long classId = body.get("classId");
+        return userService.updateStudentClass(userId, classId);
     }
 }

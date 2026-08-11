@@ -9,9 +9,10 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                // Thêm domain frontend chạy trên Render vào danh sách được phép
+                // Thêm domain Render chuẩn từ Console của bạn vào đây
                 .allowedOrigins(
                     "http://localhost:5173", 
+                    "https://ielts-lms-project.onrender.com",
                     "https://ielts-lms-project-1.onrender.com"
                 ) 
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")

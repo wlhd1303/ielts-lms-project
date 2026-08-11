@@ -1,17 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import { dictationService } from '../../services/dictationService';
+import { adminService } from '../../services/adminService';
 
 type ViewState = 'LOADING' | 'TOPIC_SELECTION' | 'PLAYING' | 'FINISHED';
 
 const DictationPlayer = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const streakAudioId = searchParams.get('streakAudioId');
+
   const audioRef = useRef<HTMLAudioElement>(null);
   
   // Trạng thái màn hình
   const [viewState, setViewState] = useState<ViewState>('LOADING');
   const [topics, setTopics] = useState<any[]>([]);
+  const [completedAudioIds, setCompletedAudioIds] = useState<Set<number>>(new Set());
+  const [topicAudioMap, setTopicAudioMap] = useState<Record<number, number[]>>({});
   
   // Trạng thái bài học
   const [currentTopicName, setCurrentTopicName] = useState<string>('');
@@ -25,56 +31,99 @@ const DictationPlayer = () => {
   const [userInputs, setUserInputs] = useState<Record<number, string>>({});
   const [submitResult, setSubmitResult] = useState<any>(null);
 
-  // 1. KHI VỪA VÀO TRANG: LOAD DANH SÁCH CHỦ ĐỀ
+  // 1. KHI VỪA VÀO TRANG: LOAD DANH SÁCH CHỦ ĐỀ, AUDIO VÀ DỮ LIỆU BÀI ĐÃ HOÀN THÀNH
   useEffect(() => {
-    const fetchTopics = async () => {
+    const fetchTopicsAndRecords = async () => {
       try {
         const profileRes: any = await authService.getProfile();
         const userData = profileRes?.data?.data || profileRes?.data || profileRes;
         const classId = userData.studentClass?.id;
 
         if (!classId) {
-          alert("Bạn chưa được xếp lớp!"); return navigate('/dashboard');
+          alert("Bạn chưa được xếp lớp!"); 
+          return navigate('/dashboard');
         }
 
+        // ⚡ 1. Lấy lịch sử nộp bài của học viên (Danh sách Audio ID đã nộp)[cite: 8]
+        const recordsRes: any = await adminService.getRecentActivities();
+        const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
+        const doneAudioSet = new Set<number>(
+          records
+            .filter((r: any) => r.moduleType === 'DICTATION' && r.user?.id === userData.id)
+            .map((r: any) => Number(r.refId))
+        );
+        setCompletedAudioIds(doneAudioSet);
+
+        // ⚡ 2. Lấy danh sách Topics[cite: 12]
         const res: any = await dictationService.getTopicsByClass(classId);
-        setTopics(Array.isArray(res) ? res : (res?.data || []));
+        const topicList = Array.isArray(res) ? res : (res?.data || []);
+        setTopics(topicList);
+
+        // ⚡ 3. Quét lấy mảng Audio ID thuộc về từng Topic để đối soát chính xác[cite: 12]
+        const tAudioMap: Record<number, number[]> = {};
+        for (const t of topicList) {
+          try {
+            const audiosRes: any = await dictationService.getAudiosByTopic(t.id);
+            const audios = Array.isArray(audiosRes) ? audiosRes : (audiosRes?.data || []);
+            tAudioMap[t.id] = audios.map((a: any) => a.id);
+
+            // ⚡ Mở bài trực tiếp nếu tới từ nút Streak trên Dashboard
+            if (streakAudioId) {
+              const targetAudioId = Number(streakAudioId);
+              const found = audios.find((a: any) => a.id === targetAudioId);
+              if (found) {
+                await handleStartAudioDirect(t.name, found.id, found.audioUrl || found.audio_url);
+                return;
+              }
+            }
+          } catch (e) {
+            tAudioMap[t.id] = [];
+          }
+        }
+        setTopicAudioMap(tAudioMap);
+
         setViewState('TOPIC_SELECTION');
       } catch (error) {
         navigate('/dashboard');
       }
     };
-    fetchTopics();
-  }, [navigate]);
+    fetchTopicsAndRecords();
+  }, [navigate, streakAudioId]);
 
-  // 2. KHI CHỌN CHỦ ĐỀ: LOAD AUDIO VÀ CÁC ĐOẠN CẮT
+  const handleStartAudioDirect = async (topicName: string, audioId: number, url: string) => {
+    try {
+      const questionsRes: any = await dictationService.getQuestionsByAudio(audioId);
+      const qs = Array.isArray(questionsRes) ? questionsRes : (questionsRes?.data || []);
+      if (qs.length === 0) {
+        alert("Chưa có đoạn cắt cho bài nghe này!"); 
+        return setViewState('TOPIC_SELECTION');
+      }
+      setCurrentTopicName(topicName);
+      setCurrentAudioId(audioId);
+      setAudioUrl(url);
+      setQuestions(qs);
+      setUserInputs({});
+      setStartTime(Date.now());
+      setViewState('PLAYING');
+    } catch (e) {
+      setViewState('TOPIC_SELECTION');
+    }
+  };
+
+  // 2. KHI CHỌN CHỦ ĐỀ
   const handleStartTopic = async (topicId: number, topicName: string) => {
     setViewState('LOADING');
     try {
       const audiosRes: any = await dictationService.getAudiosByTopic(topicId);
       const audios = Array.isArray(audiosRes) ? audiosRes : (audiosRes?.data || []);
-      
       if (audios.length === 0) {
-        alert("Chủ đề này chưa có bài nghe!"); return setViewState('TOPIC_SELECTION');
+        alert("Chủ đề này chưa có bài nghe!"); 
+        return setViewState('TOPIC_SELECTION');
       }
-
-      const audio = audios[0]; 
-      const questionsRes: any = await dictationService.getQuestionsByAudio(audio.id);
-      const qs = Array.isArray(questionsRes) ? questionsRes : (questionsRes?.data || []);
-
-      if (qs.length === 0) {
-        alert("Chưa có đoạn cắt nào cho bài nghe này!"); return setViewState('TOPIC_SELECTION');
-      }
-
-      setCurrentTopicName(topicName);
-      setCurrentAudioId(audio.id);
-      setAudioUrl(audio.audioUrl || audio.audio_url);
-      setQuestions(qs);
-      setUserInputs({});
-      setStartTime(Date.now());
-      setViewState('PLAYING');
+      await handleStartAudioDirect(topicName, audios[0].id, audios[0].audioUrl || audios[0].audio_url);
     } catch (error) {
-      alert("Lỗi tải dữ liệu bài học!"); setViewState('TOPIC_SELECTION');
+      alert("Lỗi tải dữ liệu bài học!"); 
+      setViewState('TOPIC_SELECTION');
     }
   };
 
@@ -85,7 +134,6 @@ const DictationPlayer = () => {
       audioRef.current.play();
       setCurrentPlayingIndex(index);
       
-      // Auto pause khi hết đoạn time
       const checkTime = setInterval(() => {
         if (audioRef.current && audioRef.current.currentTime >= end) {
           audioRef.current.pause();
@@ -103,58 +151,100 @@ const DictationPlayer = () => {
     setViewState('LOADING');
     try {
       const duration = Math.floor((Date.now() - startTime) / 1000);
-      const res = await dictationService.submitDictation(currentAudioId!, userInputs, duration);
-      setSubmitResult(res);
+      const res: any = await dictationService.submitDictation(currentAudioId!, userInputs, duration);
+      setSubmitResult(res?.data || res);
+
+      // ⚡ Tự động cập nhật Audio ID vừa làm vào Set hoàn thành
+      if (currentAudioId) {
+        setCompletedAudioIds(prev => new Set(prev).add(currentAudioId));
+      }
+
       setViewState('FINISHED');
     } catch (error) {
-      alert("Lỗi nộp bài!"); setViewState('PLAYING');
+      alert("Lỗi nộp bài!"); 
+      setViewState('PLAYING');
     }
   };
-
 
   // --- GIAO DIỆN 1: ĐANG TẢI DỮ LIỆU ---
   if (viewState === 'LOADING') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <svg className="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-bold text-slate-400">Đang chuẩn bị bài nghe...</span>
+        </div>
       </div>
     );
   }
 
-  // --- GIAO DIỆN 2: CHỌN CHỦ ĐỀ NGHE ---
+  // --- GIAO DIỆN 2: CHỌN CHỦ ĐỀ NGHE (SỬA ĐỐI SOÁT KEY ĐỂ HIỂN THỊ CỜ DONE) ---
   if (viewState === 'TOPIC_SELECTION') {
     return (
-      <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center gap-4 shadow-sm z-10">
-          <button onClick={() => navigate('/dashboard')} className="p-2 bg-gray-50 text-gray-500 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+      <div className="min-h-screen bg-slate-50 font-sans flex flex-col text-slate-800">
+        <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center gap-4 shadow-sm z-10 sticky top-0">
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="p-2.5 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+          >
+            ←
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-800 tracking-tight">Dictation Topics</h1>
-            <p className="text-xs text-gray-500 font-medium">Chọn bài tập nghe chép chính tả</p>
+            <h1 className="text-base font-black text-slate-900 tracking-tight">Dictation Topics</h1>
+            <p className="text-[11px] font-semibold text-slate-400">Chọn chủ đề luyện tập nghe chép chính tả</p>
           </div>
         </header>
         
         <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full">
           {topics.length === 0 ? (
-            <div className="bg-white p-10 rounded-3xl border border-gray-100 text-center shadow-sm">
-              <span className="text-5xl mb-4 block">🎧</span>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Chưa có bài tập nào</h2>
-              <p className="text-gray-500">Giáo viên chưa thêm bài nghe cho lớp của bạn.</p>
+            <div className="bg-white p-12 rounded-3xl border border-slate-200/80 text-center shadow-sm">
+              <span className="text-4xl mb-3 block">🎧</span>
+              <p className="text-xs text-slate-500 font-bold">Chưa có bài luyện nghe nào cho lớp của bạn.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {topics.map((t) => (
-                <div key={t.id} onClick={() => handleStartTopic(t.id, t.name)} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 cursor-pointer transition-all group overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl mb-4 shadow-sm">🎧</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-1">{t.name}</h3>
-                  <div className="mt-4 flex items-center text-sm font-bold text-blue-600">Bắt đầu <span className="ml-2 group-hover:translate-x-1 transition-transform">➔</span></div>
-                </div>
-              ))}
+              {topics.map((t) => {
+                // ⚡ Kiểm tra xem có ít nhất 1 Audio thuộc Topic này nằm trong danh sách bài đã làm hay chưa
+                const topicAudios = topicAudioMap[t.id] || [];
+                const isDone = topicAudios.some(audioId => completedAudioIds.has(audioId));
+
+                return (
+                  <div 
+                    key={t.id} 
+                    onClick={() => handleStartTopic(t.id, t.name)} 
+                    className={`bg-white p-6 rounded-3xl border shadow-sm cursor-pointer transition-all flex flex-col justify-between space-y-4 group active:scale-[0.99] ${
+                      isDone ? 'border-emerald-300 bg-emerald-50/20' : 'border-slate-200/80 hover:border-emerald-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner border border-emerald-100">
+                        🎧
+                      </div>
+
+                      {/* ⚡ HIỂN THỊ CỜ DONE RÕ RÀNG */}
+                      {isDone ? (
+                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300">
+                          ✓ DONE
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                          Sẵn sàng
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-600 transition-colors">{t.name}</h3>
+                      <p className="text-xs text-slate-400 font-medium mt-1">Luyện phản xạ nghe chi tiết từng câu</p>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-emerald-600">
+                      <span>{isDone ? 'Luyện tập lại' : 'Bắt đầu bài học'}</span>
+                      <span className="group-hover:translate-x-1 transition-transform">➔</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </main>
@@ -162,26 +252,103 @@ const DictationPlayer = () => {
     );
   }
 
-  // --- GIAO DIỆN 3: KẾT QUẢ ---
+  // --- GIAO DIỆN 3: MÀN HÌNH FINISHED ---
   if (viewState === 'FINISHED') {
+    const accuracy = Math.round(submitResult?.score || 0);
+
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-        <div className="bg-white p-10 rounded-3xl shadow-xl border border-gray-100 max-w-md w-full text-center animate-[fadeIn_0.5s_ease-out]">
-          <div className="w-24 h-24 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-5xl mx-auto mb-6">🎉</div>
-          <h2 className="text-3xl font-black text-gray-800 mb-2">Hoàn thành!</h2>
-          <p className="text-gray-500 mb-8 font-medium">Bạn đã hoàn thành xuất sắc bài chép chính tả.</p>
-          
-          <div className="flex justify-center gap-6 mb-10">
-            <div className="bg-green-50 p-4 rounded-2xl w-32 shadow-sm">
-              <p className="text-xs font-bold text-green-500 uppercase tracking-wider mb-1">Độ chính xác</p>
-              <p className="text-3xl font-black text-green-700">{Math.round(submitResult?.score || 0)}%</p>
+      <div className="min-h-screen bg-slate-50 font-sans flex flex-col items-center p-4 md:p-8 animate-[fadeIn_0.3s_ease-out]">
+        <audio ref={audioRef} src={audioUrl} />
+
+        <div className="w-full max-w-3xl space-y-6">
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200/80 text-center relative overflow-hidden">
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
+              🎉
             </div>
-            <div className="bg-blue-50 p-4 rounded-2xl w-32 shadow-sm">
-              <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Thời gian</p>
-              <p className="text-3xl font-black text-blue-700">{submitResult?.durationSeconds || 0}s</p>
+            <h2 className="text-2xl font-black text-slate-900">Hoàn Thành Bài Nghe!</h2>
+            <p className="text-slate-400 text-xs font-semibold mt-1">Chi tiết kết quả bài làm của bạn</p>
+
+            <div className="flex justify-center gap-4 mt-6">
+              <div className="bg-emerald-50/80 border border-emerald-100 p-4 rounded-2xl w-36 shadow-sm">
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider mb-1">Độ chính xác</p>
+                <p className="text-3xl font-black text-emerald-700">{accuracy}%</p>
+              </div>
+              <div className="bg-blue-50/80 border border-blue-100 p-4 rounded-2xl w-36 shadow-sm">
+                <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">Thời gian</p>
+                <p className="text-2xl font-black text-blue-700 mt-1">{submitResult?.durationSeconds || 0}s</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <button 
+                onClick={() => setViewState('TOPIC_SELECTION')} 
+                className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95"
+              >
+                ← Chọn Chủ Đề Khác
+              </button>
             </div>
           </div>
-          <button onClick={() => setViewState('TOPIC_SELECTION')} className="w-full py-4 bg-gray-900 text-white font-bold rounded-xl shadow-lg hover:bg-gray-800 transition-all">Làm bài khác</button>
+
+          <div className="space-y-4">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-2">
+              <span>🔍</span> Bảng so sánh kết quả ({questions.length} đoạn)
+            </h3>
+
+            {questions.map((q, index) => {
+              const userInput = (userInputs[q.id] || '').trim();
+              const transcript = q.transcript || '';
+              const isPlayingThis = currentPlayingIndex === index;
+
+              const startTimestamp = q.startTime ?? q.start_time ?? 0;
+              const endTimestamp = q.endTime ?? q.end_time ?? 0;
+
+              return (
+                <div key={q.id} className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-4 pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-2.5 py-1 rounded-md uppercase">
+                        Đoạn #{index + 1}
+                      </span>
+                      <span className="text-xs font-mono font-semibold text-slate-400">
+                        ({startTimestamp}s - {endTimestamp}s)
+                      </span>
+                    </div>
+
+                    <button 
+                      onClick={() => playSegment(startTimestamp, endTimestamp, index)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${
+                        isPlayingThis 
+                          ? 'bg-amber-500 text-white shadow-md' 
+                          : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600'
+                      }`}
+                    >
+                      {isPlayingThis ? '⏸️ Đang phát...' : '🔊 Nghe lại đoạn này'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100/80 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider block">
+                        ✓ Đáp án chính xác (Transcript)
+                      </span>
+                      <p className="font-bold text-slate-800 text-xs md:text-sm leading-relaxed">
+                        {transcript}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                        ✍️ Bài gõ của bạn
+                      </span>
+                      <p className={`font-semibold text-xs md:text-sm leading-relaxed ${userInput ? 'text-slate-700' : 'text-slate-400 italic'}`}>
+                        {userInput || '(Bạn đã bỏ trống đoạn này)'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -189,123 +356,103 @@ const DictationPlayer = () => {
 
   // --- GIAO DIỆN CHÍNH: LÀM BÀI ---
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      
-      {/* Header tối giản */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shadow-sm z-10 sticky top-0">
+    <div className="min-h-screen bg-slate-50 font-sans flex flex-col text-slate-800">
+      <audio ref={audioRef} src={audioUrl} />
+
+      <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between shadow-sm z-10 sticky top-0">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => { if(window.confirm("Thoát sẽ không lưu bài?")) setViewState('TOPIC_SELECTION'); }}
-            className="p-2 bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all"
+            onClick={() => { if(window.confirm("Thoát bài làm sẽ không lưu lại kết quả?")) setViewState('TOPIC_SELECTION'); }}
+            className="p-2 bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-500 rounded-xl transition-all"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ←
           </button>
           <div>
-            <h1 className="text-lg font-bold text-gray-800 tracking-tight">{currentTopicName}</h1>
-            <p className="text-xs text-blue-600 font-bold bg-blue-50 inline-block px-2 py-0.5 rounded-md mt-1">
-              {questions.length} Đoạn cắt
+            <h1 className="text-base font-black text-slate-900 tracking-tight">{currentTopicName}</h1>
+            <p className="text-[10px] text-blue-600 font-bold bg-blue-50 inline-block px-2 py-0.5 rounded-md mt-0.5">
+              {questions.length} Đoạn nghe
             </p>
           </div>
         </div>
-        
-        <button className="text-sm font-semibold text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-2">
-          <span>Báo lỗi</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-        </button>
       </header>
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col items-center p-4 md:p-8 overflow-y-auto">
-        
-        {/* Nguồn Audio tổng (ẩn đi) */}
-        <audio ref={audioRef} src={audioUrl} />
-
-        <div className="w-full max-w-3xl">
-          
-          {/* Gợi ý (Hint) */}
-          <div className="flex items-start gap-3 mb-6 bg-amber-50 p-4 rounded-2xl border border-amber-100/50 shadow-sm">
+        <div className="w-full max-w-3xl space-y-6">
+          <div className="flex items-start gap-3 bg-amber-50/80 p-4 rounded-2xl border border-amber-200/60 shadow-sm">
             <span className="text-amber-500 text-xl mt-0.5">💡</span>
             <div>
-              <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Mẹo làm bài</p>
-              <p className="text-sm text-amber-900 font-medium">Bấm vào biểu tượng Play ở từng ô để nghe lại đoạn audio tương ứng. Gõ chính xác những gì bạn nghe được. Không cần quan tâm viết hoa/thường hay dấu câu.</p>
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-0.5">Mẹo làm bài</p>
+              <p className="text-xs text-amber-900/90 font-medium leading-relaxed">
+                Bấm nút Play ở từng câu để nghe đoạn audio tương ứng. Gõ chính xác từ bạn nghe được. Không cần quá bận tâm viết hoa/thường hay dấu câu.
+              </p>
             </div>
           </div>
 
-          {/* Danh sách các đoạn cắt cần nhập */}
-          <div className="space-y-6 mb-8">
+          <div className="space-y-6">
             {questions.map((q, index) => {
               const isPlayingThis = currentPlayingIndex === index;
               const textValue = userInputs[q.id] || '';
               
-              // ĐÃ SỬA LỖI TRẮNG MÀN HÌNH TẠI ĐÂY: Dùng ?? thay cho ||
               const startTimestamp = q.startTime ?? q.start_time ?? 0;
               const endTimestamp = q.endTime ?? q.end_time ?? 0;
               const duration = endTimestamp - startTimestamp;
 
               return (
-                <div key={q.id} className={`bg-white rounded-3xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.04)] border transition-colors p-6 ${isPlayingThis ? 'border-blue-300' : 'border-gray-100'}`}>
-                  
-                  {/* Custom Audio Player Mini cho từng đoạn */}
-                  <div className="bg-slate-50 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row items-center gap-4 border border-gray-100">
-                    
-                    {/* Play/Pause Button */}
+                <div key={q.id} className={`bg-white rounded-3xl shadow-sm border transition-all p-6 ${isPlayingThis ? 'border-blue-500 ring-2 ring-blue-500/10' : 'border-slate-200/80'}`}>
+                  <div className="bg-slate-50/80 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row items-center gap-4 border border-slate-200/60">
                     <button 
                       onClick={() => playSegment(startTimestamp, endTimestamp, index)}
-                      className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center shadow-md transition-all active:scale-95 ${isPlayingThis ? 'bg-amber-500 text-white shadow-amber-500/30' : 'bg-blue-600 text-white shadow-blue-600/30 hover:bg-blue-700'}`}
+                      className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-md transition-all active:scale-95 ${
+                        isPlayingThis 
+                          ? 'bg-amber-500 shadow-amber-500/30' 
+                          : 'bg-blue-600 shadow-blue-600/30 hover:bg-blue-700'
+                      }`}
                     >
                       {isPlayingThis ? (
-                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       ) : (
-                        <svg className="w-5 h-5 translate-x-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        '▶'
                       )}
                     </button>
 
-                    {/* Progress Bar Simulator */}
                     <div className="flex-1 w-full flex items-center gap-3">
-                      <span className="text-xs font-bold text-gray-400 font-mono">00:{startTimestamp.toString().padStart(2, '0')}</span>
-                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden relative">
+                      <span className="text-xs font-bold text-slate-400 font-mono">00:{startTimestamp.toString().padStart(2, '0')}</span>
+                      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden relative">
                         <div 
                            className={`absolute top-0 left-0 h-full rounded-full ${isPlayingThis ? 'bg-amber-500 w-full' : 'bg-blue-500 w-0'}`}
                            style={{ transition: isPlayingThis ? `width ${duration}s linear` : 'none' }}
                         ></div>
                       </div>
-                      <span className="text-xs font-bold text-gray-400 font-mono">00:{endTimestamp.toString().padStart(2, '0')}</span>
+                      <span className="text-xs font-bold text-slate-400 font-mono">00:{endTimestamp.toString().padStart(2, '0')}</span>
                     </div>
                   </div>
 
-                  {/* Typing Area */}
                   <div className="relative">
                     <textarea 
                       value={textValue}
                       onChange={(e) => setUserInputs({...userInputs, [q.id]: e.target.value})}
                       placeholder="Gõ chính xác những gì bạn nghe được vào đây..."
-                      className={`w-full h-32 bg-white border-2 rounded-2xl p-5 text-gray-800 text-lg leading-relaxed focus:outline-none transition-all resize-none placeholder-gray-300 font-medium ${textValue.length > 0 ? 'border-blue-200 bg-blue-50/10' : 'border-gray-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/10'}`}
+                      className={`w-full h-28 bg-white border-2 rounded-2xl p-4 text-slate-800 text-xs md:text-sm leading-relaxed focus:outline-none transition-all resize-none placeholder-slate-300 font-medium ${
+                        textValue.length > 0 ? 'border-blue-200 bg-blue-50/10' : 'border-slate-200 focus:border-blue-500'
+                      }`}
                     />
-                    <div className="absolute bottom-4 right-4 text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                    <div className="absolute bottom-3 right-3 text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
                       {textValue.length} ký tự
                     </div>
                   </div>
-
                 </div>
               );
             })}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-10">
-            <button className="flex-1 bg-gray-100 text-gray-600 font-bold py-4 rounded-xl hover:bg-gray-200 transition-colors">
-              Cần trợ giúp?
-            </button>
+          <div className="pt-2 pb-10">
             <button 
               onClick={handleSubmit}
-              className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 active:scale-[0.98] transition-all"
+              className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 active:scale-[0.98] transition-all text-xs"
             >
-              Nộp Bài Lấy Điểm
+              Nộp Bài Lấy Điểm & Xem Đáp Án
             </button>
           </div>
-
         </div>
       </main>
     </div>

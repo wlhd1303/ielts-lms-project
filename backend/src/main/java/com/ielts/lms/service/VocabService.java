@@ -24,15 +24,20 @@ public class VocabService {
     private final StudyRecordRepository studyRecordRepository;
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
+    private final StreakService streakService;
 
-    public VocabService(VocabTopicRepository vocabTopicRepository, VocabWordRepository vocabWordRepository, 
-                        StudyRecordRepository studyRecordRepository, UserRepository userRepository, 
-                        StudentClassRepository studentClassRepository) {
+    public VocabService(VocabTopicRepository vocabTopicRepository, 
+                        VocabWordRepository vocabWordRepository, 
+                        StudyRecordRepository studyRecordRepository, 
+                        UserRepository userRepository, 
+                        StudentClassRepository studentClassRepository,
+                        StreakService streakService) {
         this.vocabTopicRepository = vocabTopicRepository;
         this.vocabWordRepository = vocabWordRepository;
         this.studyRecordRepository = studyRecordRepository;
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
+        this.streakService = streakService;
     }
 
     public List<VocabTopic> getTopicsByClass(Long classId) {
@@ -43,7 +48,6 @@ public class VocabService {
         return vocabWordRepository.findByTopicId(topicId);
     }
 
-    // --- CÁC HÀM CRUD MỚI DÀNH CHO ADMIN ---
     public VocabTopic createTopic(Long classId, VocabTopic topic) {
         StudentClass studentClass = studentClassRepository.findById(classId).orElseThrow();
         topic.setStudentClass(studentClass);
@@ -64,7 +68,6 @@ public class VocabService {
         vocabWordRepository.deleteById(wordId);
     }
 
-    // --- HÀM CHẤM ĐIỂM ---
     public StudyRecord gradeVocabTest(Long topicId, Map<Long, String> userAnswers, int duration) {
         List<VocabWord> words = vocabWordRepository.findByTopicId(topicId);
         int correctCount = 0;
@@ -86,6 +89,30 @@ public class VocabService {
         record.setScore(correctCount); 
         record.setDurationSeconds(duration);
         
-        return studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordRepository.save(record);
+
+        streakService.updateStreakProgress(user, "VOCAB", topicId);
+
+        return savedRecord;
+    }
+
+    // ⚡ ĐÃ SỬA: TRUYỀN ĐÚNG MODULE TYPE "LISTENING_VOCAB_TEST" ĐỂ TÍNH STREAK
+    public StudyRecord submitListeningVocabScore(Long topicId, float score, int duration) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElseThrow();
+
+        StudyRecord record = new StudyRecord();
+        record.setUser(user);
+        record.setModuleType("LISTENING_VOCAB_TEST");
+        record.setRefId(topicId);
+        record.setScore(score);
+        record.setDurationSeconds(duration);
+
+        StudyRecord savedRecord = studyRecordRepository.save(record);
+
+        // Cập nhật chuỗi Streak bài tập khớp với moduleType trong StreakService
+        streakService.updateStreakProgress(user, "LISTENING_VOCAB_TEST", topicId);
+
+        return savedRecord;
     }
 }

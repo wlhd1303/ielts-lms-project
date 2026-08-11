@@ -23,8 +23,9 @@ public class WritingPrompt {
     @Column(name = "english_answer", columnDefinition = "TEXT", nullable = false)
     private String englishAnswer;
 
+    // Đã chuyển quan hệ từ Class sang Topic
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id")
-    @JsonIgnore // QUAN TRỌNG: Thêm dòng này để tránh lỗi vòng lặp JSON
-    private StudentClass studentClass;
+    @JoinColumn(name = "topic_id")
+    @JsonIgnore
+    private WritingTopic topic;
 }

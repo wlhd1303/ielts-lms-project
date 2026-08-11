@@ -21,13 +21,27 @@ public class SpeakingController {
         this.speakingLessonRepository = speakingLessonRepository;
     }
 
-    // API 1: Phục vụ cho UI gọi để hiển thị đề bài lên màn hình
+    // --- 1. LẤY DANH SÁCH BÀI HỌC THEO LỚP (CẢ ADMIN & HỌC VIÊN) ---
     @GetMapping("/class/{classId}")
     public List<SpeakingLesson> getLessonsByClass(@PathVariable Long classId) {
         return speakingLessonRepository.findByStudentClassId(classId);
     }
 
-    // API 2: Phục vụ cho UI nộp điểm sau khi thu âm xong
+    // --- 2. TẠO BÀI LUYỆN NÓI MỚI (CHO ADMIN) ---
+    @PostMapping("/class/{classId}")
+    public SpeakingLesson createLesson(@PathVariable Long classId, @RequestBody Map<String, String> body) {
+        String title = body.get("title");
+        String content = body.get("content");
+        return speakingService.createLesson(classId, title, content);
+    }
+
+    // --- 3. XÓA BÀI LUYỆN NÓI (CHO ADMIN) ---
+    @DeleteMapping("/{lessonId}")
+    public void deleteLesson(@PathVariable Long lessonId) {
+        speakingService.deleteLesson(lessonId);
+    }
+
+    // --- 4. CHẤM ĐIỂM VÀ LƯU STREAK (CHO HỌC VIÊN) ---
     @PostMapping("/{lessonId}/submit")
     public StudyRecord submit(@PathVariable Long lessonId, 
                               @RequestBody Map<String, Float> payload,

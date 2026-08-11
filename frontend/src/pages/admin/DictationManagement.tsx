@@ -51,7 +51,7 @@ const DictationManagement = () => {
   };
 
   const handleDeleteDicTopic = async (id: number) => {
-    if(!window.confirm('Xóa chủ đề và toàn bộ dữ liệu nghe?')) return;
+    if(!window.confirm('Xóa chủ đề và toàn bộ dữ liệu nghe liên quan?')) return;
     await adminService.deleteDictationTopic(id);
     if(selectedDicTopicId === id) { setSelectedDicTopicId(''); setDicAudios([]); setSelectedDicAudioId(''); setDicQuestions([]); }
     const res: any = await adminService.getDictationTopicsByClass(Number(dicClassId));
@@ -67,7 +67,7 @@ const DictationManagement = () => {
   };
 
   const handleDeleteDicAudio = async (id: number) => {
-    if(!window.confirm('Xóa link Audio này?')) return;
+    if(!window.confirm('Xóa file Audio này?')) return;
     await adminService.deleteDictationAudio(id);
     if(selectedDicAudioId === id) { setSelectedDicAudioId(''); setDicQuestions([]); }
     const res: any = await adminService.getDictationAudiosByTopic(Number(selectedDicTopicId));
@@ -84,53 +84,79 @@ const DictationManagement = () => {
   };
 
   const handleDeleteDicQuestion = async (id: number) => {
-    if(!window.confirm('Xóa đoạn cắt này?')) return;
+    if(!window.confirm('Xóa đoạn cắt câu hỏi này?')) return;
     await adminService.deleteDictationQuestion(id);
     const res: any = await adminService.getDictationQuestionsByAudio(Number(selectedDicAudioId));
     setDicQuestions(Array.isArray(res) ? res : res.data || []);
   };
 
   return (
-    <>
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-        <label className="block text-sm font-bold text-gray-700 mb-2">Bước 1: Chọn lớp học</label>
-        <select className="w-full md:w-1/2 p-3 border border-gray-200 text-gray-700 rounded-xl outline-none focus:border-green-500" value={dicClassId} onChange={(e) => setDicClassId(Number(e.target.value))}>
+    <div className="space-y-6 animate-[fadeIn_0.3s_ease-out]">
+      
+      {/* STEP 1: CLASS SELECTION */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <label className="block text-xs font-black uppercase text-slate-400 tracking-wider mb-1">
+            Bước 1: Chọn Lớp Học Quản Lý
+          </label>
+          <p className="text-xs text-slate-500 font-medium">Tải danh sách chủ đề Nghe chép chính tả (Dictation) của lớp</p>
+        </div>
+        <select 
+          className="w-full md:w-72 p-2.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-600 bg-slate-50/50" 
+          value={dicClassId} 
+          onChange={(e) => setDicClassId(Number(e.target.value))}
+        >
           <option value="" disabled>-- Chọn Lớp Học --</option>
           {availableClasses.map(cls => (<option key={cls.id} value={cls.id}>{cls.name}</option>))}
         </select>
       </div>
 
       {dicClassId && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm col-span-1 h-[600px] flex flex-col">
-            <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2"><span>📂</span> 1. Chủ đề</h3>
-            <div className="flex gap-2 mb-4">
-              <input type="text" placeholder="Tên chủ đề..." className="flex-1 p-2 text-sm border rounded-lg outline-none focus:border-green-500" value={newDicTopicName} onChange={(e) => setNewDicTopicName(e.target.value)} />
-              <button onClick={handleAddDicTopic} className="px-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700">+</button>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+          
+          {/* STEP 2: TOPICS */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <span>📂</span> 1. Chủ đề Nghe
+            </h3>
+            
+            <div className="flex gap-2">
+              <input type="text" placeholder="Tên chủ đề..." className="flex-1 p-2 text-xs border border-slate-300 rounded-xl outline-none focus:border-emerald-600" value={newDicTopicName} onChange={(e) => setNewDicTopicName(e.target.value)} />
+              <button onClick={handleAddDicTopic} className="px-3 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all shadow-sm active:scale-95">+</button>
             </div>
-            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+
+            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
               {dicTopics.map(topic => (
-                <div key={topic.id} className={`p-3 rounded-xl border-2 cursor-pointer flex justify-between items-center transition-all ${selectedDicTopicId === topic.id ? 'border-green-500 bg-green-50' : 'border-gray-100 hover:bg-gray-50'}`} onClick={() => setSelectedDicTopicId(topic.id)}>
-                  <span className="font-semibold text-gray-700 text-sm truncate">{topic.name}</span>
-                  <button onClick={(e) => { e.stopPropagation(); handleDeleteDicTopic(topic.id); }} className="text-red-400 hover:text-red-600 text-xs font-bold shrink-0 ml-2">Xóa</button>
+                <div key={topic.id} onClick={() => setSelectedDicTopicId(topic.id)} className={`p-3 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${selectedDicTopicId === topic.id ? 'border-emerald-600 bg-emerald-50/60 shadow-sm' : 'border-slate-200/80 hover:bg-slate-50'}`}>
+                  <span className="font-bold text-slate-800 text-xs truncate">{topic.name}</span>
+                  <button onClick={(e) => { e.stopPropagation(); handleDeleteDicTopic(topic.id); }} className="text-rose-500 hover:text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Xóa</button>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm col-span-1 h-[600px] flex flex-col">
-            <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2"><span>🎵</span> 2. Link Audio</h3>
-            {!selectedDicTopicId ? ( <p className="text-sm text-gray-400 text-center mt-10">Chọn chủ đề trước</p> ) : (
+          {/* STEP 3: AUDIO LINK */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🎵</span> 2. Link Audio MP3
+            </h3>
+            {!selectedDicTopicId ? (
+              <p className="text-xs text-slate-400 text-center py-12 font-medium">👈 Chọn chủ đề trước</p>
+            ) : (
               <>
-                <div className="flex flex-col gap-2 mb-4">
-                  <input type="text" placeholder="Dán link Mp3/Audio..." className="w-full p-2 text-sm border rounded-lg outline-none focus:border-green-500" value={newDicAudioUrl} onChange={(e) => setNewDicAudioUrl(e.target.value)} />
-                  <button onClick={handleAddDicAudio} className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700">Tạo Audio</button>
+                <div className="space-y-2">
+                  <input type="text" placeholder="Dán link Mp3/Audio Cloud..." className="w-full p-2 text-xs border border-slate-300 rounded-xl outline-none focus:border-emerald-600" value={newDicAudioUrl} onChange={(e) => setNewDicAudioUrl(e.target.value)} />
+                  <button onClick={handleAddDicAudio} className="w-full py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-sm">Tạo Audio</button>
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+
+                <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
                   {dicAudios.map((audio, i) => (
-                    <div key={audio.id} className={`p-3 rounded-xl border-2 cursor-pointer flex flex-col gap-2 transition-all ${selectedDicAudioId === audio.id ? 'border-green-500 bg-green-50' : 'border-gray-100 hover:bg-gray-50'}`} onClick={() => setSelectedDicAudioId(audio.id)}>
-                      <div className="flex justify-between items-center"><span className="font-bold text-gray-700 text-sm">Audio {i + 1}</span><button onClick={(e) => { e.stopPropagation(); handleDeleteDicAudio(audio.id); }} className="text-red-400 hover:text-red-600 text-xs font-bold">Xóa</button></div>
-                      <span className="text-xs text-gray-500 truncate" title={audio.audioUrl || audio.audio_url}>{audio.audioUrl || audio.audio_url}</span>
+                    <div key={audio.id} onClick={() => setSelectedDicAudioId(audio.id)} className={`p-3 rounded-2xl border transition-all cursor-pointer flex flex-col gap-1 ${selectedDicAudioId === audio.id ? 'border-emerald-600 bg-emerald-50/60 shadow-sm' : 'border-slate-200/80 hover:bg-slate-50'}`}>
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-slate-800 text-xs">Audio #{i + 1}</span>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteDicAudio(audio.id); }} className="text-rose-500 text-[10px] font-bold">Xóa</button>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono truncate" title={audio.audioUrl || audio.audio_url}>{audio.audioUrl || audio.audio_url}</span>
                     </div>
                   ))}
                 </div>
@@ -138,35 +164,56 @@ const DictationManagement = () => {
             )}
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm col-span-1 lg:col-span-2 h-[600px] flex flex-col">
-            <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2"><span>✂️</span> 3. Cắt đoạn & Gắn Transcript</h3>
-            {!selectedDicAudioId ? ( <p className="text-sm text-gray-400 text-center mt-10">Chọn Audio trước</p> ) : (
+          {/* STEP 4: CUT & TRANSCRIPT */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm col-span-1 lg:col-span-2 space-y-4">
+            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <span>✂️</span> 3. Cắt Khung Giây & Gắn Lời Thoại (Transcript)
+            </h3>
+            {!selectedDicAudioId ? (
+              <p className="text-xs text-slate-400 text-center py-16 font-medium">👈 Chọn file Audio ở bước 2</p>
+            ) : (
               <>
-                <form onSubmit={handleAddDicQuestion} className="bg-slate-50 p-4 rounded-xl border border-gray-100 shadow-inner mb-4 flex flex-col gap-3 shrink-0">
-                  <div className="flex gap-3">
-                     <div className="w-1/2"><label className="text-xs font-bold text-gray-500 mb-1 block">Từ Giây (Start)</label><input required type="number" min="0" placeholder="VD: 0" className="w-full p-2 text-sm border rounded-lg outline-none focus:border-green-500" value={newDicQuestion.startTime} onChange={e => setNewDicQuestion({...newDicQuestion, startTime: e.target.value})} /></div>
-                     <div className="w-1/2"><label className="text-xs font-bold text-gray-500 mb-1 block">Đến Giây (End)</label><input required type="number" min="1" placeholder="VD: 5" className="w-full p-2 text-sm border rounded-lg outline-none focus:border-green-500" value={newDicQuestion.endTime} onChange={e => setNewDicQuestion({...newDicQuestion, endTime: e.target.value})} /></div>
+                <form onSubmit={handleAddDicQuestion} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                       <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Từ Giây (Start)</label>
+                       <input required type="number" min="0" placeholder="0" className="w-full p-2 text-xs border rounded-xl outline-none font-bold bg-white" value={newDicQuestion.startTime} onChange={e => setNewDicQuestion({...newDicQuestion, startTime: e.target.value})} />
+                     </div>
+                     <div>
+                       <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Đến Giây (End)</label>
+                       <input required type="number" min="1" placeholder="5" className="w-full p-2 text-xs border rounded-xl outline-none font-bold bg-white" value={newDicQuestion.endTime} onChange={e => setNewDicQuestion({...newDicQuestion, endTime: e.target.value})} />
+                     </div>
                   </div>
-                  <div><label className="text-xs font-bold text-gray-500 mb-1 block">Lời thoại (Transcript)</label><textarea required rows={2} placeholder="Nội dung cần chép chính tả..." className="w-full p-2 text-sm border rounded-lg outline-none focus:border-green-500 resize-none" value={newDicQuestion.transcript} onChange={e => setNewDicQuestion({...newDicQuestion, transcript: e.target.value})} /></div>
-                  <button type="submit" className="w-full py-2 bg-gray-900 text-white rounded-lg text-sm font-bold hover:bg-gray-800">Thêm đoạn cắt</button>
+
+                  <div>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Lời thoại bắt buộc chép</label>
+                    <textarea required rows={2} placeholder="Nội dung chính xác cần học viên nghe chép..." className="w-full p-2 text-xs border rounded-xl outline-none resize-none font-medium bg-white" value={newDicQuestion.transcript} onChange={e => setNewDicQuestion({...newDicQuestion, transcript: e.target.value})} />
+                  </div>
+
+                  <button type="submit" className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-md transition-all">
+                    + Thêm Đoạn Cắt Câu Hỏi
+                  </button>
                 </form>
-                <div className="flex-1 overflow-y-auto pr-1">
-                   <div className="space-y-3">
-                     {dicQuestions.map((q, i) => (
-                       <div key={q.id} className="p-4 border border-gray-100 rounded-xl bg-white hover:border-green-300 transition-colors relative group">
-                          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => handleDeleteDicQuestion(q.id)} className="text-red-400 hover:text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded">Xóa</button></div>
-                          <div className="flex items-center gap-2 mb-2"><span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded">Đoạn {i + 1}</span><span className="text-xs font-mono text-gray-500">{q.startTime || q.start_time}s - {q.endTime || q.end_time}s</span></div>
-                          <p className="text-sm font-medium text-gray-800 bg-gray-50 p-3 rounded-lg">{q.transcript}</p>
+
+                <div className="space-y-2.5 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                  {dicQuestions.map((q, i) => (
+                    <div key={q.id} className="p-3.5 border border-slate-200/80 rounded-2xl bg-white hover:border-emerald-300 transition-colors relative group space-y-1.5">
+                       <button onClick={() => handleDeleteDicQuestion(q.id)} className="absolute top-3 right-3 text-rose-500 hover:bg-rose-50 px-2 py-0.5 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Xóa</button>
+                       <div className="flex items-center gap-2">
+                         <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">Đoạn #{i + 1}</span>
+                         <span className="text-[11px] font-mono text-slate-500 font-semibold">{q.startTime || q.start_time}s - {q.endTime || q.end_time}s</span>
                        </div>
-                     ))}
-                   </div>
+                       <p className="text-xs font-semibold text-slate-800 bg-slate-50 p-2.5 rounded-xl border border-slate-100">{q.transcript}</p>
+                    </div>
+                  ))}
                 </div>
               </>
             )}
           </div>
+
         </div>
       )}
-    </>
+    </div>
   );
 };
 

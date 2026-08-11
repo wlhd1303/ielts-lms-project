@@ -16,20 +16,23 @@ public class DictationService {
     private final DictationQuestionRepository dictationQuestionRepository;
     private final StudyRecordRepository studyRecordRepository;
     private final UserRepository userRepository;
-    private final StudentClassRepository studentClassRepository; // Thêm repo này
+    private final StudentClassRepository studentClassRepository;
+    private final StreakService streakService; // 👈 1. INJECT STREAK SERVICE
 
     public DictationService(DictationTopicRepository dictationTopicRepository, 
                             DictationAudioRepository dictationAudioRepository, 
                             DictationQuestionRepository dictationQuestionRepository, 
                             StudyRecordRepository studyRecordRepository, 
                             UserRepository userRepository,
-                            StudentClassRepository studentClassRepository) {
+                            StudentClassRepository studentClassRepository,
+                            StreakService streakService) { // 👈 2. BỔ SUNG VÀO CONSTRUCTOR
         this.dictationTopicRepository = dictationTopicRepository;
         this.dictationAudioRepository = dictationAudioRepository;
         this.dictationQuestionRepository = dictationQuestionRepository;
         this.studyRecordRepository = studyRecordRepository;
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
+        this.streakService = streakService;
     }
 
     // --- CÁC HÀM GET DỮ LIỆU ĐỂ HỌC VIÊN LÀM BÀI ---
@@ -59,7 +62,7 @@ public class DictationService {
     }
     public void deleteQuestion(Long questionId) { dictationQuestionRepository.deleteById(questionId); }
 
-    // --- LOGIC CHẤM ĐIỂM (Giữ nguyên) ---
+    // --- LOGIC CHẤM ĐIỂM ---
     public StudyRecord gradeDictation(Long audioId, Map<Long, String> studentAnswers, int duration) {
         List<DictationQuestion> questions = dictationQuestionRepository.findByAudioIdOrderByStartTimeAsc(audioId);
         int correctCount = 0;
@@ -81,6 +84,11 @@ public class DictationService {
         record.setScore(score);
         record.setDurationSeconds(duration);
         
-        return studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordRepository.save(record);
+
+        // ⚡ 3. TỰ ĐỘNG CẬP NHẬT STREAK VÀ LOG LƯU VÀO CSDL
+        streakService.updateStreakProgress(user, "DICTATION", audioId);
+
+        return savedRecord;
     }
 }
