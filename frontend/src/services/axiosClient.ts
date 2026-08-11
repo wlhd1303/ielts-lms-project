@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Gán thẳng link backend Render của bạn vào đây, không qua biến môi trường nữa để tránh lỗi build của Vite
-/*const backendUrl = 'https://ielts-lms-project.onrender.com';*/
-const backendUrl = 'http://localhost:8080';
+const backendUrl = 'https://ielts-lms-project.onrender.com';
+/*const backendUrl = 'http://localhost:8080';*/
 // Khởi tạo một instance của axios với cấu hình linh hoạt
 const axiosClient = axios.create({
   baseURL: backendUrl,
