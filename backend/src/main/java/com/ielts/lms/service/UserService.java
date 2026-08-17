@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class UserService {
     private final RefreshTokenService refreshTokenService;
     private final StudentClassRepository studentClassRepository;
     private final PermissionRepository permissionRepository; 
-    private final PasswordEncoder passwordEncoder; // 👈 Inject thêm PasswordEncoder
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository, 
                        JwtService jwtService, 
@@ -50,7 +51,6 @@ public class UserService {
     public User registerUser(RegisterRequest request) {
         User newUser = new User();
         newUser.setUsername(request.getUsername());
-        // ⚡ MÃ HÓA BCRYPT TRƯỚC KHIN LƯU VÀO CSDL
         newUser.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         newUser.setRole("ROLE_USER");
         newUser.setStatus("PENDING"); 
@@ -61,7 +61,6 @@ public class UserService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản!"));
 
-        // ⚡ DÙNG MATCHES() ĐỂ SO SÁNH PLAIN-TEXT VỚI BCRYPT HASH
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Lỗi: Sai mật khẩu!");
         }
@@ -85,6 +84,18 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin tài khoản"));
     }
 
+    // ⚡ TÍNH NĂNG MỚI: HỌC VIÊN CẬP NHẬT NGÀY THI MỤC TIÊU
+    @Transactional
+    public User updateTargetExamDate(LocalDate examDate) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên!"));
+
+        user.setTargetExamDate(examDate);
+        return userRepository.save(user);
+    }
+
     // --- ADMIN DUYỆT, XẾP LỚP VÀ CẤP QUYỀN ---
     @Transactional 
     public User approveAndAssignClass(Long userId, Long classId, List<String> features) {
@@ -97,10 +108,7 @@ public class UserService {
         user.setStatus("ACTIVE"); 
         user.setStudentClass(studentClass); 
         
-        // 1. Xóa dưới Database
         permissionRepository.deleteByUserId(userId);
-        
-        // 2. Xóa trong bộ nhớ (Hibernate Cache) để chống lỗi xung đột
         user.setPermissions(new ArrayList<>());
 
         if (features != null && !features.isEmpty()) {
@@ -111,7 +119,7 @@ public class UserService {
                 permission.setActive(true); 
                 
                 permissionRepository.save(permission);
-                user.getPermissions().add(permission); // Nhét vào bộ nhớ mới
+                user.getPermissions().add(permission);
             }
         }
         return userRepository.save(user);
@@ -123,13 +131,9 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy học viên!"));
 
-        // 1. Xóa toàn bộ quyền cũ dưới Database
         permissionRepository.deleteByUserId(userId);
-
-        // 2. QUAN TRỌNG: Ép Hibernate dọn dẹp danh sách quyền cũ trong bộ nhớ (RAM)
         user.setPermissions(new ArrayList<>());
 
-        // 3. Cấp lại các quyền mới được Admin chọn
         if (features != null && !features.isEmpty()) {
             for (String featureKey : features) {
                 Permission permission = new Permission();
@@ -138,7 +142,7 @@ public class UserService {
                 permission.setActive(true); 
                 
                 permissionRepository.save(permission);
-                user.getPermissions().add(permission); // Cập nhật lại RAM
+                user.getPermissions().add(permission);
             }
         }
         

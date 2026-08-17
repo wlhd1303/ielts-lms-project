@@ -9,6 +9,7 @@ import com.ielts.lms.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,6 @@ public class UserController {
     // --- BẮT LỖI VÀ CHUYỂN THÀNH MÃ 400 CHO FRONTEND ---
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        // Trả về HTTP Status 400 kèm JSON: { "message": "Lỗi: Sai mật khẩu!" }
         return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
     }
 
@@ -41,7 +41,6 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        // Thay vì trả thẳng User, ta bọc trong ResponseEntity cho chuẩn form
         return ResponseEntity.ok(userService.login(request));
     }
 
@@ -50,10 +49,18 @@ public class UserController {
         return userService.getMyProfile();
     }
 
+    // ⚡ TÍNH NĂNG MỚI: HỌC VIÊN TỰ ĐẶT / CẬP NHẬT NGÀY THI MỤC TIÊU
+    @PutMapping("/me/exam-date")
+    public User updateMyExamDate(@RequestBody Map<String, String> payload) {
+        String dateStr = payload.get("examDate");
+        LocalDate date = (dateStr != null && !dateStr.trim().isEmpty()) ? LocalDate.parse(dateStr.trim()) : null;
+        return userService.updateTargetExamDate(date);
+    }
+
     // --- ĐƯỜNG LINK: ADMIN DUYỆT, XẾP LỚP VÀ PHÂN QUYỀN ---
     @PutMapping("/{userId}/approve")
     public User approveUser(@PathVariable Long userId, @RequestParam Long classId, @RequestBody Map<String, List<String>> body) {
-        List<String> features = body.get("features"); // Lấy mảng features từ body do ReactJS gửi lên
+        List<String> features = body.get("features");
         return userService.approveAndAssignClass(userId, classId, features);
     }
 

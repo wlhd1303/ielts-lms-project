@@ -10,12 +10,31 @@ const StudentDashboard = () => {
   const [studentInfo, setStudentInfo] = useState({
     username: "Đang tải...",
     className: "Đang chờ xếp lớp",
-    examDate: "31/05/2026",
     isLocked: true,
     activeFeatures: [] as string[] 
   });
 
+  // State quản lý ngày thi và đếm ngược
+  const [examDate, setExamDate] = useState<string>('');
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+  const [isEditingDate, setIsEditingDate] = useState<boolean>(false);
+
   const [streakData, setStreakData] = useState<any>(null);
+
+  // Hàm tính toán số ngày còn lại đến kỳ thi
+  const calculateDaysLeft = (targetDateStr: string) => {
+    if (!targetDateStr) {
+      setDaysRemaining(null);
+      return;
+    }
+    const target = new Date(targetDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    setDaysRemaining(diffDays);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -38,10 +57,14 @@ const StudentDashboard = () => {
         setStudentInfo({
           username: userData.username || userData.userName || userData.name || "Học viên",
           className: userData.studentClass ? userData.studentClass.name : "Đang chờ xếp lớp", 
-          examDate: "31/05/2026",
           isLocked: isUserLocked,
           activeFeatures: grantedFeatures
         });
+
+        // Nạp ngày thi từ database (nếu có)
+        const dateFromDb = userData.targetExamDate || '';
+        setExamDate(dateFromDb);
+        calculateDaysLeft(dateFromDb);
 
         if (!isUserLocked) {
           try {
@@ -65,6 +88,17 @@ const StudentDashboard = () => {
     fetchProfileAndStreak();
   }, [navigate]);
 
+  const handleSaveExamDate = async (newDate: string) => {
+    setExamDate(newDate);
+    calculateDaysLeft(newDate);
+    setIsEditingDate(false);
+    try {
+      await (authService as any).updateTargetExamDate(newDate);
+    } catch (e) {
+      console.error("Lỗi cập nhật ngày thi:", e);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     navigate('/login');
@@ -83,7 +117,6 @@ const StudentDashboard = () => {
   const isSpeakingLocked = checkLocked('SPEAKING');
   const isWritingLocked = checkLocked('WRITING');
 
-  // ⚡ ĐÃ CẬP NHẬT: Mở thẳng màn hình làm bài chi tiết của bài tập Streak
   const handleGoToStreakExercise = () => {
     if (!streakData || !streakData.moduleType) return;
     
@@ -173,13 +206,45 @@ const StudentDashboard = () => {
             <p className="text-xs font-semibold text-slate-500 mt-1">Tiếp tục hành trình chinh phục mục tiêu IELTS của bạn nhé!</p>
           </div>
           
+          {/* Card Mục Tiêu Ngày Thi & Đếm Ngược */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 shrink-0">
             <div className="w-11 h-11 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
               🎯
             </div>
             <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Mục tiêu thi chính thức</p>
-              <p className="text-sm font-black text-slate-800 mt-0.5">{studentInfo.examDate}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Mục tiêu thi chính thức</p>
+                <button 
+                  onClick={() => setIsEditingDate(!isEditingDate)} 
+                  className="text-[10px] text-blue-600 hover:underline font-bold cursor-pointer"
+                >
+                  {isEditingDate ? "Đóng" : "✏️ Đổi"}
+                </button>
+              </div>
+
+              {isEditingDate ? (
+                <input 
+                  type="date" 
+                  value={examDate}
+                  onChange={(e) => handleSaveExamDate(e.target.value)}
+                  className="text-xs font-black text-slate-800 border rounded-lg p-1 mt-1 outline-none focus:border-blue-600 bg-slate-50"
+                />
+              ) : (
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-sm font-black text-slate-800">
+                    {examDate ? new Date(examDate).toLocaleDateString('vi-VN') : "Chưa đặt ngày thi"}
+                  </p>
+                  {daysRemaining !== null && (
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                      daysRemaining > 30 ? 'bg-blue-50 text-blue-700' :
+                      daysRemaining >= 0 ? 'bg-amber-100 text-amber-800 animate-pulse' :
+                      'bg-rose-100 text-rose-700'
+                    }`}>
+                      {daysRemaining >= 0 ? `Còn ${daysRemaining} ngày` : `Đã qua`}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </header>

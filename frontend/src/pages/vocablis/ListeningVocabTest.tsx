@@ -18,8 +18,8 @@ const ListeningVocabTest = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // CÁC TRẠNG THÁI BÀI TEST
-  const [gameState, setGameState] = useState<'COUNTDOWN' | 'PLAYING' | 'FEEDBACK' | 'SUMMARY'>('COUNTDOWN');
+  // TRẠNG THÁI BÀI TEST: Chỉ đếm ngược 3s ở câu đầu tiên (INITIAL_COUNTDOWN)
+  const [gameState, setGameState] = useState<'INITIAL_COUNTDOWN' | 'PLAYING' | 'FEEDBACK' | 'SUMMARY'>('INITIAL_COUNTDOWN');
   const [startCountdown, setStartCountdown] = useState(3);
   const [answerTimeLeft, setAnswerTimeLeft] = useState(5);
   
@@ -28,8 +28,9 @@ const ListeningVocabTest = () => {
   const [userResults, setUserResults] = useState<{ word: WordItem; userAns: string | null; isCorrect: boolean }[]>([]);
   
   const startTimeRef = useRef<number>(Date.now());
+  const timerRef = useRef<any>(null);
 
-  // 1. LẤY DỮ LIỆU TỪ VỰNG
+  // 1. TẢI DỮ LIỆU TỪ VỰNG
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -51,14 +52,12 @@ const ListeningVocabTest = () => {
     fetchData();
   }, [topicId, navigate]);
 
-  // 2. KHỞI TẠO CÂU HỎI MỚI (TẠO 4 ĐÁP ÁN TRẮC NGHIỆM + ĐẾM NGƯỢC 3S)
+  // 2. KHỞI TẠO CÂU HỎI MỚI (TẠO 4 ĐÁP ÁN TRẮC NGHIỆM)
   useEffect(() => {
     if (words.length === 0 || currentIndex >= words.length) return;
 
     const currentWord = words[currentIndex];
-    
-    // Tạo 3 đáp án nhiễu
-    const setOpts = new Set<String>();
+    const setOpts = new Set<string>();
     setOpts.add(currentWord.vietnameseMeaning);
     
     while (setOpts.size < Math.min(4, allMeanings.length)) {
@@ -66,39 +65,53 @@ const ListeningVocabTest = () => {
       setOpts.add(rand);
     }
 
-    const optsArray = Array.from(setOpts) as string[];
+    const optsArray = Array.from(setOpts);
     setOptions(optsArray.sort(() => Math.random() - 0.5));
-
     setSelectedAnswer(null);
-    setStartCountdown(3);
     setAnswerTimeLeft(5);
-    setGameState('COUNTDOWN');
+
+    // Nếu là câu đầu tiên (index = 0): Đếm ngược 3s chuẩn bị
+    if (currentIndex === 0 && gameState === 'INITIAL_COUNTDOWN') {
+      setStartCountdown(3);
+    } else {
+      // Từ câu thứ 2 trở đi: Chuyển ngay sang PLAYING và phát âm thanh lập tức
+      setGameState('PLAYING');
+      playAudio(currentWord.englishWord);
+    }
   }, [currentIndex, words, allMeanings]);
 
-  // 3. XỬ LÝ ĐẾM NGƯỢC 3 -> 2 -> 1
+  // 3. ĐẾM NGƯỢC 3S CHO CÂU ĐẦU TIÊN
   useEffect(() => {
-    if (gameState !== 'COUNTDOWN') return;
+    if (gameState !== 'INITIAL_COUNTDOWN') return;
 
     if (startCountdown > 0) {
       const timer = setTimeout(() => setStartCountdown(prev => prev - 1), 1000);
       return () => clearTimeout(timer);
     } else {
       setGameState('PLAYING');
-      playAudio(words[currentIndex]?.englishWord);
+      if (words[0]) {
+        playAudio(words[0].englishWord);
+      }
     }
-  }, [startCountdown, gameState, currentIndex, words]);
+  }, [startCountdown, gameState, words]);
 
-  // 4. XỬ LÝ ĐẾM NGƯỢC 5 GIÂY TRẢ LỜI
+  // 4. ĐẾM NGƯỢC 5 GIÂY CHO MỖI CÂU TRẢ LỜI
   useEffect(() => {
     if (gameState !== 'PLAYING') return;
 
-    if (answerTimeLeft > 0) {
-      const timer = setTimeout(() => setAnswerTimeLeft(prev => prev - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      handleSelectAnswer(null);
-    }
-  }, [answerTimeLeft, gameState]);
+    timerRef.current = setInterval(() => {
+      setAnswerTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current);
+          handleSelectAnswer(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timerRef.current);
+  }, [gameState, currentIndex]);
 
   // 🔊 PHÁT ÂM THANH BẰNG WEB SPEECH API
   const playAudio = (text: string) => {
@@ -106,12 +119,14 @@ const ListeningVocabTest = () => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
-    utterance.rate = 0.9;
+    utterance.rate = 0.95;
     window.speechSynthesis.speak(utterance);
   };
 
+  // CHỌN ĐÁP ÁN: HIỆN FEEDBACK ĐÚNG/SAI 1S RỒI CHUYỂN CÂU MƯỢT MÀ
   const handleSelectAnswer = (ans: string | null) => {
     if (gameState !== 'PLAYING') return;
+    clearInterval(timerRef.current);
 
     const currentWord = words[currentIndex];
     const isCorrect = ans === currentWord.vietnameseMeaning;
@@ -128,7 +143,7 @@ const ListeningVocabTest = () => {
       } else {
         finishTest(newResults);
       }
-    }, 1500);
+    }, 1000); // Ngừng đúng 1s hiển thị kết quả rồi tự động chuyển câu tiếp theo
   };
 
   const finishTest = async (finalResults: typeof userResults) => {
@@ -161,7 +176,7 @@ const ListeningVocabTest = () => {
       <header className="flex justify-between items-center max-w-2xl w-full mx-auto z-10">
         <button 
           onClick={() => navigate('/listening-vocab')}
-          className="text-slate-400 hover:text-white font-bold text-xs bg-slate-900 px-4 py-2 rounded-xl border border-slate-800"
+          className="text-slate-400 hover:text-white font-bold text-xs bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 cursor-pointer transition-colors"
         >
           ✕ Thoát
         </button>
@@ -176,7 +191,7 @@ const ListeningVocabTest = () => {
       {gameState !== 'SUMMARY' ? (
         <main className="max-w-xl w-full mx-auto flex-1 flex flex-col items-center justify-center space-y-8 z-10 my-auto">
           
-          {gameState === 'COUNTDOWN' ? (
+          {gameState === 'INITIAL_COUNTDOWN' ? (
             <div className="flex flex-col items-center space-y-4 animate-[bounce_0.5s_infinite]">
               <span className="text-8xl font-black text-amber-400 font-mono drop-shadow-[0_0_25px_rgba(251,191,36,0.4)]">
                 {startCountdown}
@@ -187,8 +202,8 @@ const ListeningVocabTest = () => {
             <>
               <div className="flex flex-col items-center space-y-4">
                 <button 
-                  onClick={() => playAudio(currentWord.englishWord)}
-                  className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all border-2 border-white/20"
+                  onClick={() => playAudio(currentWord?.englishWord)}
+                  className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all border-2 border-white/20 cursor-pointer"
                 >
                   🔊
                 </button>
@@ -206,9 +221,9 @@ const ListeningVocabTest = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full pt-4">
                 {options.map((opt, idx) => {
                   const isSelected = selectedAnswer === opt;
-                  const isCorrectOpt = opt === currentWord.vietnameseMeaning;
+                  const isCorrectOpt = opt === currentWord?.vietnameseMeaning;
 
-                  let btnStyle = "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800 hover:border-slate-700";
+                  let btnStyle = "bg-slate-900 border-slate-800 text-slate-200 hover:bg-slate-800 hover:border-slate-700 cursor-pointer";
 
                   if (gameState === 'FEEDBACK') {
                     if (isCorrectOpt) {
@@ -240,7 +255,7 @@ const ListeningVocabTest = () => {
         </main>
       ) : (
 
-        /* SUMMARY */
+        /* MÀN HÌNH TỔNG KẾT (SUMMARY) */
         <main className="max-w-2xl w-full mx-auto flex-1 flex flex-col justify-between py-6 space-y-6 z-10 overflow-y-auto custom-scrollbar">
           <div className="text-center space-y-2">
             <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-3xl flex items-center justify-center text-3xl mx-auto shadow-inner">
@@ -263,7 +278,7 @@ const ListeningVocabTest = () => {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => playAudio(res.word.englishWord)}
-                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs cursor-pointer"
                   >
                     🔊
                   </button>
@@ -285,7 +300,7 @@ const ListeningVocabTest = () => {
 
           <button
             onClick={() => navigate('/listening-vocab')}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-blue-600/30 transition-all text-xs uppercase tracking-wider"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl shadow-xl shadow-blue-600/30 transition-all text-xs uppercase tracking-wider cursor-pointer"
           >
             Hoàn Tất & Quay Lại Thư Viện ➔
           </button>

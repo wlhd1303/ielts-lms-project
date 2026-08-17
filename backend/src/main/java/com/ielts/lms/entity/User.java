@@ -1,10 +1,11 @@
 package com.ielts.lms.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties; // <--- Import quan trọng
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.List;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -30,6 +31,10 @@ public class User {
     @Column(nullable = false)
     private String status; // PENDING, ACTIVE
 
+    // ⚡ Bổ sung trường ngày thi mục tiêu của học viên (Dùng cho tính năng Countdown)
+    @Column(name = "target_exam_date")
+    private LocalDate targetExamDate;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Timestamp createdAt;
@@ -40,8 +45,8 @@ public class User {
     @JsonIgnoreProperties("users") // Ngăn vòng lặp từ Class quay về User
     private StudentClass studentClass;
 
-    // QUAN TRỌNG: Nối với bảng permissions
+    // Nối với bảng permissions
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @JsonIgnoreProperties("user") // <--- CHÌA KHÓA: Chặn Permission gọi ngược lại User
+    @JsonIgnoreProperties("user") // Chặn Permission gọi ngược lại User
     private List<Permission> permissions;
 }

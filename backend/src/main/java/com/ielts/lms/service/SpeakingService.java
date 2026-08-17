@@ -21,15 +21,16 @@ public class SpeakingService {
     private final UserRepository userRepository;
     private final SpeakingLessonRepository speakingLessonRepository;
     private final StudentClassRepository studentClassRepository;
-    private final StreakService streakService; // 👈 1. INJECT STREAK SERVICE
+    private final StreakService streakService;
 
-    private static final float PASS_MARK = 70.0f; // Điểm chuẩn để Pass
+    // ⚡ ĐÃ HẠ ĐIỂM CHUẨN PASS XUỐNG 60.0% ĐỂ LINH HOẠT HƠN CHO HỌC VIÊN
+    private static final float PASS_MARK = 60.0f;
 
     public SpeakingService(StudyRecordRepository studyRecordRepository, 
                            UserRepository userRepository,
                            SpeakingLessonRepository speakingLessonRepository,
                            StudentClassRepository studentClassRepository,
-                           StreakService streakService) { // 👈 2. BỔ SUNG VÀO CONSTRUCTOR
+                           StreakService streakService) {
         this.studyRecordRepository = studyRecordRepository;
         this.userRepository = userRepository;
         this.speakingLessonRepository = speakingLessonRepository;
@@ -37,11 +38,11 @@ public class SpeakingService {
         this.streakService = streakService;
     }
 
-    // --- LOGIC CHẤM ĐIỂM (CÓ TÍNH TOÁN PASS/FAIL) ---
+    // --- LOGIC CHẤM ĐIỂM ---
     public StudyRecord submitSpeakingScore(Long lessonId, Map<String, Float> payload, int duration) {
         float score = payload.getOrDefault("score", 0f);
         
-        // 1. Logic chuẩn hóa: Backend quyết định Pass/Fail
+        // Quyết định Pass/Fail theo mốc 60%
         boolean isPassed = score >= PASS_MARK;
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -56,7 +57,7 @@ public class SpeakingService {
         
         StudyRecord savedRecord = studyRecordRepository.save(record);
 
-        // ⚡ 3. TỰ ĐỘNG CẬP NHẬT STREAK VÀ LOG LƯU VÀO CSDL
+        // Tự động cập nhật chuỗi ngày học Streak
         streakService.updateStreakProgress(user, "SPEAKING", lessonId);
 
         return savedRecord;
