@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { mockTestService } from '../../services/mockTestService';
-import { streakService } from '../../services/streakService';
 
 interface WordItem {
   id: number;
@@ -35,7 +34,6 @@ const VocabReviewTest = () => {
           return navigate('/dashboard');
         }
 
-        // ⚡ ĐÃ SỬA: Gọi đúng API lấy từ vựng của bài Reading Mock Test theo ID
         const res: any = await mockTestService.getExtractedWordsByTestId(Number(id));
         const wordList: WordItem[] = Array.isArray(res) ? res : (res?.data || []);
 
@@ -112,14 +110,19 @@ const VocabReviewTest = () => {
     }, 1500);
   };
 
-  // 5. HOÀN THÀNH BÀI TEST -> GHI NHẬN CỘNG STREAK
+  // ⚡ 5. HOÀN THÀNH BÀI TEST -> GỬI ĐIỂM VÀ KÍCH HOẠT TÍNH CHUỖI STREAK
   const finishReviewTest = async (finalResults: typeof userResults) => {
     setGameState('SUMMARY');
 
+    const correctCount = finalResults.filter(r => r.isCorrect).length;
+    const score = words.length > 0 ? (correctCount / words.length) * 100 : 0;
+    const durationSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+
     try {
-      await streakService.getTodayStreak();
+      // Gọi đúng endpoint Backend để chấm điểm và tăng Streak
+      await mockTestService.submitVocabTest(score, durationSeconds);
     } catch (error) {
-      console.error("Lỗi hoàn thành Streak:", error);
+      console.error("Lỗi ghi nhận điểm và Streak:", error);
     }
   };
 

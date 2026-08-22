@@ -31,6 +31,14 @@ const DictationPlayer = () => {
   const [userInputs, setUserInputs] = useState<Record<number, string>>({});
   const [submitResult, setSubmitResult] = useState<any>(null);
 
+  // ⚡ HÀM FORMAT CHUẨN SỐ GIÂY SANG ĐỊNH DẠNG MM:SS (VÍ DỤ: 75 -> 01:15)
+  const formatTime = (totalSeconds: number): string => {
+    if (isNaN(totalSeconds) || totalSeconds < 0) return "00:00";
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = Math.floor(totalSeconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // 1. KHI VỪA VÀO TRANG: LOAD DANH SÁCH CHỦ ĐỀ, AUDIO VÀ DỮ LIỆU BÀI ĐÃ HOÀN THÀNH
   useEffect(() => {
     const fetchTopicsAndRecords = async () => {
@@ -44,7 +52,6 @@ const DictationPlayer = () => {
           return navigate('/dashboard');
         }
 
-        // ⚡ 1. Lấy lịch sử nộp bài của học viên (Danh sách Audio ID đã nộp)[cite: 8]
         const recordsRes: any = await adminService.getRecentActivities();
         const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
         const doneAudioSet = new Set<number>(
@@ -54,12 +61,10 @@ const DictationPlayer = () => {
         );
         setCompletedAudioIds(doneAudioSet);
 
-        // ⚡ 2. Lấy danh sách Topics[cite: 12]
         const res: any = await dictationService.getTopicsByClass(classId);
         const topicList = Array.isArray(res) ? res : (res?.data || []);
         setTopics(topicList);
 
-        // ⚡ 3. Quét lấy mảng Audio ID thuộc về từng Topic để đối soát chính xác[cite: 12]
         const tAudioMap: Record<number, number[]> = {};
         for (const t of topicList) {
           try {
@@ -67,7 +72,7 @@ const DictationPlayer = () => {
             const audios = Array.isArray(audiosRes) ? audiosRes : (audiosRes?.data || []);
             tAudioMap[t.id] = audios.map((a: any) => a.id);
 
-            // ⚡ Mở bài trực tiếp nếu tới từ nút Streak trên Dashboard
+            // Mở bài trực tiếp nếu tới từ nút Streak trên Dashboard
             if (streakAudioId) {
               const targetAudioId = Number(streakAudioId);
               const found = audios.find((a: any) => a.id === targetAudioId);
@@ -154,7 +159,6 @@ const DictationPlayer = () => {
       const res: any = await dictationService.submitDictation(currentAudioId!, userInputs, duration);
       setSubmitResult(res?.data || res);
 
-      // ⚡ Tự động cập nhật Audio ID vừa làm vào Set hoàn thành
       if (currentAudioId) {
         setCompletedAudioIds(prev => new Set(prev).add(currentAudioId));
       }
@@ -178,14 +182,14 @@ const DictationPlayer = () => {
     );
   }
 
-  // --- GIAO DIỆN 2: CHỌN CHỦ ĐỀ NGHE (SỬA ĐỐI SOÁT KEY ĐỂ HIỂN THỊ CỜ DONE) ---
+  // --- GIAO DIỆN 2: CHỌN CHỦ ĐỀ NGHE ---
   if (viewState === 'TOPIC_SELECTION') {
     return (
       <div className="min-h-screen bg-slate-50 font-sans flex flex-col text-slate-800">
         <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center gap-4 shadow-sm z-10 sticky top-0">
           <button 
             onClick={() => navigate('/dashboard')} 
-            className="p-2.5 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+            className="p-2.5 bg-slate-50 text-slate-500 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
           >
             ←
           </button>
@@ -204,7 +208,6 @@ const DictationPlayer = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {topics.map((t) => {
-                // ⚡ Kiểm tra xem có ít nhất 1 Audio thuộc Topic này nằm trong danh sách bài đã làm hay chưa
                 const topicAudios = topicAudioMap[t.id] || [];
                 const isDone = topicAudios.some(audioId => completedAudioIds.has(audioId));
 
@@ -221,7 +224,6 @@ const DictationPlayer = () => {
                         🎧
                       </div>
 
-                      {/* ⚡ HIỂN THỊ CỜ DONE RÕ RÀNG */}
                       {isDone ? (
                         <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300">
                           ✓ DONE
@@ -275,14 +277,16 @@ const DictationPlayer = () => {
               </div>
               <div className="bg-blue-50/80 border border-blue-100 p-4 rounded-2xl w-36 shadow-sm">
                 <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">Thời gian</p>
-                <p className="text-2xl font-black text-blue-700 mt-1">{submitResult?.durationSeconds || 0}s</p>
+                <p className="text-2xl font-black text-blue-700 mt-1 font-mono">
+                  {formatTime(submitResult?.durationSeconds || 0)}
+                </p>
               </div>
             </div>
 
             <div className="mt-6 flex justify-center">
               <button 
                 onClick={() => setViewState('TOPIC_SELECTION')} 
-                className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95"
+                className="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 ← Chọn Chủ Đề Khác
               </button>
@@ -299,8 +303,8 @@ const DictationPlayer = () => {
               const transcript = q.transcript || '';
               const isPlayingThis = currentPlayingIndex === index;
 
-              const startTimestamp = q.startTime ?? q.start_time ?? 0;
-              const endTimestamp = q.endTime ?? q.end_time ?? 0;
+              const startTimestamp = Number(q.startTime ?? q.start_time ?? 0);
+              const endTimestamp = Number(q.endTime ?? q.end_time ?? 0);
 
               return (
                 <div key={q.id} className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
@@ -310,13 +314,13 @@ const DictationPlayer = () => {
                         Đoạn #{index + 1}
                       </span>
                       <span className="text-xs font-mono font-semibold text-slate-400">
-                        ({startTimestamp}s - {endTimestamp}s)
+                        ({formatTime(startTimestamp)} - {formatTime(endTimestamp)})
                       </span>
                     </div>
 
                     <button 
                       onClick={() => playSegment(startTimestamp, endTimestamp, index)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
                         isPlayingThis 
                           ? 'bg-amber-500 text-white shadow-md' 
                           : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600'
@@ -363,7 +367,7 @@ const DictationPlayer = () => {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => { if(window.confirm("Thoát bài làm sẽ không lưu lại kết quả?")) setViewState('TOPIC_SELECTION'); }}
-            className="p-2 bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-500 rounded-xl transition-all"
+            className="p-2 bg-slate-50 text-slate-500 hover:bg-rose-50 hover:text-rose-500 rounded-xl transition-all cursor-pointer"
           >
             ←
           </button>
@@ -393,16 +397,16 @@ const DictationPlayer = () => {
               const isPlayingThis = currentPlayingIndex === index;
               const textValue = userInputs[q.id] || '';
               
-              const startTimestamp = q.startTime ?? q.start_time ?? 0;
-              const endTimestamp = q.endTime ?? q.end_time ?? 0;
-              const duration = endTimestamp - startTimestamp;
+              const startTimestamp = Number(q.startTime ?? q.start_time ?? 0);
+              const endTimestamp = Number(q.endTime ?? q.end_time ?? 0);
+              const duration = Math.max(1, endTimestamp - startTimestamp);
 
               return (
                 <div key={q.id} className={`bg-white rounded-3xl shadow-sm border transition-all p-6 ${isPlayingThis ? 'border-blue-500 ring-2 ring-blue-500/10' : 'border-slate-200/80'}`}>
                   <div className="bg-slate-50/80 rounded-2xl p-4 mb-4 flex flex-col sm:flex-row items-center gap-4 border border-slate-200/60">
                     <button 
                       onClick={() => playSegment(startTimestamp, endTimestamp, index)}
-                      className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-md transition-all active:scale-95 ${
+                      className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-md transition-all active:scale-95 cursor-pointer ${
                         isPlayingThis 
                           ? 'bg-amber-500 shadow-amber-500/30' 
                           : 'bg-blue-600 shadow-blue-600/30 hover:bg-blue-700'
@@ -416,14 +420,15 @@ const DictationPlayer = () => {
                     </button>
 
                     <div className="flex-1 w-full flex items-center gap-3">
-                      <span className="text-xs font-bold text-slate-400 font-mono">00:{startTimestamp.toString().padStart(2, '0')}</span>
+                      {/* ⚡ ĐỒNG BỘ HIỂN THỊ PHÚT:GIÂY */}
+                      <span className="text-xs font-bold text-slate-500 font-mono">{formatTime(startTimestamp)}</span>
                       <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden relative">
                         <div 
                            className={`absolute top-0 left-0 h-full rounded-full ${isPlayingThis ? 'bg-amber-500 w-full' : 'bg-blue-500 w-0'}`}
                            style={{ transition: isPlayingThis ? `width ${duration}s linear` : 'none' }}
                         ></div>
                       </div>
-                      <span className="text-xs font-bold text-slate-400 font-mono">00:{endTimestamp.toString().padStart(2, '0')}</span>
+                      <span className="text-xs font-bold text-slate-500 font-mono">{formatTime(endTimestamp)}</span>
                     </div>
                   </div>
 
@@ -448,7 +453,7 @@ const DictationPlayer = () => {
           <div className="pt-2 pb-10">
             <button 
               onClick={handleSubmit}
-              className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 active:scale-[0.98] transition-all text-xs"
+              className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/25 hover:bg-blue-700 active:scale-[0.98] transition-all text-xs cursor-pointer"
             >
               Nộp Bài Lấy Điểm & Xem Đáp Án
             </button>

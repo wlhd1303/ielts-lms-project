@@ -116,7 +116,7 @@ const MockTestManagement = () => {
                  <input required type="text" placeholder="Link Audio (.mp3)..." className="w-full p-2.5 text-xs border rounded-xl outline-none bg-white font-medium text-emerald-700" value={newMockTest.audioUrl} onChange={e => setNewMockTest({...newMockTest, audioUrl: e.target.value})} />
                )}
 
-               <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all active:scale-95">
+               <button type="submit" className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all active:scale-95 cursor-pointer">
                  + Tạo Đề Thi Mới
                </button>
             </form>
@@ -126,7 +126,7 @@ const MockTestManagement = () => {
                 <div key={test.id} onClick={() => setSelectedMockTestId(test.id)} className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col gap-1.5 ${selectedMockTestId === test.id ? 'border-blue-600 bg-blue-50/50 shadow-sm' : 'border-slate-200/80 hover:bg-slate-50'}`}>
                   <div className="flex justify-between items-start gap-2">
                     <span className="font-bold text-slate-800 text-xs line-clamp-2">{test.title}</span>
-                    <button onClick={(e) => { e.stopPropagation(); handleDeleteMockTest(test.id); }} className="text-rose-500 hover:text-rose-700 text-[10px] font-bold shrink-0">Xóa</button>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteMockTest(test.id); }} className="text-rose-500 hover:text-rose-700 text-[10px] font-bold shrink-0 cursor-pointer">Xóa</button>
                   </div>
                   <span className={`text-[9px] font-black px-2 py-0.5 rounded-md w-max ${test.type === 'READING' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
                     {test.type}
@@ -138,12 +138,17 @@ const MockTestManagement = () => {
 
           {/* STEP 3: ANSWER KEY FORM */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm col-span-1 lg:col-span-2 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                 <span>🔑</span> Khai báo Bảng Đáp Án (40 Câu)
-               </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+               <div>
+                 <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                   <span>🔑</span> Khai báo Bảng Đáp Án (40 Câu)
+                 </h3>
+                 <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                   💡 Mẹo: Nhập nhiều đáp án đúng cách nhau bởi dấu gạch chéo (VD: <span className="font-mono text-emerald-600 font-bold">A/C/B</span> hoặc <span className="font-mono text-emerald-600 font-bold">centre/center</span>)
+                 </p>
+               </div>
                {selectedMockTestId && (
-                 <button onClick={handleSaveAnswerKey} className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-95">
+                 <button onClick={handleSaveAnswerKey} className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-95 shrink-0 cursor-pointer">
                    Lưu Dữ Liệu Đáp Án
                  </button>
                )}
@@ -175,8 +180,8 @@ const MockTestManagement = () => {
                             <div className="pl-8">
                                <input 
                                  type="text" 
-                                 placeholder="Đáp án đúng..." 
-                                 className="w-full p-2 text-xs border border-emerald-200 rounded-xl outline-none focus:border-emerald-600 uppercase font-black text-emerald-700 bg-emerald-50/30 placeholder:font-normal placeholder:capitalize" 
+                                 placeholder="VD: A hoặc A/C/D hoặc centre/center..." 
+                                 className="w-full p-2 text-xs border border-emerald-200 rounded-xl outline-none focus:border-emerald-600 uppercase font-black text-emerald-700 bg-emerald-50/30 placeholder:font-normal placeholder:normal-case" 
                                  value={data.answer} 
                                  onChange={e => setQuestionData({...questionData, [num]: { ...data, answer: e.target.value }})} 
                                />

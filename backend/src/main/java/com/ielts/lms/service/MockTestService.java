@@ -68,15 +68,32 @@ public class MockTestService {
         mockQuestionRepository.saveAll(questions);
     }
 
-    // --- HÀM CHẤM ĐIỂM ĐỀ THI MOCK ---
+    // --- HÀM CHẤM ĐIỂM ĐỀ THI MOCK (HỖ TRỢ NHIỀU ĐÁP ÁN ĐÚNG: A/C/B, centre/center, 10/ten) ---
     public StudyRecord gradeMockTest(Long testId, Map<Integer, String> studentAnswers, int duration) {
         List<MockQuestion> correctAnswers = mockQuestionRepository.findByMockTestId(testId);
         int correctCount = 0;
 
         for (MockQuestion q : correctAnswers) {
-            String studentAns = studentAnswers.get(q.getQuestionNumber());
-            if (studentAns != null && studentAns.trim().equalsIgnoreCase(q.getCorrectAnswer().trim())) {
-                correctCount++;
+            String studentAns = studentAnswers != null ? studentAnswers.get(q.getQuestionNumber()) : null;
+            String rawCorrectAnswer = q.getCorrectAnswer();
+
+            if (studentAns != null && rawCorrectAnswer != null) {
+                String cleanStudentAns = studentAns.trim().toLowerCase();
+
+                // Tách các đáp án đúng bằng dấu gạch chéo '/', dấu phẩy ',', hoặc dấu gạch đứng '|'
+                String[] acceptableAnswers = rawCorrectAnswer.split("[/,|]");
+                boolean isMatched = false;
+
+                for (String ans : acceptableAnswers) {
+                    if (cleanStudentAns.equalsIgnoreCase(ans.trim())) {
+                        isMatched = true;
+                        break;
+                    }
+                }
+
+                if (isMatched) {
+                    correctCount++;
+                }
             }
         }
         
@@ -92,7 +109,7 @@ public class MockTestService {
         record.setUser(user);
         record.setModuleType("MOCK_TEST"); 
         record.setRefId(testId);
-        record.setScore(score);
+        record.setScore(Math.round(score * 10.0) / 10.0);
         record.setDurationSeconds(duration);
         
         StudyRecord savedRecord = studyRecordRepository.save(record);
@@ -180,7 +197,7 @@ public class MockTestService {
         return quizList;
     }
 
-    // ⚡ 3. ĐÃ SỬA: Thay null thành 0L để tránh lỗi NullPointerException / DataIntegrityViolationException khi lưu UserStreakLog
+    // ⚡ 3. NỘP BÀI TEST TỪ VỰNG ÔN TẬP
     public StudyRecord submitVocabTest(float score, int durationSeconds) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
@@ -199,7 +216,6 @@ public class MockTestService {
         record.setDurationSeconds(durationSeconds);
         StudyRecord savedRecord = studyRecordRepository.save(record);
 
-        // Truyền 0L làm refId thay vì null
         streakService.updateStreakProgress(user, "VOCAB", 0L);
 
         return savedRecord;
