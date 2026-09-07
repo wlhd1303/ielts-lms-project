@@ -1,13 +1,11 @@
-# Bước 1: Dùng OpenJDK 21 LTS và cài thêm maven
-FROM openjdk:21-slim AS build
-RUN apt-get update && apt-get install -y maven
-
+# Bước 1: Build bằng Maven và Eclipse Temurin JDK 21 chính thức
+FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# Bước 2: Khởi chạy ứng dụng với Java 21 siêu nhẹ
-FROM openjdk:21-slim
+# Bước 2: Khởi chạy ứng dụng với Eclipse Temurin JRE 21 siêu nhẹ
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
