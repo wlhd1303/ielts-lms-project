@@ -336,7 +336,9 @@ const UserManagement = () => {
                             {user.username.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-800 text-sm">{user.username}</p>
+                            <p className="font-bold text-slate-800 text-sm">
+                              {user.fullName ? `${user.fullName} (@${user.username})` : user.username}
+                            </p>
                             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full inline-block mt-0.5 ${
                               user.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
                             }`}>

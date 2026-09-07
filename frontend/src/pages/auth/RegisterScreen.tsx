@@ -16,17 +16,44 @@ const RegisterScreen = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    const trimmedFullName = formData.fullName.trim();
+    const trimmedUsername = formData.username.trim();
+
+    if (!trimmedFullName) {
+      setErrorMessage('Vui lòng nhập họ và tên của bạn.');
+      return;
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_]{4,30}$/;
+    if (!usernameRegex.test(trimmedUsername)) {
+      setErrorMessage('Tên đăng nhập phải từ 4-30 ký tự, chỉ gồm chữ cái không dấu, số và dấu gạch dưới (_).');
+      return;
+    }
+
+    if (formData.password.length < 8 || formData.password.length > 32) {
+      setErrorMessage('Mật khẩu phải có độ dài từ 8 đến 32 ký tự.');
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)\S+$/;
+    if (!passwordRegex.test(formData.password)) {
+      setErrorMessage('Mật khẩu phải chứa ít nhất 1 chữ cái, 1 chữ số và không chứa khoảng trắng.');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setErrorMessage('Mật khẩu xác nhận không trùng khớp!');
       return;
     }
 
     setIsLoading(true);
-    setErrorMessage('');
 
     try {
       await authService.register({
-        username: formData.username,
+        fullName: trimmedFullName,
+        username: trimmedUsername,
         password: formData.password
       });
       setIsSubmitted(true);
@@ -36,6 +63,11 @@ const RegisterScreen = () => {
       setIsLoading(false);
     }
   };
+
+  const hasMinLength = formData.password.length >= 8 && formData.password.length <= 32;
+  const hasLetter = /[a-zA-Z]/.test(formData.password);
+  const hasNumber = /\d/.test(formData.password);
+  const hasNoSpace = formData.password.length > 0 && !/\s/.test(formData.password);
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans flex items-center justify-center p-4 relative overflow-hidden text-slate-800">
@@ -67,6 +99,7 @@ const RegisterScreen = () => {
                 <input 
                   type="text" 
                   name="fullName" 
+                  value={formData.fullName}
                   onChange={handleChange} 
                   placeholder="Ví dụ: Nguyễn Văn A" 
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-600 focus:bg-white transition-all" 
@@ -79,11 +112,13 @@ const RegisterScreen = () => {
                 <input 
                   type="text" 
                   name="username" 
+                  value={formData.username}
                   onChange={handleChange} 
                   placeholder="student2026" 
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-600 focus:bg-white transition-all" 
                   required 
                 />
+                <p className="text-[10px] text-slate-400 font-medium mt-1">4-30 ký tự, chữ không dấu, số hoặc gạch dưới (_)</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -92,6 +127,7 @@ const RegisterScreen = () => {
                   <input 
                     type="password" 
                     name="password" 
+                    value={formData.password}
                     onChange={handleChange} 
                     placeholder="••••••••" 
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-600 focus:bg-white transition-all" 
@@ -103,6 +139,7 @@ const RegisterScreen = () => {
                   <input 
                     type="password" 
                     name="confirmPassword" 
+                    value={formData.confirmPassword}
                     onChange={handleChange} 
                     placeholder="••••••••" 
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-blue-600 focus:bg-white transition-all" 
@@ -110,11 +147,30 @@ const RegisterScreen = () => {
                   />
                 </div>
               </div>
+
+              {/* Password requirement badges */}
+              <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Yêu cầu mật khẩu:</p>
+                <div className="grid grid-cols-2 gap-1 text-[10px]">
+                  <span className={hasMinLength ? "text-emerald-600 font-semibold" : "text-slate-400"}>
+                    {hasMinLength ? "✓" : "•"} 8 - 32 ký tự
+                  </span>
+                  <span className={hasLetter ? "text-emerald-600 font-semibold" : "text-slate-400"}>
+                    {hasLetter ? "✓" : "•"} Chứa ít nhất 1 chữ cái
+                  </span>
+                  <span className={hasNumber ? "text-emerald-600 font-semibold" : "text-slate-400"}>
+                    {hasNumber ? "✓" : "•"} Chứa ít nhất 1 chữ số
+                  </span>
+                  <span className={hasNoSpace ? "text-emerald-600 font-semibold" : "text-slate-400"}>
+                    {hasNoSpace ? "✓" : "•"} Không có khoảng trắng
+                  </span>
+                </div>
+              </div>
               
               <button 
                 disabled={isLoading}
                 type="submit"
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/25 active:scale-[0.98] mt-2 flex items-center justify-center"
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-lg shadow-blue-600/25 active:scale-[0.98] mt-2 flex items-center justify-center cursor-pointer"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

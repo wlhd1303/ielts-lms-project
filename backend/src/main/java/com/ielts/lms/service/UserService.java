@@ -49,8 +49,20 @@ public class UserService {
     }
 
     public User registerUser(RegisterRequest request) {
+        String username = request.getUsername() != null ? request.getUsername().trim() : "";
+        if (username.isEmpty()) {
+            throw new RuntimeException("Lỗi: Tên đăng nhập không được để trống!");
+        }
+
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new RuntimeException("Lỗi: Tên đăng nhập này đã được sử dụng, vui lòng chọn tên khác!");
+        }
+
         User newUser = new User();
-        newUser.setUsername(request.getUsername());
+        if (request.getFullName() != null && !request.getFullName().trim().isEmpty()) {
+            newUser.setFullName(request.getFullName().trim());
+        }
+        newUser.setUsername(username);
         newUser.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         newUser.setRole("ROLE_USER");
         newUser.setStatus("PENDING"); 

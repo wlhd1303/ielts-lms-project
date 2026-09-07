@@ -15,11 +15,26 @@ const LoginScreen = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage('');
 
+    const trimmedUsername = formData.username.trim();
+    if (!trimmedUsername) {
+      setErrorMessage('Vui lòng nhập tên đăng nhập.');
+      return;
+    }
+
+    if (!formData.password) {
+      setErrorMessage('Vui lòng nhập mật khẩu.');
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      const response: any = await authService.login(formData);
+      const response: any = await authService.login({
+        username: trimmedUsername,
+        password: formData.password
+      });
       localStorage.setItem('token', response.accessToken);
       
       if (response.role === 'ROLE_ADMIN') {

@@ -6,6 +6,7 @@ import com.ielts.lms.dto.RegisterRequest;
 import com.ielts.lms.entity.StudentClass;
 import com.ielts.lms.entity.User;
 import com.ielts.lms.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,24 +24,18 @@ public class UserController {
         this.userService = userService;
     }
 
-    // --- BẮT LỖI VÀ CHUYỂN THÀNH MÃ 400 CHO FRONTEND ---
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
-    }
-
     @GetMapping
     public List<User> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @PostMapping("/register")
-    public User register(@RequestBody RegisterRequest request) {
+    public User register(@Valid @RequestBody RegisterRequest request) {
         return userService.registerUser(request);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
     }
 
