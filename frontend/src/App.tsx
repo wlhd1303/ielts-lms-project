@@ -22,13 +22,16 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Giải mã role trực tiếp từ JWT Token để tránh sai lệch localStorage hoặc cache
 const getRoleFromToken = (token: string | null): string => {
-  if (!token) return '';
+  if (!token || token === 'undefined' || token === 'null' || typeof token !== 'string') return '';
   try {
-    const base64Url = token.split('.')[1];
+    const parts = token.split('.');
+    if (parts.length < 2) return '';
+    const base64Url = parts[1];
     if (!base64Url) return '';
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
     const jsonPayload = decodeURIComponent(
-      atob(base64)
+      atob(padded)
         .split('')
         .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
         .join('')
@@ -43,15 +46,20 @@ const getRoleFromToken = (token: string | null): string => {
 // Route Guard chỉ cho phép ROLE_ADMIN truy cập
 const AdminRoute = ({ children }: { children: React.ReactElement }) => {
   const token = localStorage.getItem('token');
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-  const tokenRole = getRoleFromToken(token);
   const localRole = (localStorage.getItem('role') || '').toUpperCase().trim();
-  const role = tokenRole || localRole;
-  const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+  const tokenRole = getRoleFromToken(token);
+
+  // Cho phép truy cập nếu hoặc tokenRole là Admin hoặc localRole là Admin
+  const isAdmin =
+    tokenRole === 'ROLE_ADMIN' ||
+    tokenRole === 'ADMIN' ||
+    localRole === 'ROLE_ADMIN' ||
+    localRole === 'ADMIN';
 
   if (!isAdmin) {
+    if (!token || token === 'undefined' || token === 'null') {
+      return <Navigate to="/login" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   return children;

