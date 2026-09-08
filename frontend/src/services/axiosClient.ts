@@ -1,9 +1,21 @@
 import axios from 'axios';
 
-// Đọc link backend từ biến môi trường, tự động fallback về Render trên production và localhost khi dev
-const backendUrl =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://ielts-lms-project.onrender.com' : 'http://localhost:8080');
+// Làm sạch và chuẩn hóa backendUrl: tự động bóc tách nếu biến môi trường bị dính cú pháp markdown [url](url)
+const cleanApiUrl = (): string => {
+  let envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (envUrl.includes('](')) {
+    const match = envUrl.match(/\((https?:\/\/[^\)]+)\)/);
+    if (match) envUrl = match[1];
+  } else if (envUrl.startsWith('[') && envUrl.endsWith(']')) {
+    envUrl = envUrl.slice(1, -1);
+  }
+  if (envUrl.startsWith('http://') || envUrl.startsWith('https://')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  return import.meta.env.PROD ? 'https://ielts-lms-project.onrender.com' : 'http://localhost:8080';
+};
+
+const backendUrl = cleanApiUrl();
 
 // Khởi tạo instance của axios
 const axiosClient = axios.create({
@@ -48,6 +60,11 @@ axiosClient.interceptors.response.use(
     
     // BƯỚC FIX LỖI: Chỉ thực hiện parse nếu chuỗi có nội dung thực sự
     if (typeof data === 'string' && data.trim() !== '') {
+      // Nếu Backend hoặc Render trả về trang HTML (ví dụ server đang khởi động lại hoặc 404/502)
+      if (data.startsWith('<!doctype') || data.startsWith('<!DOCTYPE') || data.startsWith('<html')) {
+        console.warn("Cảnh báo: Backend trả về trang HTML thay vì JSON. Có thể server Render đang khởi động.");
+        return [];
+      }
       try {
         data = JSON.parse(data);
       } catch (e) {
