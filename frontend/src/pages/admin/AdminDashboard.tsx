@@ -89,7 +89,7 @@ const AdminDashboard = () => {
         {/* User Footer / Logout */}
         <div className="p-4 bg-slate-950/90 border-t border-slate-800/80">
           <button 
-            onClick={() => { localStorage.removeItem('token'); navigate('/login'); }} 
+            onClick={() => { localStorage.clear(); navigate('/login'); }} 
             className="w-full flex items-center justify-between px-4 py-3 bg-slate-900/80 hover:bg-rose-500/10 hover:text-rose-400 border border-slate-800 hover:border-rose-500/30 rounded-xl text-xs font-bold transition-all text-slate-400 group"
           >
             <span className="flex items-center gap-2.5">

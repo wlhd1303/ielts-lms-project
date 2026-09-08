@@ -20,14 +20,37 @@ import MockTestList from './pages/mock-test/MockTestList';
 // Import Màn hình Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 
+// Giải mã role trực tiếp từ JWT Token để tránh sai lệch localStorage hoặc cache
+const getRoleFromToken = (token: string | null): string => {
+  if (!token) return '';
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return '';
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const parsed = JSON.parse(jsonPayload);
+    return (parsed.role || '').toUpperCase().trim();
+  } catch (e) {
+    return '';
+  }
+};
+
 // Route Guard chỉ cho phép ROLE_ADMIN truy cập
 const AdminRoute = ({ children }: { children: React.ReactElement }) => {
   const token = localStorage.getItem('token');
-  const role = (localStorage.getItem('role') || '').toUpperCase().trim();
   if (!token) {
     return <Navigate to="/login" replace />;
   }
+  const tokenRole = getRoleFromToken(token);
+  const localRole = (localStorage.getItem('role') || '').toUpperCase().trim();
+  const role = tokenRole || localRole;
   const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }

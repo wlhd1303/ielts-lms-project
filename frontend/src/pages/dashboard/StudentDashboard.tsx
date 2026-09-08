@@ -43,11 +43,26 @@ const StudentDashboard = () => {
       return;
     }
 
+    // ⚡ Nếu tài khoản là Admin, tự động chuyển hướng ngay sang trang Quản trị (/admin)
+    const localRole = (localStorage.getItem('role') || '').toUpperCase().trim();
+    if (localRole === 'ROLE_ADMIN' || localRole === 'ADMIN') {
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     const fetchProfileAndStreak = async () => {
       try {
         const response: any = await authService.getProfile();
         const userData = response?.data?.data || response?.data || response;
         
+        // Kiểm tra nếu API trả về quyền Admin thì chuyển hướng ngay
+        const role = (userData.role || '').toUpperCase().trim();
+        if (role === 'ROLE_ADMIN' || role === 'ADMIN') {
+          localStorage.setItem('role', 'ROLE_ADMIN');
+          navigate('/admin', { replace: true });
+          return;
+        }
+
         const isUserLocked = !userData.studentClass;
         
         const grantedFeatures = userData.permissions 
@@ -78,7 +93,7 @@ const StudentDashboard = () => {
 
       } catch (error) {
         console.error("Lỗi lấy thông tin học viên:", error);
-        localStorage.removeItem('token');
+        localStorage.clear();
         navigate('/login');
       } finally {
         setIsLoading(false);
@@ -100,7 +115,7 @@ const StudentDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.clear();
     navigate('/login');
   };
 
