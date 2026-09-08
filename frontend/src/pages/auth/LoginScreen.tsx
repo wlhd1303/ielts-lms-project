@@ -35,13 +35,17 @@ const LoginScreen = () => {
         username: trimmedUsername,
         password: formData.password
       });
+      const rawRole = (response.role || '').toUpperCase().trim();
+      const isAdmin = rawRole === 'ROLE_ADMIN' || rawRole === 'ADMIN';
+      const normalizedRole = isAdmin ? 'ROLE_ADMIN' : 'ROLE_USER';
+
       localStorage.setItem('token', response.accessToken);
-      localStorage.setItem('role', response.role);
+      localStorage.setItem('role', normalizedRole);
       if (response.refreshToken) {
         localStorage.setItem('refreshToken', response.refreshToken);
       }
       
-      if (response.role === 'ROLE_ADMIN') {
+      if (isAdmin) {
         navigate('/admin');
       } else {
         navigate('/dashboard');

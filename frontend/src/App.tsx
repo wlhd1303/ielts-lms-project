@@ -23,11 +23,12 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 // Route Guard chỉ cho phép ROLE_ADMIN truy cập
 const AdminRoute = ({ children }: { children: React.ReactElement }) => {
   const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const role = (localStorage.getItem('role') || '').toUpperCase().trim();
   if (!token) {
     return <Navigate to="/login" replace />;
   }
-  if (role !== 'ROLE_ADMIN') {
+  const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+  if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
