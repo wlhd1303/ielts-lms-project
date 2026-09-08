@@ -77,11 +77,40 @@ public class UserService {
             throw new RuntimeException("Lỗi: Sai mật khẩu!");
         }
 
-        String accessToken = jwtService.generateToken(user.getUsername());
+        if ("PENDING".equalsIgnoreCase(user.getStatus())) {
+            throw new RuntimeException("Tài khoản của bạn đang chờ Admin phê duyệt!");
+        }
+        if ("REJECTED".equalsIgnoreCase(user.getStatus())) {
+            throw new RuntimeException("Tài khoản của bạn đã bị từ chối truy cập!");
+        }
+
+        String accessToken = jwtService.generateToken(user.getUsername(), user.getRole());
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
         AuthResponse response = new AuthResponse();
         response.setAccessToken(accessToken);
+        response.setRefreshToken(refreshToken.getToken());
+        response.setUsername(user.getUsername());
+        response.setRole(user.getRole());
+
+        return response;
+    }
+
+    public AuthResponse refreshToken(String requestRefreshToken) {
+        if (requestRefreshToken == null || requestRefreshToken.trim().isEmpty()) {
+            throw new RuntimeException("Refresh Token không được để trống!");
+        }
+
+        RefreshToken refreshToken = refreshTokenService.findByToken(requestRefreshToken.trim())
+                .orElseThrow(() -> new RuntimeException("Refresh Token không hợp lệ!"));
+
+        refreshToken = refreshTokenService.verifyExpiration(refreshToken);
+        User user = refreshToken.getUser();
+
+        String newAccessToken = jwtService.generateToken(user.getUsername(), user.getRole());
+
+        AuthResponse response = new AuthResponse();
+        response.setAccessToken(newAccessToken);
         response.setRefreshToken(refreshToken.getToken());
         response.setUsername(user.getUsername());
         response.setRole(user.getRole());

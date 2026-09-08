@@ -94,8 +94,8 @@ const MockTestSplitScreen = () => {
       // ⚡ PHÂN LUỒNG XỬ LÝ THEO LOẠI BÀI THI KHI TỚI TỪ STREAK:
       if (isFromStreak) {
         if (testDetails.type === 'READING') {
-          // ⚡ BÀI READING: Tự động chuyển tiếp sang làm 35 từ vựng review
-          navigate(`/vocab-review/${testId}`);
+          // ⚡ BÀI READING: Không chuyển trang ngay mà để học viên hoàn thành Bước 2 (Trích xuất 5-10 từ vựng).
+          // Sau khi lưu từ vựng xong, hệ thống sẽ tự động chuyển tiếp sang /vocab-review/${testId}.
         } else {
           // ⚡ BÀI LISTENING: Hoàn thành Streak ngay lập tức không cần qua review từ vựng
           try {
@@ -150,6 +150,11 @@ const MockTestSplitScreen = () => {
     try {
       await mockTestService.saveExtractedVocabularies(testId, filledVocab);
       setVocabSaved(true);
+
+      // ⚡ NẾU TỚI TỪ STREAK: Chuyển tiếp sang màn hình ôn tập từ vựng
+      if (isFromStreak) {
+        navigate(`/vocab-review/${testId}`);
+      }
     } catch (error) {
       alert("Lỗi khi lưu danh sách từ vựng!");
     } finally {
@@ -349,7 +354,7 @@ const MockTestSplitScreen = () => {
                      disabled={isSavingVocab}
                      className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all mt-4 cursor-pointer"
                    >
-                     {isSavingVocab ? "Đang lưu..." : "Hoàn Tất & Lưu Từ Vựng ➔"}
+                     {isSavingVocab ? "Đang lưu..." : isFromStreak ? "Lưu Từ Vựng & Bắt Đầu Ôn Tập Streak ➔" : "Hoàn Tất & Lưu Từ Vựng ➔"}
                    </button>
                  </form>
                </div>

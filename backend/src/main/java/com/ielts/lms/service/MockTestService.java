@@ -20,6 +20,13 @@ public class MockTestService {
     private final UserMockVocabRepository userMockVocabRepository;
     private final VocabWordRepository vocabWordRepository;
 
+    private static final List<String> FALLBACK_MEANINGS = List.of(
+            "Khả năng", "Môi trường", "Thách thức", "Phát triển",
+            "Giải pháp", "Mục tiêu", "Ảnh hưởng", "Nghiên cứu",
+            "Cơ hội", "Kinh nghiệm", "Trách nhiệm", "Thành công",
+            "Phương pháp", "Tác động", "Quan điểm", "Hệ thống"
+    );
+
     public MockTestService(MockTestRepository mockTestRepository, 
                            MockQuestionRepository mockQuestionRepository, 
                            StudyRecordRepository studyRecordRepository, 
@@ -78,14 +85,16 @@ public class MockTestService {
             String rawCorrectAnswer = q.getCorrectAnswer();
 
             if (studentAns != null && rawCorrectAnswer != null) {
-                String cleanStudentAns = studentAns.trim().toLowerCase();
+                // Khử dấu câu thừa ở hai đầu câu trả lời của học viên (ví dụ: "center." -> "center")
+                String cleanStudentAns = studentAns.trim().toLowerCase().replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
 
-                // Tách các đáp án đúng bằng dấu gạch chéo '/', dấu phẩy ',', hoặc dấu gạch đứng '|'
-                String[] acceptableAnswers = rawCorrectAnswer.split("[/,|]");
+                // Tách các đáp án đúng bằng dấu gạch chéo '/' hoặc dấu gạch đứng '|' (không tách bằng dấu phẩy để bảo vệ số 10,000)
+                String[] acceptableAnswers = rawCorrectAnswer.split("[/|]");
                 boolean isMatched = false;
 
                 for (String ans : acceptableAnswers) {
-                    if (cleanStudentAns.equalsIgnoreCase(ans.trim())) {
+                    String cleanAns = ans.trim().toLowerCase().replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+                    if (cleanStudentAns.equalsIgnoreCase(cleanAns)) {
                         isMatched = true;
                         break;
                     }
@@ -180,10 +189,25 @@ public class MockTestService {
             Set<String> optionsSet = new HashSet<>();
             optionsSet.add(item.getVietnameseMeaning());
 
-            while (optionsSet.size() < 4) {
-                String randomMeaning = allMeanings.get(random.nextInt(allMeanings.size()));
-                if (!randomMeaning.equalsIgnoreCase(item.getVietnameseMeaning())) {
-                    optionsSet.add(randomMeaning);
+            List<String> otherMeanings = allMeanings.stream()
+                    .filter(m -> m != null && !m.trim().equalsIgnoreCase(item.getVietnameseMeaning().trim()))
+                    .distinct()
+                    .collect(Collectors.toList());
+            Collections.shuffle(otherMeanings);
+            for (String otherMeaning : otherMeanings) {
+                if (optionsSet.size() >= 4) break;
+                optionsSet.add(otherMeaning);
+            }
+
+            // Nếu vẫn chưa đủ 4 lựa chọn (do trích xuất ít từ hoặc có từ đồng nghĩa), bù bằng nghĩa dự phòng
+            if (optionsSet.size() < 4) {
+                List<String> fallbackShuffled = new ArrayList<>(FALLBACK_MEANINGS);
+                Collections.shuffle(fallbackShuffled);
+                for (String fb : fallbackShuffled) {
+                    if (optionsSet.size() >= 4) break;
+                    if (!fb.trim().equalsIgnoreCase(item.getVietnameseMeaning().trim())) {
+                        optionsSet.add(fb);
+                    }
                 }
             }
 

@@ -52,11 +52,11 @@ const DictationPlayer = () => {
           return navigate('/dashboard');
         }
 
-        const recordsRes: any = await adminService.getRecentActivities();
+        const recordsRes: any = await adminService.getMyRecords();
         const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
         const doneAudioSet = new Set<number>(
           records
-            .filter((r: any) => r.moduleType === 'DICTATION' && r.user?.id === userData.id)
+            .filter((r: any) => r.moduleType === 'DICTATION')
             .map((r: any) => Number(r.refId))
         );
         setCompletedAudioIds(doneAudioSet);
@@ -66,27 +66,39 @@ const DictationPlayer = () => {
         setTopics(topicList);
 
         const tAudioMap: Record<number, number[]> = {};
-        for (const t of topicList) {
-          try {
-            const audiosRes: any = await dictationService.getAudiosByTopic(t.id);
-            const audios = Array.isArray(audiosRes) ? audiosRes : (audiosRes?.data || []);
-            tAudioMap[t.id] = audios.map((a: any) => a.id);
+        let matchedDirect: { topicName: string; audioId: number; audioUrl: string } | null = null;
 
-            // Mở bài trực tiếp nếu tới từ nút Streak trên Dashboard
-            if (streakAudioId) {
-              const targetAudioId = Number(streakAudioId);
-              const found = audios.find((a: any) => a.id === targetAudioId);
-              if (found) {
-                await handleStartAudioDirect(t.name, found.id, found.audioUrl || found.audio_url);
-                return;
+        await Promise.all(
+          topicList.map(async (t: any) => {
+            try {
+              const audiosRes: any = await dictationService.getAudiosByTopic(t.id);
+              const audios = Array.isArray(audiosRes) ? audiosRes : (audiosRes?.data || []);
+              tAudioMap[t.id] = audios.map((a: any) => a.id);
+
+              if (streakAudioId && !matchedDirect) {
+                const targetAudioId = Number(streakAudioId);
+                const found = audios.find((a: any) => a.id === targetAudioId);
+                if (found) {
+                  matchedDirect = {
+                    topicName: t.name,
+                    audioId: found.id,
+                    audioUrl: found.audioUrl || found.audio_url
+                  };
+                }
               }
+            } catch (e) {
+              tAudioMap[t.id] = [];
             }
-          } catch (e) {
-            tAudioMap[t.id] = [];
-          }
-        }
-        setTopicAudioMap(tAudioMap);
+          })
+        );
 
+        if (matchedDirect) {
+          const direct = matchedDirect as { topicName: string; audioId: number; audioUrl: string };
+          await handleStartAudioDirect(direct.topicName, direct.audioId, direct.audioUrl);
+          return;
+        }
+
+        setTopicAudioMap(tAudioMap);
         setViewState('TOPIC_SELECTION');
       } catch (error) {
         navigate('/dashboard');
@@ -300,7 +312,7 @@ const DictationPlayer = () => {
 
             {questions.map((q, index) => {
               const userInput = (userInputs[q.id] || '').trim();
-              const transcript = q.transcript || '';
+              const transcript = (submitResult?.transcripts && submitResult.transcripts[q.id]) || q.transcript || '';
               const isPlayingThis = currentPlayingIndex === index;
 
               const startTimestamp = Number(q.startTime ?? q.start_time ?? 0);

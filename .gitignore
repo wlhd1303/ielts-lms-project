@@ -2,3 +2,5 @@ node_modules/
 target/
 .env
 .DS_Store
+.gitnexus/
+.claude/skills/gitnexus/

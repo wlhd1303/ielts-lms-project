@@ -36,11 +36,11 @@ const WritingEditor = () => {
         }
 
         // ⚡ Lấy mảng bài tập Writing đã hoàn thành của học viên
-        const recordsRes: any = await adminService.getRecentActivities();
+        const recordsRes: any = await adminService.getMyRecords();
         const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
         const doneSet = new Set<number>(
           records
-            .filter((r: any) => r.moduleType === 'WRITING' && r.user?.id === userData.id)
+            .filter((r: any) => r.moduleType === 'WRITING')
             .map((r: any) => r.refId)
         );
         setCompletedPromptIds(doneSet);
@@ -52,16 +52,21 @@ const WritingEditor = () => {
         // ⚡ Tự động mở bài tập nếu tới từ nút Streak trên Dashboard
         if (streakPromptId) {
           const targetPromptId = Number(streakPromptId);
-          for (const t of topicList) {
-            const pRes: any = await writingService.getPromptsByTopic(t.id);
-            const pList = Array.isArray(pRes) ? pRes : pRes.data || [];
-            const found = pList.find((p: any) => p.id === targetPromptId);
-            if (found) {
-              setSelectedTopic(t);
-              setPrompts(pList);
-              handleStartPrompt(found);
+          try {
+            const promptRes: any = await writingService.getPromptById(targetPromptId);
+            const promptData = promptRes?.data || promptRes;
+            if (promptData) {
+              const matchedTopic = topicList.find((t: any) => t.id === (promptData.topicId || promptData.topic?.id));
+              if (matchedTopic) {
+                setSelectedTopic(matchedTopic);
+                const pRes: any = await writingService.getPromptsByTopic(matchedTopic.id);
+                setPrompts(Array.isArray(pRes) ? pRes : pRes.data || []);
+              }
+              handleStartPrompt(promptData);
               return;
             }
+          } catch (e) {
+            console.warn("Could not find prompt directly by ID:", e);
           }
         }
       } catch (error) {
@@ -265,7 +270,7 @@ const WritingEditor = () => {
           
           <div className="p-4 bg-slate-50/80 rounded-2xl text-left border border-slate-200/80 space-y-1">
              <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Đáp án mẫu chuẩn:</p>
-             <p className="text-slate-800 font-bold text-xs md:text-sm leading-relaxed">{currentPrompt.englishAnswer || currentPrompt.english_answer}</p>
+             <p className="text-slate-800 font-bold text-xs md:text-sm leading-relaxed">{submitResult.englishAnswer || currentPrompt.englishAnswer || currentPrompt.english_answer}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

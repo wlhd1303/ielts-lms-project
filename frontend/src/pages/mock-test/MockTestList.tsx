@@ -31,11 +31,11 @@ const MockTestList = () => {
         }
 
         // ⚡ Lấy lịch sử nộp bài Mock Test của học viên
-        const recordsRes: any = await adminService.getRecentActivities();
+        const recordsRes: any = await adminService.getMyRecords();
         const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
         const doneSet = new Set<number>(
           records
-            .filter((r: any) => r.moduleType === 'MOCK_TEST' && r.user?.id === userData.id)
+            .filter((r: any) => r.moduleType === 'MOCK_TEST')
             .map((r: any) => r.refId)
         );
         setCompletedTestIds(doneSet);

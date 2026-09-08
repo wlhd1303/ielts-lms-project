@@ -19,11 +19,11 @@ const ListeningVocabList = () => {
 
         if (classId) {
           // ⚡ Lấy lịch sử nộp bài Listening Vocab của học viên
-          const recordsRes: any = await adminService.getRecentActivities();
+          const recordsRes: any = await adminService.getMyRecords();
           const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
           const doneSet = new Set<number>(
             records
-              .filter((r: any) => r.moduleType === 'LISTENING_VOCAB_TEST' && r.user?.id === userData.id)
+              .filter((r: any) => (r.moduleType === 'LISTENING_VOCAB_TEST' || r.moduleType === 'LISTENING_VOCAB'))
               .map((r: any) => r.refId)
           );
           setCompletedTopicIds(doneSet);

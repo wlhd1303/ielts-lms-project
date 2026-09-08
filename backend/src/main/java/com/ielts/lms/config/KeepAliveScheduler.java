@@ -14,9 +14,11 @@ public class KeepAliveScheduler {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @org.springframework.beans.factory.annotation.Value("${app.keep-alive.url:}")
+    private String keepAliveUrl;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
-    
     @Scheduled(fixedRate = 300000)
     public void keepAlive() {
         // 1. Kích hoạt truy vấn siêu nhẹ xuống Database để giữ Connection luôn ALIVE
@@ -27,15 +29,14 @@ public class KeepAliveScheduler {
             System.err.println("Keep-Alive DB Ping Failed: " + e.getMessage());
         }
 
-        // 2. Tự Ping URL Public trên Render của Backend để Server không bị Sleep
-        try {
-            String url = "https://ielts-lms-project.onrender.com/api/classes";
-            restTemplate.getForObject(url, String.class);
-            System.out.println("Keep-Alive HTTP Ping: OK");
-        } catch (Exception e) {
-            // Dù dính lỗi 401 Unauthorized do không truyền JWT Token thì request vẫn đã chạm tới Render,
-            // giúp giữ cho Web Service không bị rơi vào trạng thái ngủ đông (Idle).
-            System.out.println("Keep-Alive HTTP Ping Sent (Render awakened).");
+        // 2. Tự Ping URL Public của Backend nếu có cấu hình để Server không bị Sleep
+        if (keepAliveUrl != null && !keepAliveUrl.trim().isEmpty()) {
+            try {
+                restTemplate.getForObject(keepAliveUrl.trim(), String.class);
+                System.out.println("Keep-Alive HTTP Ping: OK");
+            } catch (Exception e) {
+                System.out.println("Keep-Alive HTTP Ping Sent (" + keepAliveUrl + ")");
+            }
         }
     }
 }

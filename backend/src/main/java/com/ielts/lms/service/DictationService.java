@@ -5,6 +5,8 @@ import com.ielts.lms.repository.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,6 +50,20 @@ public class DictationService {
         return dictationQuestionRepository.findByAudioIdOrderByStartTimeAsc(audioId); 
     }
 
+    public List<Map<String, Object>> getStudentQuestionsByAudio(Long audioId) {
+        List<DictationQuestion> questions = dictationQuestionRepository.findByAudioIdOrderByStartTimeAsc(audioId);
+        List<Map<String, Object>> studentQuestions = new ArrayList<>();
+        for (DictationQuestion q : questions) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", q.getId());
+            map.put("startTime", q.getStartTime());
+            map.put("endTime", q.getEndTime());
+            map.put("transcript", ""); // Hide transcript to prevent cheating
+            studentQuestions.add(map);
+        }
+        return studentQuestions;
+    }
+
     // --- CÁC HÀM CRUD DÀNH CHO ADMIN ---
     public DictationTopic createTopic(Long classId, DictationTopic topic) {
         StudentClass studentClass = studentClassRepository.findById(classId).orElseThrow();
@@ -80,11 +96,13 @@ public class DictationService {
     }
 
     // --- THUẬT TOÁN CHẤM ĐIỂM LINH HOẠT VÀ TỐI ƯU ---
-    public StudyRecord gradeDictation(Long audioId, Map<Long, String> studentAnswers, int duration) {
+    public Map<String, Object> gradeDictation(Long audioId, Map<Long, String> studentAnswers, int duration) {
         List<DictationQuestion> questions = dictationQuestionRepository.findByAudioIdOrderByStartTimeAsc(audioId);
         float totalScore = 0;
+        Map<Long, String> transcripts = new HashMap<>();
 
         for (DictationQuestion q : questions) {
+            transcripts.put(q.getId(), q.getTranscript());
             String studentAns = studentAnswers != null ? studentAnswers.get(q.getId()) : "";
             float similarity = calculateTextSimilarity(studentAns, q.getTranscript());
             
@@ -114,7 +132,14 @@ public class DictationService {
 
         streakService.updateStreakProgress(user, "DICTATION", audioId);
 
-        return savedRecord;
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", savedRecord.getId());
+        response.put("score", savedRecord.getScore());
+        response.put("durationSeconds", savedRecord.getDurationSeconds());
+        response.put("transcripts", transcripts);
+        response.put("record", savedRecord);
+
+        return response;
     }
 
     // --- TIỆN ÍCH SO KHỚP VĂN BẢN (LEVENSHTEIN SIMILARITY) ---

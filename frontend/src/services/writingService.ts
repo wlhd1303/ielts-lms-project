@@ -16,6 +16,9 @@ export const writingService = {
   getPromptsByTopic: async (topicId: number) => {
     return await axiosClient.get(`/api/writing/topics/${topicId}/prompts`);
   },
+  getPromptById: async (promptId: number) => {
+    return await axiosClient.get(`/api/writing/prompts/${promptId}`);
+  },
   createPrompt: async (topicId: number, data: any) => {
     return await axiosClient.post(`/api/writing/topics/${topicId}/prompts`, data);
   },

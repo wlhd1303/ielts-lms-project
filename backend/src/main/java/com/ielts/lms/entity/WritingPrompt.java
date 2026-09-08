@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "writing_prompts")
@@ -21,6 +22,7 @@ public class WritingPrompt {
     private String keywords; 
 
     @Column(name = "english_answer", columnDefinition = "TEXT", nullable = false)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String englishAnswer;
 
     // Đã chuyển quan hệ từ Class sang Topic
@@ -28,4 +30,9 @@ public class WritingPrompt {
     @JoinColumn(name = "topic_id")
     @JsonIgnore
     private WritingTopic topic;
+
+    @JsonProperty("topicId")
+    public Long getTopicId() {
+        return topic != null ? topic.getId() : null;
+    }
 }

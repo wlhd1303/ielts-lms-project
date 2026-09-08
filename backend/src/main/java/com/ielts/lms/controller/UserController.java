@@ -8,6 +8,7 @@ import com.ielts.lms.entity.User;
 import com.ielts.lms.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<User> getAllUsers() {
         return userService.getAllUsers();
     }
@@ -37,6 +39,12 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(userService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody Map<String, String> request) {
+        String token = request.get("refreshToken");
+        return ResponseEntity.ok(userService.refreshToken(token));
     }
 
     @GetMapping("/me")
@@ -54,6 +62,7 @@ public class UserController {
 
     // --- ĐƯỜNG LINK: ADMIN DUYỆT, XẾP LỚP VÀ PHÂN QUYỀN ---
     @PutMapping("/{userId}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
     public User approveUser(@PathVariable Long userId, @RequestParam Long classId, @RequestBody Map<String, List<String>> body) {
         List<String> features = body.get("features");
         return userService.approveAndAssignClass(userId, classId, features);
@@ -61,6 +70,7 @@ public class UserController {
 
     // --- ĐƯỜNG LINK: CẬP NHẬT QUYỀN CHO HỌC VIÊN ĐANG HỌC ---
     @PutMapping("/{userId}/permissions")
+    @PreAuthorize("hasRole('ADMIN')")
     public User updatePermissions(@PathVariable Long userId, @RequestBody Map<String, List<String>> body) {
         List<String> features = body.get("features");
         return userService.updatePermissions(userId, features);
@@ -68,6 +78,7 @@ public class UserController {
 
     // --- TÍNH NĂNG MỚI: ADMIN TẠO LỚP HỌC MỚI ---
     @PostMapping("/classes")
+    @PreAuthorize("hasRole('ADMIN')")
     public StudentClass createClass(@RequestBody Map<String, String> body) {
         String className = body.get("name");
         return userService.createClass(className);
@@ -75,6 +86,7 @@ public class UserController {
 
     // --- TÍNH NĂNG MỚI: ADMIN ĐỔI LỚP HỌC VIÊN ---
     @PutMapping("/{userId}/class")
+    @PreAuthorize("hasRole('ADMIN')")
     public User updateStudentClass(@PathVariable Long userId, @RequestBody Map<String, Long> body) {
         Long classId = body.get("classId");
         return userService.updateStudentClass(userId, classId);

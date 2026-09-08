@@ -4,6 +4,7 @@ import com.ielts.lms.entity.StudyRecord;
 import com.ielts.lms.entity.VocabTopic;
 import com.ielts.lms.entity.VocabWord;
 import com.ielts.lms.service.VocabService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,8 +31,13 @@ public class VocabController {
         return vocabService.getWordsByTopic(topicId); 
     }
 
+    @GetMapping("/topics/{topicId}/quiz")
+    public List<Map<String, Object>> getQuizByTopic(@PathVariable Long topicId) { 
+        return vocabService.getQuizByTopic(topicId); 
+    }
+
     @PostMapping("/{topicId}/submit")
-    public StudyRecord submit(@PathVariable Long topicId, @RequestBody Map<Long, String> answers, @RequestParam int duration) {
+    public Map<String, Object> submit(@PathVariable Long topicId, @RequestBody Map<Long, String> answers, @RequestParam int duration) {
         return vocabService.gradeVocabTest(topicId, answers, duration);
     }
 
@@ -46,21 +52,25 @@ public class VocabController {
 
     // --- API ADMIN (THÊM, XÓA) ---
     @PostMapping("/class/{classId}/topics")
+    @PreAuthorize("hasRole('ADMIN')")
     public VocabTopic createTopic(@PathVariable Long classId, @RequestBody VocabTopic topic) {
         return vocabService.createTopic(classId, topic);
     }
 
     @DeleteMapping("/topics/{topicId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteTopic(@PathVariable Long topicId) {
         vocabService.deleteTopic(topicId);
     }
 
     @PostMapping("/topics/{topicId}/words")
+    @PreAuthorize("hasRole('ADMIN')")
     public VocabWord createWord(@PathVariable Long topicId, @RequestBody VocabWord word) {
         return vocabService.createWord(topicId, word);
     }
 
     @DeleteMapping("/words/{wordId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteWord(@PathVariable Long wordId) {
         vocabService.deleteWord(wordId);
     }

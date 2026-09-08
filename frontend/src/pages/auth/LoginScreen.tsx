@@ -36,6 +36,10 @@ const LoginScreen = () => {
         password: formData.password
       });
       localStorage.setItem('token', response.accessToken);
+      localStorage.setItem('role', response.role);
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
+      }
       
       if (response.role === 'ROLE_ADMIN') {
         navigate('/admin');

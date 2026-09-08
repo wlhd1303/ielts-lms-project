@@ -52,6 +52,13 @@ const ListeningVocabTest = () => {
     fetchData();
   }, [topicId, navigate]);
 
+const FALLBACK_MEANINGS = [
+  "Khả năng", "Môi trường", "Thách thức", "Phát triển",
+  "Giải pháp", "Mục tiêu", "Ảnh hưởng", "Nghiên cứu",
+  "Cơ hội", "Kinh nghiệm", "Trách nhiệm", "Thành công",
+  "Phương pháp", "Tác động", "Quan điểm", "Hệ thống"
+];
+
   // 2. KHỞI TẠO CÂU HỎI MỚI (TẠO 4 ĐÁP ÁN TRẮC NGHIỆM)
   useEffect(() => {
     if (words.length === 0 || currentIndex >= words.length) return;
@@ -60,9 +67,25 @@ const ListeningVocabTest = () => {
     const setOpts = new Set<string>();
     setOpts.add(currentWord.vietnameseMeaning);
     
-    while (setOpts.size < Math.min(4, allMeanings.length)) {
-      const rand = allMeanings[Math.floor(Math.random() * allMeanings.length)];
-      setOpts.add(rand);
+    // Lọc các nghĩa khác độc nhất để tránh lặp vô hạn
+    const otherMeanings = Array.from(
+      new Set(allMeanings.filter(m => m && m.trim().toLowerCase() !== currentWord.vietnameseMeaning.trim().toLowerCase()))
+    );
+    const shuffledOthers = [...otherMeanings].sort(() => Math.random() - 0.5);
+    for (const meaning of shuffledOthers) {
+      if (setOpts.size >= 4) break;
+      setOpts.add(meaning);
+    }
+
+    // Nếu vẫn chưa đủ 4 lựa chọn (do topic ít hơn 4 từ hoặc có từ đồng nghĩa), bù bằng nghĩa dự phòng
+    if (setOpts.size < 4) {
+      const shuffledFallbacks = [...FALLBACK_MEANINGS].sort(() => Math.random() - 0.5);
+      for (const fb of shuffledFallbacks) {
+        if (setOpts.size >= 4) break;
+        if (fb.trim().toLowerCase() !== currentWord.vietnameseMeaning.trim().toLowerCase()) {
+          setOpts.add(fb);
+        }
+      }
     }
 
     const optsArray = Array.from(setOpts);

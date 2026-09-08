@@ -45,11 +45,11 @@ const VocabularyQuiz = () => {
         }
 
         // ⚡ Lấy mảng bài tập Vocab đã hoàn thành của học viên
-        const recordsRes: any = await adminService.getRecentActivities();
+        const recordsRes: any = await adminService.getMyRecords();
         const records = Array.isArray(recordsRes) ? recordsRes : (recordsRes?.data || []);
         const doneSet = new Set<number>(
           records
-            .filter((r: any) => r.moduleType === 'VOCAB' && r.user?.id === userData.id)
+            .filter((r: any) => r.moduleType === 'VOCAB')
             .map((r: any) => r.refId)
         );
         setCompletedTopicIds(doneSet);
@@ -83,7 +83,7 @@ const VocabularyQuiz = () => {
   const handleStartTopic = async (topicId: number, topicName: string) => {
     setViewState('LOADING');
     try {
-      const wordsRes: any = await vocabService.getWordsByTopic(topicId);
+      const wordsRes: any = await vocabService.getQuizByTopic(topicId);
       const wordsData = Array.isArray(wordsRes) ? wordsRes : (wordsRes?.data || []);
       
       if (wordsData.length > 0) {
@@ -109,14 +109,14 @@ const VocabularyQuiz = () => {
   useEffect(() => {
     if (viewState === 'PLAYING' && words.length > 0 && currentIndex < words.length) {
       const currentWord = words[currentIndex];
-      const options = [
+      const options = currentWord.options || [
         currentWord.vietnameseMeaning,
         currentWord.wrongOption1,
         currentWord.wrongOption2,
         currentWord.wrongOption3
       ].filter(Boolean);
 
-      setShuffledOptions(options.sort(() => Math.random() - 0.5));
+      setShuffledOptions([...options]);
       setSelectedOption(null);
       setIsAnswered(false);
     }
@@ -260,7 +260,12 @@ const VocabularyQuiz = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-purple-50/80 p-4 rounded-2xl border border-purple-100">
               <p className="text-[10px] font-black text-purple-600 uppercase tracking-wider mb-1">Số câu đúng</p>
-              <p className="text-2xl font-black text-purple-800">{submitResult?.score || 0} / {words.length}</p>
+              <p className="text-2xl font-black text-purple-800">
+                {submitResult?.correctCount ?? Math.round(((submitResult?.score || 0) / 100) * words.length)} / {words.length}
+              </p>
+              <p className="text-[11px] font-extrabold text-purple-600 mt-0.5">
+                {Math.round(submitResult?.score || 0)}%
+              </p>
             </div>
             <div className="bg-blue-50/80 p-4 rounded-2xl border border-blue-100">
               <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">Thời gian</p>
@@ -356,11 +361,14 @@ const VocabularyQuiz = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {shuffledOptions.map((option, index) => {
                 let buttonStyle = "bg-white border-slate-200/80 text-slate-800 hover:border-purple-400 hover:bg-purple-50/30 cursor-pointer";
+                const correctMeaning = (currentWord.vietnameseMeaning || currentWord.vietnamese_meaning || '').trim();
+                const isThisOptionCorrect = option.trim().toLowerCase() === correctMeaning.toLowerCase();
+                const isThisOptionSelected = option.trim() === (selectedOption || '').trim();
                 
                 if (isAnswered) {
-                  if (option === currentWord.vietnameseMeaning) {
+                  if (isThisOptionCorrect) {
                     buttonStyle = "bg-emerald-50 border-emerald-500 text-emerald-800 font-bold shadow-sm cursor-default"; 
-                  } else if (option === selectedOption) {
+                  } else if (isThisOptionSelected) {
                     buttonStyle = "bg-rose-50 border-rose-400 text-rose-800 font-bold cursor-default"; 
                   } else {
                     buttonStyle = "bg-slate-50 border-slate-100 text-slate-400 opacity-60 cursor-default";
@@ -375,10 +383,10 @@ const VocabularyQuiz = () => {
                     className={`p-4 rounded-2xl border text-xs md:text-sm font-bold transition-all duration-200 ${buttonStyle} flex items-center justify-between text-left`}
                   >
                     <span>{option}</span>
-                    {isAnswered && option === currentWord.vietnameseMeaning && (
+                    {isAnswered && isThisOptionCorrect && (
                       <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] shrink-0 shadow-sm">✓</span>
                     )}
-                    {isAnswered && option === selectedOption && option !== currentWord.vietnameseMeaning && (
+                    {isAnswered && isThisOptionSelected && !isThisOptionCorrect && (
                       <span className="w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-[10px] shrink-0 shadow-sm">✕</span>
                     )}
                   </button>

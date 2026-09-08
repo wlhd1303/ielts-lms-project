@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface DictationAudioRepository extends JpaRepository<DictationAudio, Long> {
     List<DictationAudio> findByTopicId(Long topicId);
+    List<DictationAudio> findByTopicIdIn(List<Long> topicIds);
 }

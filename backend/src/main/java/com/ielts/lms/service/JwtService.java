@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -14,14 +15,18 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Đây là "Con dấu bí mật" để ký lên vé. Phải dài ít nhất 256-bit.
-    // LƯU Ý: Trong thực tế đi làm, mã này phải được giấu kín, không bao giờ để lộ trong code!
-    private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    private String secretKey;
 
     // 1. Hàm tạo Vé vào cửa (Access Token) - Thời hạn 1 ngày
     public String generateToken(String username) {
+        return generateToken(username, "ROLE_USER");
+    }
+
+    public String generateToken(String username, String role) {
         return Jwts.builder()
                 .setSubject(username) // Tên người được cấp vé
+                .claim("role", role)
                 .setIssuedAt(new Date(System.currentTimeMillis())) // Ngày cấp
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // Hết hạn sau 24 giờ
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256) // Đóng dấu bảo mật
@@ -31,6 +36,11 @@ public class JwtService {
     // 2. Hàm đọc tên người dùng từ cái Vé (Để bảo vệ tra xét)
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    // 2b. Hàm đọc quyền (Role) từ cái Vé
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
 
     // 3. Hàm kiểm tra xem Vé này là thật hay giả/hết hạn chưa
@@ -63,7 +73,7 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

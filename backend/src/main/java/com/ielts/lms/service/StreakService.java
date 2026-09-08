@@ -18,8 +18,11 @@ public class StreakService {
     private final StudyRecordRepository studyRecordRepository;
     
     private final DictationTopicRepository dictationTopicRepository;
+    private final DictationAudioRepository dictationAudioRepository;
     private final VocabTopicRepository vocabTopicRepository;
     private final SpeakingLessonRepository speakingLessonRepository;
+    private final SpeakingTopicRepository speakingTopicRepository;
+    private final SpeakingSentenceRepository speakingSentenceRepository;
     private final WritingTopicRepository writingTopicRepository;
     private final WritingPromptRepository writingPromptRepository;
     private final MockTestRepository mockTestRepository;
@@ -28,8 +31,11 @@ public class StreakService {
                           UserStreakLogRepository userStreakLogRepository,
                           StudyRecordRepository studyRecordRepository,
                           DictationTopicRepository dictationTopicRepository,
+                          DictationAudioRepository dictationAudioRepository,
                           VocabTopicRepository vocabTopicRepository,
                           SpeakingLessonRepository speakingLessonRepository,
+                          SpeakingTopicRepository speakingTopicRepository,
+                          SpeakingSentenceRepository speakingSentenceRepository,
                           WritingTopicRepository writingTopicRepository,
                           WritingPromptRepository writingPromptRepository,
                           MockTestRepository mockTestRepository) {
@@ -37,8 +43,11 @@ public class StreakService {
         this.userStreakLogRepository = userStreakLogRepository;
         this.studyRecordRepository = studyRecordRepository;
         this.dictationTopicRepository = dictationTopicRepository;
+        this.dictationAudioRepository = dictationAudioRepository;
         this.vocabTopicRepository = vocabTopicRepository;
         this.speakingLessonRepository = speakingLessonRepository;
+        this.speakingTopicRepository = speakingTopicRepository;
+        this.speakingSentenceRepository = speakingSentenceRepository;
         this.writingTopicRepository = writingTopicRepository;
         this.writingPromptRepository = writingPromptRepository;
         this.mockTestRepository = mockTestRepository;
@@ -65,12 +74,11 @@ public class StreakService {
 
         String moduleType = determineModuleType(streak.getCurrentDayIndex());
         
-        List<StudyRecord> records = studyRecordRepository.findAllByOrderByCreatedAtDesc();
+        List<StudyRecord> records = studyRecordRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
         Set<Long> completedRefIds = new HashSet<>();
         if (records != null) {
             completedRefIds = records.stream()
-                    .filter(r -> r.getUser() != null && r.getUser().getId().equals(user.getId()) 
-                              && r.getModuleType() != null && r.getModuleType().equalsIgnoreCase(moduleType)
+                    .filter(r -> r.getModuleType() != null && r.getModuleType().equalsIgnoreCase(moduleType)
                               && r.getRefId() != null)
                     .map(StudyRecord::getRefId)
                     .collect(Collectors.toSet());
@@ -83,10 +91,14 @@ public class StreakService {
         switch (moduleType) {
             case "DICTATION":
                 List<DictationTopic> dTopics = dictationTopicRepository.findByStudentClassId(classId);
-                if (dTopics != null) {
-                    exercisePayload = dTopics.stream()
-                            .filter(t -> !doneIds.contains(t.getId()))
-                            .min(Comparator.comparing(DictationTopic::getId)).orElse(null);
+                if (dTopics != null && !dTopics.isEmpty()) {
+                    List<Long> topicIds = dTopics.stream().map(DictationTopic::getId).toList();
+                    List<DictationAudio> dAudios = dictationAudioRepository.findByTopicIdIn(topicIds);
+                    if (dAudios != null) {
+                        exercisePayload = dAudios.stream()
+                                .filter(a -> !doneIds.contains(a.getId()))
+                                .min(Comparator.comparing(DictationAudio::getId)).orElse(null);
+                    }
                 }
                 break;
             case "VOCAB":
@@ -108,11 +120,24 @@ public class StreakService {
                 }
                 break;
             case "SPEAKING":
-                List<SpeakingLesson> sLessons = speakingLessonRepository.findByStudentClassId(classId);
-                if (sLessons != null) {
-                    exercisePayload = sLessons.stream()
-                            .filter(l -> !doneIds.contains(l.getId()))
-                            .min(Comparator.comparing(SpeakingLesson::getId)).orElse(null);
+                List<SpeakingTopic> sTopics = speakingTopicRepository.findByStudentClassId(classId);
+                if (sTopics != null && !sTopics.isEmpty()) {
+                    List<Long> topicIds = sTopics.stream().map(SpeakingTopic::getId).toList();
+                    List<SpeakingSentence> sSentences = speakingSentenceRepository.findByTopicIdIn(topicIds);
+                    if (sSentences != null) {
+                        exercisePayload = sSentences.stream()
+                                .filter(s -> !doneIds.contains(s.getId()))
+                                .min(Comparator.comparing(SpeakingSentence::getId)).orElse(null);
+                    }
+                }
+                // Dự phòng cho các lớp cũ nếu chưa chuyển sang cấu trúc Topic
+                if (exercisePayload == null) {
+                    List<SpeakingLesson> sLessons = speakingLessonRepository.findByStudentClassId(classId);
+                    if (sLessons != null) {
+                        exercisePayload = sLessons.stream()
+                                .filter(l -> !doneIds.contains(l.getId()))
+                                .min(Comparator.comparing(SpeakingLesson::getId)).orElse(null);
+                    }
                 }
                 break;
             case "WRITING":

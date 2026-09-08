@@ -83,6 +83,10 @@ export const adminService = {
     return await axiosClient.get('/api/study-records/recent');
   },
 
+  getMyRecords: async () => {
+    return await axiosClient.get('/api/study-records/my-records');
+  },
+
   getAllStudyRecords: async () => {
     return await axiosClient.get('/api/study-records/all');
   },
@@ -114,5 +118,24 @@ export const adminService = {
     await axiosClient.post(`/api/dictation/audios/${audioId}/questions`, data),
 
   deleteDictationQuestion: async (questionId: number) => 
-    await axiosClient.delete(`/api/dictation/questions/${questionId}`)
-};
+    await axiosClient.delete(`/api/dictation/questions/${questionId}`),
+
+  // --- QUẢN LÝ LUYỆN NÓI (SPEAKING CRUD) ---
+  getSpeakingTopicsByClass: async (classId: number) => 
+    await axiosClient.get(`/api/speaking/class/${classId}/topics`),
+
+  createSpeakingTopic: async (classId: number, name: string) => 
+    await axiosClient.post(`/api/speaking/class/${classId}/topics`, { name }),
+
+  deleteSpeakingTopic: async (topicId: number) => 
+    await axiosClient.delete(`/api/speaking/topics/${topicId}`),
+
+  getSpeakingSentencesByTopic: async (topicId: number) => 
+    await axiosClient.get(`/api/speaking/topics/${topicId}/sentences`),
+
+  createSpeakingSentence: async (topicId: number, data: { englishSentence: string; vietnameseMeaning?: string; orderIndex?: number }) => 
+    await axiosClient.post(`/api/speaking/topics/${topicId}/sentences`, data),
+
+  deleteSpeakingSentence: async (sentenceId: number) => 
+    await axiosClient.delete(`/api/speaking/sentences/${sentenceId}`)
+};

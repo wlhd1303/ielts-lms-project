@@ -20,6 +20,19 @@ import MockTestList from './pages/mock-test/MockTestList';
 // Import Màn hình Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
 
+// Route Guard chỉ cho phép ROLE_ADMIN truy cập
+const AdminRoute = ({ children }: { children: React.ReactElement }) => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  if (role !== 'ROLE_ADMIN') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -46,8 +59,8 @@ function App() {
         
         <Route path="/speaking" element={<SpeakingShadowing />} />
         
-        {/* Routes Admin */}
-        <Route path="/admin" element={<AdminDashboard />} />
+        {/* Routes Admin (đã bảo vệ bằng AdminRoute) */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         
         {/* Route 404 */}
         <Route path="*" element={

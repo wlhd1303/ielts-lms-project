@@ -1,0 +1,10 @@
+package com.ielts.lms.repository;
+
+import com.ielts.lms.entity.SpeakingSentence;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface SpeakingSentenceRepository extends JpaRepository<SpeakingSentence, Long> {
+    List<SpeakingSentence> findByTopicIdOrderByOrderIndexAscIdAsc(Long topicId);
+    List<SpeakingSentence> findByTopicIdIn(List<Long> topicIds);
+}

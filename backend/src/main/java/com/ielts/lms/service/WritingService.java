@@ -5,7 +5,9 @@ import com.ielts.lms.repository.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class WritingService {
@@ -51,6 +53,10 @@ public class WritingService {
         return writingPromptRepository.findByTopicId(topicId);
     }
 
+    public WritingPrompt getPromptById(Long promptId) {
+        return writingPromptRepository.findById(promptId).orElseThrow();
+    }
+
     public WritingPrompt createPrompt(Long topicId, WritingPrompt prompt) {
         WritingTopic topic = writingTopicRepository.findById(topicId).orElseThrow();
         prompt.setTopic(topic);
@@ -64,37 +70,48 @@ public class WritingService {
     // =========================================================================
     // 🔥 THUẬT TOÁN CHẤM ĐIỂM WRITING NÂNG CẤP (TỪ KHÓA + NGỮ PHÁP + ĐỘ DÀI)
     // =========================================================================
-    public StudyRecord gradeWriting(Long promptId, String userAnswer, int duration) {
+    public Map<String, Object> gradeWriting(Long promptId, String userAnswer, int duration) {
         WritingPrompt prompt = writingPromptRepository.findById(promptId).orElseThrow();
         
         String cleanUserAns = userAnswer == null ? "" : userAnswer.trim().toLowerCase().replaceAll("[^a-z0-9\\s]", "");
         String cleanCorrectAns = prompt.getEnglishAnswer() == null ? "" : prompt.getEnglishAnswer().trim().toLowerCase().replaceAll("[^a-z0-9\\s]", "");
         String keywordsStr = prompt.getKeywords();
 
-        // 1. CHẤM TỪ KHÓA (Tối đa 40 điểm)
-        float keywordScore = 0;
-        if (keywordsStr != null && !keywordsStr.trim().isEmpty()) {
-            String[] keywords = keywordsStr.split(",");
-            int matchedCount = 0;
-            for (String kw : keywords) {
-                if (cleanUserAns.contains(kw.trim().toLowerCase())) {
-                    matchedCount++;
-                }
-            }
-            keywordScore = ((float) matchedCount / keywords.length) * 40f;
+        float totalScore = 0f;
+
+        // Nếu học viên không gõ chữ nào (nộp bài trắng) -> Trả về ngay 0 điểm
+        if (userAnswer == null || userAnswer.trim().isEmpty() || cleanUserAns.trim().isEmpty()) {
+            totalScore = 0f;
         } else {
-            keywordScore = 40f; // Nếu không có keyword thì bỏ qua tiêu chí này
+            // 1. CHẤM TỪ KHÓA (Tối đa 40 điểm) - Khớp chính xác ranh giới từ nguyên vẹn (\bkeyword\b)
+            float keywordScore = 0;
+            if (keywordsStr != null && !keywordsStr.trim().isEmpty()) {
+                String[] keywords = keywordsStr.split(",");
+                int matchedCount = 0;
+                for (String kw : keywords) {
+                    String cleanKw = kw.trim().toLowerCase();
+                    if (!cleanKw.isEmpty()) {
+                        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b" + java.util.regex.Pattern.quote(cleanKw) + "\\b");
+                        if (pattern.matcher(cleanUserAns).find()) {
+                            matchedCount++;
+                        }
+                    }
+                }
+                keywordScore = ((float) matchedCount / keywords.length) * 40f;
+            } else {
+                keywordScore = 40f; // Nếu không có keyword thì bỏ qua tiêu chí này
+            }
+
+            // 2. CHẤM CẤU TRÚC / NGỮ PHÁP BẰNG N-GRAM SIMILARITY (Tối đa 40 điểm)
+            float similarityScore = calculateSimilarity(cleanUserAns, cleanCorrectAns) * 40f;
+
+            // 3. CHẤM ĐỘ DÀI VÀ TRẬT TỰ CÂU (Tối đa 20 điểm)
+            float lengthPenaltyScore = calculateLengthPenalty(cleanUserAns, cleanCorrectAns) * 20f;
+
+            // TỔNG ĐIỂM (Tối đa 100%)
+            totalScore = keywordScore + similarityScore + lengthPenaltyScore;
+            totalScore = Math.min(100f, Math.max(0f, totalScore)); // Bọc trong khoảng 0 - 100%
         }
-
-        // 2. CHẤM CẤU TRÚC / NGỮ PHÁP BẰNG N-GRAM SIMILARITY (Tối đa 40 điểm)
-        float similarityScore = calculateSimilarity(cleanUserAns, cleanCorrectAns) * 40f;
-
-        // 3. CHẤM ĐỘ DÀI VÀ TRẬT TỰ CÂU (Tối đa 20 điểm)
-        float lengthPenaltyScore = calculateLengthPenalty(cleanUserAns, cleanCorrectAns) * 20f;
-
-        // TỔNG ĐIỂM (Tối đa 100%)
-        float totalScore = keywordScore + similarityScore + lengthPenaltyScore;
-        totalScore = Math.min(100f, Math.max(0f, totalScore)); // Bọc trong khoảng 0 - 100%
 
         // Lưu lịch sử
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -112,7 +129,14 @@ public class WritingService {
         // ⚡ 3. TỰ ĐỘNG CẬP NHẬT STREAK VÀ LOG LƯU VÀO CSDL
         streakService.updateStreakProgress(user, "WRITING", promptId);
 
-        return savedRecord;
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", savedRecord.getId());
+        result.put("score", savedRecord.getScore());
+        result.put("durationSeconds", savedRecord.getDurationSeconds());
+        result.put("englishAnswer", prompt.getEnglishAnswer());
+        result.put("record", savedRecord);
+
+        return result;
     }
 
     // --- HÀM PHỤ: TÍNH ĐỘ TƯƠNG ĐỒNG CẤU TRÚC (LEVENSHTEIN DISTANCE) ---
@@ -144,8 +168,12 @@ public class WritingService {
 
     // --- HÀM PHỤ: CHẤM TỶ LỆ TỪ/ĐỘ DÀI CÂU ---
     private float calculateLengthPenalty(String userAns, String correctAns) {
-        String[] userWords = userAns.split("\\s+");
-        String[] correctWords = correctAns.split("\\s+");
+        if (userAns == null || userAns.trim().isEmpty() || correctAns == null || correctAns.trim().isEmpty()) {
+            return 0f;
+        }
+
+        String[] userWords = userAns.trim().split("\\s+");
+        String[] correctWords = correctAns.trim().split("\\s+");
 
         if (userWords.length == 0 || correctWords.length == 0) return 0f;
 

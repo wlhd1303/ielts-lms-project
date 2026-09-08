@@ -50,8 +50,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Đưa vào máy quét xem vé thật hay giả/hết hạn chưa
                 if (jwtService.isTokenValid(jwt, username)) {
                     
-                    // Tạm thời tạo một hồ sơ ảo để báo cho Spring Security là "Khách VIP, cho qua!"
-                    UserDetails userDetails = User.withUsername(username).password("").authorities("ROLE_USER").build();
+                    String role = jwtService.extractRole(jwt);
+                    if (role == null || role.isBlank()) {
+                        role = "ROLE_USER";
+                    }
+                    if (!role.startsWith("ROLE_")) {
+                        role = "ROLE_" + role;
+                    }
+                    UserDetails userDetails = User.withUsername(username).password("").authorities(role).build();
 
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,

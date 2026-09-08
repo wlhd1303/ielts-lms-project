@@ -17,4 +17,7 @@ public interface StudyRecordRepository extends JpaRepository<StudyRecord, Long> 
 
     // THÊM HÀM NÀY: Lấy toàn bộ lịch sử nộp bài mới nhất
     List<StudyRecord> findAllByOrderByCreatedAtDesc();
+
+    // Lấy toàn bộ bài đã nộp của một học viên cụ thể
+    List<StudyRecord> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

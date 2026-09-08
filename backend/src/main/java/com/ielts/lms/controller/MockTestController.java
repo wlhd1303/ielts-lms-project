@@ -5,6 +5,7 @@ import com.ielts.lms.entity.MockTest;
 import com.ielts.lms.entity.StudyRecord;
 import com.ielts.lms.service.MockTestService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -66,21 +67,25 @@ public class MockTestController {
 
     // --- API ADMIN CRUD ---
     @PostMapping("/class/{classId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public MockTest createTest(@PathVariable Long classId, @RequestBody MockTest mockTest) {
         return mockTestService.createTest(classId, mockTest);
     }
 
     @DeleteMapping("/{testId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void deleteTest(@PathVariable Long testId) {
         mockTestService.deleteTest(testId);
     }
 
     @PostMapping("/{testId}/answers")
+    @PreAuthorize("hasRole('ADMIN')")
     public void saveAnswerKey(@PathVariable Long testId, @RequestBody List<MockQuestion> questions) {
         mockTestService.saveAnswerKey(testId, questions);
     }
 
     @GetMapping("/{testId}/answers")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<MockQuestion> getAnswers(@PathVariable Long testId) {
         return mockTestService.getAnswers(testId);
     }
