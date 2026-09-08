@@ -13,6 +13,19 @@ import SpeakingManagement from './SpeakingManagement';
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [currentMenu, setCurrentMenu] = useState<'dashboard' | 'vocab' | 'dictation' | 'mocktest' | 'statistics' | 'writing' | 'speaking'>('dashboard');
+  
+  // ⚡ TỐI ƯU HIỆU NĂNG: Giữ các tab đã mở trong bộ nhớ để chuyển tab tức thì 0 giây (Keep-Alive)
+  const [visitedMenus, setVisitedMenus] = useState<Set<string>>(new Set(['dashboard']));
+
+  const handleSelectMenu = (menuKey: any) => {
+    setCurrentMenu(menuKey);
+    setVisitedMenus((prev) => {
+      if (prev.has(menuKey)) return prev;
+      const next = new Set(prev);
+      next.add(menuKey);
+      return next;
+    });
+  };
 
   const menuTitles: Record<string, { title: string; desc: string }> = {
     dashboard: { title: 'Quản lý Học viên & Xếp lớp', desc: 'Duyệt tài khoản, phân lớp và theo dõi chuỗi bài tập Streak' },
@@ -67,7 +80,7 @@ const AdminDashboard = () => {
             return (
               <button
                 key={item.key}
-                onClick={() => setCurrentMenu(item.key as any)}
+                onClick={() => handleSelectMenu(item.key as any)}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl font-bold text-sm transition-all duration-200 group relative ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
@@ -89,7 +102,7 @@ const AdminDashboard = () => {
         {/* User Footer / Logout */}
         <div className="p-4 bg-slate-950/90 border-t border-slate-800/80">
           <button 
-            onClick={() => { localStorage.clear(); navigate('/login'); }} 
+            onClick={() => { localStorage.clear(); sessionStorage.clear(); navigate('/login'); }} 
             className="w-full flex items-center justify-between px-4 py-3 bg-slate-900/80 hover:bg-rose-500/10 hover:text-rose-400 border border-slate-800 hover:border-rose-500/30 rounded-xl text-xs font-bold transition-all text-slate-400 group"
           >
             <span className="flex items-center gap-2.5">
@@ -132,15 +145,29 @@ const AdminDashboard = () => {
           </div>
         </header>
 
-        {/* Dynamic Content Body */}
+        {/* Dynamic Content Body (Keep-Alive: giữ các màn hình đã mở để chuyển qua lại tức thì) */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-          {currentMenu === 'dashboard' && <UserManagement />}
-          {currentMenu === 'statistics' && <StatisticsManagement />}
-          {currentMenu === 'vocab' && <VocabManagement />}
-          {currentMenu === 'dictation' && <DictationManagement />}
-          {currentMenu === 'mocktest' && <MockTestManagement />}
-          {currentMenu === 'writing' && <WritingManagement />}
-          {currentMenu === 'speaking' && <SpeakingManagement />}
+          <div className={currentMenu === 'dashboard' ? 'block' : 'hidden'}>
+            {visitedMenus.has('dashboard') && <UserManagement />}
+          </div>
+          <div className={currentMenu === 'statistics' ? 'block' : 'hidden'}>
+            {visitedMenus.has('statistics') && <StatisticsManagement />}
+          </div>
+          <div className={currentMenu === 'vocab' ? 'block' : 'hidden'}>
+            {visitedMenus.has('vocab') && <VocabManagement />}
+          </div>
+          <div className={currentMenu === 'dictation' ? 'block' : 'hidden'}>
+            {visitedMenus.has('dictation') && <DictationManagement />}
+          </div>
+          <div className={currentMenu === 'mocktest' ? 'block' : 'hidden'}>
+            {visitedMenus.has('mocktest') && <MockTestManagement />}
+          </div>
+          <div className={currentMenu === 'writing' ? 'block' : 'hidden'}>
+            {visitedMenus.has('writing') && <WritingManagement />}
+          </div>
+          <div className={currentMenu === 'speaking' ? 'block' : 'hidden'}>
+            {visitedMenus.has('speaking') && <SpeakingManagement />}
+          </div>
         </div>
       </main>
 
