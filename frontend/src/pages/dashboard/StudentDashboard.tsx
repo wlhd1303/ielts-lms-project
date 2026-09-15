@@ -211,7 +211,7 @@ const StudentDashboard = () => {
       </aside>
 
       {/* Main Content Workspace */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen space-y-8">
+      <main className="flex-1 p-6 md:p-10 pb-24 md:pb-10 overflow-y-auto h-screen space-y-8">
         
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -290,7 +290,26 @@ const StudentDashboard = () => {
               
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className="text-lg md:text-xl font-black tracking-tight">Thử Thách Lộ Trình 80 Ngày</h3>
+                  <h3 className="text-lg md:text-xl font-black tracking-tight">
+                    {streakData.cycleTitle ? streakData.cycleTitle : "Thử Thách Lộ Trình 80 Ngày"}
+                  </h3>
+                  
+                  {streakData.cycleType && (
+                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
+                      streakData.cycleType === 'READING' 
+                        ? 'bg-blue-500/30 text-blue-200 border border-blue-400/40' 
+                        : 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/40'
+                    }`}>
+                      {streakData.cycleType === 'READING' ? '📖 Vòng Reading' : '🎧 Vòng Listening'}
+                    </span>
+                  )}
+
+                  {streakData.isMockDay && (
+                    <span className="bg-amber-500/30 text-amber-200 border border-amber-400/40 text-[10px] font-black px-2.5 py-0.5 rounded-full">
+                      🎯 Đích Cuối Vòng
+                    </span>
+                  )}
+
                   <span className="bg-blue-600/90 text-white text-[11px] font-black px-3 py-0.5 rounded-full">
                     Ngày {streakData.currentDayIndex} / 80
                   </span>
@@ -300,12 +319,12 @@ const StudentDashboard = () => {
                   {streakData.completedToday 
                     ? "🎉 Tuyệt vời! Bạn đã hoàn thành nhiệm vụ Streak hôm nay. Hãy tiếp tục giữ vững phong độ vào ngày mai nhé!" 
                     : `Nhiệm vụ hôm nay: Vượt qua 1 bài tập thử thách thuộc kỹ năng ${
-                        streakData.moduleType === 'MOCK_TEST' ? 'Thi Thử (Mock Test) 📝' :
+                        streakData.moduleType === 'MOCK_TEST' ? 'Thi Thử Mock Test (Đích Cuối Vòng) 📝' :
                         streakData.moduleType === 'DICTATION' ? 'Nghe Chép Chính Tả 🎧' :
-                        streakData.moduleType === 'VOCAB' ? 'Trắc Nghiệm Từ Vựng 📚' :
+                        streakData.moduleType === 'VOCAB' ? 'Trắc Nghiệm Từ Vựng Chuẩn Bị 📚' :
                         streakData.moduleType === 'LISTENING_VOCAB_TEST' ? 'Kiểm Tra Phản Xạ Listening ⚡' :
                         streakData.moduleType === 'SPEAKING' ? 'Luyện Nói Phát Âm 🎙️' : 'Dịch Câu Luyện Viết ✍️'
-                      }`}
+                      } ${streakData.skipDictation ? '(Đề Reading: Tự động bỏ qua bài Dictation)' : ''}`}
                 </p>
               </div>
             </div>

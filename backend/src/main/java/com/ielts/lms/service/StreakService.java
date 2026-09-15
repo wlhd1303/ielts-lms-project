@@ -26,6 +26,7 @@ public class StreakService {
     private final WritingTopicRepository writingTopicRepository;
     private final WritingPromptRepository writingPromptRepository;
     private final MockTestRepository mockTestRepository;
+    private final StudyCycleRepository studyCycleRepository;
 
     public StreakService(UserStreakRepository userStreakRepository,
                           UserStreakLogRepository userStreakLogRepository,
@@ -38,7 +39,8 @@ public class StreakService {
                           SpeakingSentenceRepository speakingSentenceRepository,
                           WritingTopicRepository writingTopicRepository,
                           WritingPromptRepository writingPromptRepository,
-                          MockTestRepository mockTestRepository) {
+                          MockTestRepository mockTestRepository,
+                          StudyCycleRepository studyCycleRepository) {
         this.userStreakRepository = userStreakRepository;
         this.userStreakLogRepository = userStreakLogRepository;
         this.studyRecordRepository = studyRecordRepository;
@@ -51,6 +53,61 @@ public class StreakService {
         this.writingTopicRepository = writingTopicRepository;
         this.writingPromptRepository = writingPromptRepository;
         this.mockTestRepository = mockTestRepository;
+        this.studyCycleRepository = studyCycleRepository;
+    }
+
+    public static class CycleStep {
+        public StudyCycle cycle;
+        public String moduleType;
+        public Long refId;
+        public Object payload;
+        public boolean isMock;
+
+        public CycleStep(StudyCycle cycle, String moduleType, Long refId, Object payload, boolean isMock) {
+            this.cycle = cycle;
+            this.moduleType = moduleType;
+            this.refId = refId;
+            this.payload = payload;
+            this.isMock = isMock;
+        }
+    }
+
+    private List<CycleStep> buildStepsForCycle(StudyCycle cycle) {
+        List<CycleStep> steps = new ArrayList<>();
+        boolean isReading = "READING".equalsIgnoreCase(cycle.getCycleType());
+
+        // 1. DICTATION: Chỉ có ở VÒNG LISTENING, VÒNG READING TỰ ĐỘNG BỎ QUA (SKIP)
+        if (!isReading && cycle.getDictationAudio() != null) {
+            steps.add(new CycleStep(cycle, "DICTATION", cycle.getDictationAudio().getId(), cycle.getDictationAudio(), false));
+        }
+
+        // 2. VOCAB: Từ vựng chuẩn bị cho đề
+        if (cycle.getVocabTopic() != null) {
+            steps.add(new CycleStep(cycle, "VOCAB", cycle.getVocabTopic().getId(), cycle.getVocabTopic(), false));
+        }
+
+        // 3. SPEAKING: Luyện nói liên quan
+        if (cycle.getSpeakingTopic() != null) {
+            List<SpeakingSentence> sentences = speakingSentenceRepository.findByTopicIdIn(List.of(cycle.getSpeakingTopic().getId()));
+            Object spkPayload = (sentences != null && !sentences.isEmpty()) ? sentences.get(0) : cycle.getSpeakingTopic();
+            Long spkRefId = (sentences != null && !sentences.isEmpty()) ? sentences.get(0).getId() : cycle.getSpeakingTopic().getId();
+            steps.add(new CycleStep(cycle, "SPEAKING", spkRefId, spkPayload, false));
+        }
+
+        // 4. WRITING: Dịch câu liên quan
+        if (cycle.getWritingTopic() != null) {
+            List<WritingPrompt> prompts = writingPromptRepository.findByTopicIdIn(List.of(cycle.getWritingTopic().getId()));
+            Object wrtPayload = (prompts != null && !prompts.isEmpty()) ? prompts.get(0) : cycle.getWritingTopic();
+            Long wrtRefId = (prompts != null && !prompts.isEmpty()) ? prompts.get(0).getId() : cycle.getWritingTopic().getId();
+            steps.add(new CycleStep(cycle, "WRITING", wrtRefId, wrtPayload, false));
+        }
+
+        // 5. MOCK_TEST: Đề thi thử đích ở cuối vòng
+        if (cycle.getMockTest() != null) {
+            steps.add(new CycleStep(cycle, "MOCK_TEST", cycle.getMockTest().getId(), cycle.getMockTest(), true));
+        }
+
+        return steps;
     }
 
     public Map<String, Object> getTodayStreakExercise(User user) {
@@ -72,22 +129,77 @@ public class StreakService {
                     return userStreakRepository.save(newStreak);
                 });
 
-        String moduleType = determineModuleType(streak.getCurrentDayIndex());
-        
-        List<StudyRecord> records = studyRecordRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-        Set<Long> completedRefIds = new HashSet<>();
-        if (records != null) {
-            completedRefIds = records.stream()
-                    .filter(r -> r.getModuleType() != null && r.getModuleType().equalsIgnoreCase(moduleType)
-                              && r.getRefId() != null)
-                    .map(StudyRecord::getRefId)
-                    .collect(Collectors.toSet());
+        Long classId = user.getStudentClass().getId();
+        boolean hasDoneToday = false;
+        if (streak.getLastCompletedAt() != null) {
+            hasDoneToday = streak.getLastCompletedAt().toLocalDate().equals(LocalDate.now());
         }
 
-        Long classId = user.getStudentClass().getId();
+        // Lấy tất cả bản ghi học tập của học viên
+        List<StudyRecord> records = studyRecordRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        Set<String> completedKeys = new HashSet<>();
+        if (records != null) {
+            for (StudyRecord r : records) {
+                if (r.getModuleType() != null && r.getRefId() != null) {
+                    completedKeys.add(r.getModuleType().toUpperCase() + "_" + r.getRefId());
+                }
+            }
+        }
+
+        // ⚡ 1. KIỂM TRA XEM LỚP CÓ CẤU HÌNH VÒNG HỌC TẬP (STUDY CYCLES) HAY KHÔNG
+        List<StudyCycle> activeCycles = studyCycleRepository.findByStudentClassIdAndIsActiveTrueOrderByCycleOrderAsc(classId);
+
+        if (activeCycles != null && !activeCycles.isEmpty()) {
+            CycleStep currentStep = null;
+
+            for (StudyCycle cycle : activeCycles) {
+                List<CycleStep> cycleSteps = buildStepsForCycle(cycle);
+                for (CycleStep step : cycleSteps) {
+                    String key = step.moduleType.toUpperCase() + "_" + step.refId;
+                    if (!completedKeys.contains(key)) {
+                        currentStep = step;
+                        break;
+                    }
+                }
+                if (currentStep != null) {
+                    break;
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("currentStreak", streak.getCurrentStreak());
+            response.put("maxStreak", streak.getMaxStreak());
+            response.put("currentDayIndex", streak.getCurrentDayIndex());
+            response.put("completedToday", hasDoneToday);
+
+            if (currentStep != null) {
+                response.put("moduleType", currentStep.moduleType);
+                response.put("exercise", currentStep.payload);
+                response.put("cycleId", currentStep.cycle.getId());
+                response.put("cycleTitle", currentStep.cycle.getTitle());
+                response.put("cycleOrder", currentStep.cycle.getCycleOrder());
+                response.put("cycleType", currentStep.cycle.getCycleType());
+                response.put("isMockDay", currentStep.isMock);
+                response.put("skipDictation", "READING".equalsIgnoreCase(currentStep.cycle.getCycleType()));
+            } else {
+                // Đã hoàn thành tất cả các vòng hiện có của lớp
+                response.put("moduleType", "MOCK_TEST");
+                response.put("exercise", null);
+                response.put("allCyclesCompleted", true);
+            }
+
+            return response;
+        }
+
+        // ⚡ 2. DỰ PHÒNG CHO CÁC LỚP CHƯA CẤU HÌNH VÒNG (FALLBACK TO LEGACY 6-DAY PATTERN)
+        final String moduleType = determineModuleType(streak.getCurrentDayIndex());
+        final Set<Long> finalDoneIds = (records != null) ? records.stream()
+                .filter(r -> r.getModuleType() != null && r.getModuleType().equalsIgnoreCase(moduleType)
+                          && r.getRefId() != null)
+                .map(StudyRecord::getRefId)
+                .collect(Collectors.toSet()) : Collections.emptySet();
+
         Object exercisePayload = null;
-        final Set<Long> doneIds = completedRefIds;
-        
         switch (moduleType) {
             case "DICTATION":
                 List<DictationTopic> dTopics = dictationTopicRepository.findByStudentClassId(classId);
@@ -96,26 +208,18 @@ public class StreakService {
                     List<DictationAudio> dAudios = dictationAudioRepository.findByTopicIdIn(topicIds);
                     if (dAudios != null) {
                         exercisePayload = dAudios.stream()
-                                .filter(a -> !doneIds.contains(a.getId()))
+                                .filter(a -> !finalDoneIds.contains(a.getId()))
                                 .min(Comparator.comparing(DictationAudio::getId)).orElse(null);
                     }
                 }
                 break;
             case "VOCAB":
+            case "LISTENING_VOCAB_TEST":
+            case "LISTENING_VOCAB":
                 List<VocabTopic> vTopics = vocabTopicRepository.findByStudentClassId(classId);
                 if (vTopics != null) {
                     exercisePayload = vTopics.stream()
-                            .filter(t -> !doneIds.contains(t.getId()))
-                            .min(Comparator.comparing(VocabTopic::getId)).orElse(null);
-                }
-                break;
-            case "LISTENING_VOCAB_TEST":
-            case "LISTENING_VOCAB":
-                // ⚡ Bổ sung quét bài tập Phản xạ Listening Vocab qua kho từ vựng của lớp
-                List<VocabTopic> lvTopics = vocabTopicRepository.findByStudentClassId(classId);
-                if (lvTopics != null) {
-                    exercisePayload = lvTopics.stream()
-                            .filter(t -> !doneIds.contains(t.getId()))
+                            .filter(t -> !finalDoneIds.contains(t.getId()))
                             .min(Comparator.comparing(VocabTopic::getId)).orElse(null);
                 }
                 break;
@@ -126,16 +230,15 @@ public class StreakService {
                     List<SpeakingSentence> sSentences = speakingSentenceRepository.findByTopicIdIn(topicIds);
                     if (sSentences != null) {
                         exercisePayload = sSentences.stream()
-                                .filter(s -> !doneIds.contains(s.getId()))
+                                .filter(s -> !finalDoneIds.contains(s.getId()))
                                 .min(Comparator.comparing(SpeakingSentence::getId)).orElse(null);
                     }
                 }
-                // Dự phòng cho các lớp cũ nếu chưa chuyển sang cấu trúc Topic
                 if (exercisePayload == null) {
                     List<SpeakingLesson> sLessons = speakingLessonRepository.findByStudentClassId(classId);
                     if (sLessons != null) {
                         exercisePayload = sLessons.stream()
-                                .filter(l -> !doneIds.contains(l.getId()))
+                                .filter(l -> !finalDoneIds.contains(l.getId()))
                                 .min(Comparator.comparing(SpeakingLesson::getId)).orElse(null);
                     }
                 }
@@ -147,7 +250,7 @@ public class StreakService {
                     List<WritingPrompt> wPrompts = writingPromptRepository.findByTopicIdIn(topicIds);
                     if (wPrompts != null) {
                         exercisePayload = wPrompts.stream()
-                                .filter(p -> !doneIds.contains(p.getId()))
+                                .filter(p -> !finalDoneIds.contains(p.getId()))
                                 .min(Comparator.comparing(WritingPrompt::getId)).orElse(null);
                     }
                 }
@@ -156,7 +259,7 @@ public class StreakService {
                 List<MockTest> mTests = mockTestRepository.findByStudentClassId(classId);
                 if (mTests != null) {
                     exercisePayload = mTests.stream()
-                            .filter(m -> !doneIds.contains(m.getId()))
+                            .filter(m -> !finalDoneIds.contains(m.getId()))
                             .min(Comparator.comparing(MockTest::getId)).orElse(null);
                 }
                 break;
@@ -168,11 +271,6 @@ public class StreakService {
         response.put("currentDayIndex", streak.getCurrentDayIndex());
         response.put("moduleType", moduleType);
         response.put("exercise", exercisePayload);
-        
-        boolean hasDoneToday = false;
-        if (streak.getLastCompletedAt() != null) {
-            hasDoneToday = streak.getLastCompletedAt().toLocalDate().equals(LocalDate.now());
-        }
         response.put("completedToday", hasDoneToday);
 
         return response;
@@ -193,9 +291,45 @@ public class StreakService {
             return;
         }
 
-        String requiredModule = determineModuleType(streak.getCurrentDayIndex());
-        if (!requiredModule.equalsIgnoreCase(moduleType)) {
-            return;
+        // Kiểm tra module hợp lệ
+        if (user.getStudentClass() != null) {
+            Long classId = user.getStudentClass().getId();
+            List<StudyCycle> activeCycles = studyCycleRepository.findByStudentClassIdAndIsActiveTrueOrderByCycleOrderAsc(classId);
+            
+            if (activeCycles != null && !activeCycles.isEmpty()) {
+                List<StudyRecord> records = studyRecordRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+                Set<String> completedKeys = new HashSet<>();
+                if (records != null) {
+                    for (StudyRecord r : records) {
+                        if (r.getModuleType() != null && r.getRefId() != null) {
+                            completedKeys.add(r.getModuleType().toUpperCase() + "_" + r.getRefId());
+                        }
+                    }
+                }
+
+                CycleStep currentStep = null;
+                for (StudyCycle cycle : activeCycles) {
+                    List<CycleStep> cycleSteps = buildStepsForCycle(cycle);
+                    for (CycleStep step : cycleSteps) {
+                        String key = step.moduleType.toUpperCase() + "_" + step.refId;
+                        if (!completedKeys.contains(key)) {
+                            currentStep = step;
+                            break;
+                        }
+                    }
+                    if (currentStep != null) break;
+                }
+
+                if (currentStep != null && !currentStep.moduleType.equalsIgnoreCase(moduleType)) {
+                    // Chưa đúng module của ngày hôm nay trong Vòng -> không cập nhật streak
+                    return;
+                }
+            } else {
+                String requiredModule = determineModuleType(streak.getCurrentDayIndex());
+                if (!requiredModule.equalsIgnoreCase(moduleType)) {
+                    return;
+                }
+            }
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -255,13 +389,12 @@ public class StreakService {
         return result;
     }
 
-    // ⚡ VÒNG XOAY TUA CẬP NHẬT THÀNH CHU KỲ 6 KỸ NĂNG (DAY % 6)
     private String determineModuleType(int dayIndex) {
         int pattern = dayIndex % 6;
         switch (pattern) {
             case 1: return "DICTATION";
             case 2: return "VOCAB";
-            case 3: return "LISTENING_VOCAB_TEST"; // ⚡ Thêm Phản xạ Listening
+            case 3: return "LISTENING_VOCAB_TEST";
             case 4: return "SPEAKING";
             case 5: return "WRITING";
             case 0:
