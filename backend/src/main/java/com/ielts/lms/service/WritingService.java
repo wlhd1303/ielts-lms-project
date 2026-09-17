@@ -15,19 +15,22 @@ public class WritingService {
     private final WritingTopicRepository writingTopicRepository;
     private final WritingPromptRepository writingPromptRepository;
     private final StudyRecordRepository studyRecordRepository;
+    private final StudyRecordService studyRecordService;
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
-    private final StreakService streakService; // 👈 1. INJECT STREAK SERVICE
+    private final StreakService streakService;
 
     public WritingService(WritingTopicRepository writingTopicRepository, 
                           WritingPromptRepository writingPromptRepository, 
                           StudyRecordRepository studyRecordRepository, 
+                          StudyRecordService studyRecordService,
                           UserRepository userRepository, 
                           StudentClassRepository studentClassRepository,
-                          StreakService streakService) { // 👈 2. BỔ SUNG VÀO CONSTRUCTOR
+                          StreakService streakService) {
         this.writingTopicRepository = writingTopicRepository;
         this.writingPromptRepository = writingPromptRepository;
         this.studyRecordRepository = studyRecordRepository;
+        this.studyRecordService = studyRecordService;
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
         this.streakService = streakService;
@@ -113,18 +116,18 @@ public class WritingService {
             totalScore = Math.min(100f, Math.max(0f, totalScore)); // Bọc trong khoảng 0 - 100%
         }
 
-        // Lưu lịch sử
+        // Lưu lịch sử / điểm cao nhất
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("WRITING"); 
-        record.setRefId(promptId);
-        record.setScore(Math.round(totalScore * 10.0) / 10.0); // Làm tròn 1 chữ số thập phân
-        record.setDurationSeconds(duration);
-        
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        double finalScore = Math.round(totalScore * 10.0) / 10.0;
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user,
+                "WRITING",
+                promptId,
+                finalScore,
+                duration
+        );
 
         // ⚡ 3. TỰ ĐỘNG CẬP NHẬT STREAK VÀ LOG LƯU VÀO CSDL
         streakService.updateStreakProgress(user, "WRITING", promptId);

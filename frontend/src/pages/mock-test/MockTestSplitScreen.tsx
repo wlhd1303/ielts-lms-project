@@ -34,6 +34,7 @@ const MockTestSplitScreen = () => {
   ]);
   const [vocabSaved, setVocabSaved] = useState(false);
   const [isSavingVocab, setIsSavingVocab] = useState(false);
+  const [hasNoQuestions, setHasNoQuestions] = useState(false);
 
   useEffect(() => {
     const fetchTestDetails = async () => {
@@ -54,6 +55,7 @@ const MockTestSplitScreen = () => {
             qMap[q.questionNumber || q.question_number] = q.questionText || q.question_text || '';
         });
         setQuestionTexts(qMap);
+        setHasNoQuestions(qData.length === 0);
 
       } catch (error) {
         console.error("Lỗi lấy thông tin đề thi", error);
@@ -106,8 +108,10 @@ const MockTestSplitScreen = () => {
         }
       }
 
-    } catch (error) {
-      alert("Lỗi nộp bài!");
+    } catch (error: any) {
+      console.error("Lỗi nộp bài:", error);
+      const msg = error?.response?.data?.message || error?.message || "Lỗi nộp bài!";
+      alert(msg);
     } finally {
       setIsLoading(false);
     }
@@ -249,6 +253,18 @@ const MockTestSplitScreen = () => {
                    <span>✍️ Phiếu Trả Lời (40 Câu)</span>
                    <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded font-bold">Auto-Save</span>
                  </div>
+
+                 {hasNoQuestions && (
+                   <div className="p-3.5 bg-amber-50 border-b border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5">
+                     <span className="text-base leading-none">⚠️</span>
+                     <div>
+                       <p className="font-bold">Đề thi này chưa có đáp án trên hệ thống.</p>
+                       <p className="text-[11px] text-amber-700 mt-0.5 leading-normal">
+                         Giáo viên chưa cấu hình câu hỏi và đáp án cho đề này. Bạn vẫn có thể đọc đề để tự luyện tập, nhưng hệ thống sẽ không thể chấm điểm cho tới khi giáo viên cập nhật đáp án.
+                       </p>
+                     </div>
+                   </div>
+                 )}
                  
                  <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3.5 custom-scrollbar">
                     {[...Array(40)].map((_, i) => {
@@ -275,8 +291,9 @@ const MockTestSplitScreen = () => {
                               type="text" 
                               placeholder="Nhập đáp án..."
                               value={currentVal}
+                              disabled={hasNoQuestions}
                               onChange={(e) => handleAnswerChange(num, e.target.value)}
-                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-blue-600 focus:bg-white transition-all uppercase font-bold text-slate-800"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-blue-600 focus:bg-white transition-all uppercase font-bold text-slate-800 disabled:opacity-50"
                             />
                           </div>
                         </div>
@@ -287,10 +304,14 @@ const MockTestSplitScreen = () => {
                  <div className="p-4 bg-slate-50/80 border-t border-slate-100">
                     <button 
                       onClick={handleSubmit} 
-                      disabled={isLoading} 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all text-xs cursor-pointer"
+                      disabled={isLoading || hasNoQuestions} 
+                      className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition-all text-xs ${
+                        hasNoQuestions
+                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/20 active:scale-[0.98] cursor-pointer'
+                      }`}
                     >
-                      {isLoading ? "Đang chấm điểm bài thi..." : "Nộp Bài Lấy Điểm"}
+                      {hasNoQuestions ? "Đề thi chưa có đáp án trên hệ thống" : isLoading ? "Đang chấm điểm bài thi..." : "Nộp Bài Lấy Điểm"}
                     </button>
                  </div>
                </>

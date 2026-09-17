@@ -14,6 +14,7 @@ public class MockTestService {
     private final MockTestRepository mockTestRepository;
     private final MockQuestionRepository mockQuestionRepository;
     private final StudyRecordRepository studyRecordRepository;
+    private final StudyRecordService studyRecordService;
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
     private final StreakService streakService;
@@ -30,6 +31,7 @@ public class MockTestService {
     public MockTestService(MockTestRepository mockTestRepository, 
                            MockQuestionRepository mockQuestionRepository, 
                            StudyRecordRepository studyRecordRepository, 
+                           StudyRecordService studyRecordService,
                            UserRepository userRepository,
                            StudentClassRepository studentClassRepository,
                            StreakService streakService,
@@ -38,6 +40,7 @@ public class MockTestService {
         this.mockTestRepository = mockTestRepository;
         this.mockQuestionRepository = mockQuestionRepository;
         this.studyRecordRepository = studyRecordRepository;
+        this.studyRecordService = studyRecordService;
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
         this.streakService = streakService;
@@ -78,6 +81,13 @@ public class MockTestService {
     // --- HÀM CHẤM ĐIỂM ĐỀ THI MOCK (HỖ TRỢ NHIỀU ĐÁP ÁN ĐÚNG: A/C/B, centre/center, 10/ten) ---
     public StudyRecord gradeMockTest(Long testId, Map<Integer, String> studentAnswers, int duration) {
         List<MockQuestion> correctAnswers = mockQuestionRepository.findByMockTestId(testId);
+        if (correctAnswers.isEmpty()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, 
+                "Đề thi này chưa có đáp án trên hệ thống. Vui lòng liên hệ giáo viên để cập nhật đáp án!"
+            );
+        }
+
         int correctCount = 0;
 
         for (MockQuestion q : correctAnswers) {
@@ -106,22 +116,19 @@ public class MockTestService {
             }
         }
         
-        float score = 0;
-        if (!correctAnswers.isEmpty()) {
-            score = (float) correctCount / correctAnswers.size() * 100;
-        }
+        float score = (float) correctCount / correctAnswers.size() * 100;
+        double finalScore = Math.round(score * 10.0) / 10.0;
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("MOCK_TEST"); 
-        record.setRefId(testId);
-        record.setScore(Math.round(score * 10.0) / 10.0);
-        record.setDurationSeconds(duration);
-        
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user,
+                "MOCK_TEST",
+                testId,
+                finalScore,
+                duration
+        );
 
         // TỰ ĐỘNG CẬP NHẬT STREAK VÀ LOG LƯU VÀO CSDL
         streakService.updateStreakProgress(user, "MOCK_TEST", testId);
@@ -223,6 +230,10 @@ public class MockTestService {
 
     // ⚡ 3. NỘP BÀI TEST TỪ VỰNG ÔN TẬP
     public StudyRecord submitVocabTest(float score, int durationSeconds) {
+        return submitVocabTest(0L, score, durationSeconds);
+    }
+
+    public StudyRecord submitVocabTest(Long testId, float score, int durationSeconds) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
@@ -232,15 +243,17 @@ public class MockTestService {
         }
         userMockVocabRepository.saveAll(pendingVocabs);
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("READING_VOCAB_TEST");
-        record.setRefId(0L);
-        record.setScore(score);
-        record.setDurationSeconds(durationSeconds);
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        Long effectiveRefId = (testId != null) ? testId : 0L;
+        double finalScore = Math.round(score * 10.0) / 10.0;
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user,
+                "READING_VOCAB_TEST",
+                effectiveRefId,
+                finalScore,
+                durationSeconds
+        );
 
-        streakService.updateStreakProgress(user, "VOCAB", 0L);
+        streakService.updateStreakProgress(user, "VOCAB", effectiveRefId);
 
         return savedRecord;
     }

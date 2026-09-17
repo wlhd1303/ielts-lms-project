@@ -56,7 +56,10 @@ public class MockTestController {
     public StudyRecord submitVocabTest(@RequestBody Map<String, Object> payload) {
         float score = Float.parseFloat(payload.get("score").toString());
         int durationSeconds = Integer.parseInt(payload.get("durationSeconds").toString());
-        return mockTestService.submitVocabTest(score, durationSeconds);
+        Long testId = (payload.containsKey("testId") && payload.get("testId") != null)
+                ? Long.parseLong(payload.get("testId").toString())
+                : 0L;
+        return mockTestService.submitVocabTest(testId, score, durationSeconds);
     }
 
     // ⚡ 4. API HỌC VIÊN: LẤY TỪ VỰNG REVIEW THEO ID BÀI READING (PHỤC VỤ MÀN HÌNH VOCAB REVIEW TEST)

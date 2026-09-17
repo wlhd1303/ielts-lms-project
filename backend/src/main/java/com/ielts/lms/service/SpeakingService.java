@@ -18,6 +18,7 @@ public class SpeakingService {
     private final SpeakingSentenceRepository speakingSentenceRepository;
     private final StudentClassRepository studentClassRepository;
     private final StreakService streakService;
+    private final StudyRecordService studyRecordService;
 
     // ⚡ ĐÃ HẠ ĐIỂM CHUẨN PASS XUỐNG 60.0% ĐỂ LINH HOẠT HƠN CHO HỌC VIÊN
     private static final float PASS_MARK = 60.0f;
@@ -28,7 +29,8 @@ public class SpeakingService {
                            SpeakingTopicRepository speakingTopicRepository,
                            SpeakingSentenceRepository speakingSentenceRepository,
                            StudentClassRepository studentClassRepository,
-                           StreakService streakService) {
+                           StreakService streakService,
+                           StudyRecordService studyRecordService) {
         this.studyRecordRepository = studyRecordRepository;
         this.userRepository = userRepository;
         this.speakingLessonRepository = speakingLessonRepository;
@@ -36,6 +38,7 @@ public class SpeakingService {
         this.speakingSentenceRepository = speakingSentenceRepository;
         this.studentClassRepository = studentClassRepository;
         this.streakService = streakService;
+        this.studyRecordService = studyRecordService;
     }
 
     // ==========================================
@@ -109,14 +112,9 @@ public class SpeakingService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("SPEAKING"); 
-        record.setRefId(sentenceId);
-        record.setScore(finalScore);
-        record.setDurationSeconds(duration);
-        
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user, "SPEAKING", sentenceId, finalScore, duration
+        );
 
         // Tự động cập nhật chuỗi ngày học Streak
         streakService.updateStreakProgress(user, "SPEAKING", sentenceId);
@@ -152,14 +150,9 @@ public class SpeakingService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("SPEAKING"); 
-        record.setRefId(lessonId);
-        record.setScore(finalScore);
-        record.setDurationSeconds(duration);
-        
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user, "SPEAKING", lessonId, finalScore, duration
+        );
 
         streakService.updateStreakProgress(user, "SPEAKING", lessonId);
 

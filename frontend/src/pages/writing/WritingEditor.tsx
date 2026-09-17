@@ -85,8 +85,10 @@ const WritingEditor = () => {
       setSelectedTopic(topic);
       const res: any = await writingService.getPromptsByTopic(topic.id);
       setPrompts(Array.isArray(res) ? res : res.data || []);
-    } catch (error) {
-      alert("Lỗi tải bài tập!");
+    } catch (error: any) {
+      console.error("Lỗi tải bài tập Writing:", error);
+      setSelectedTopic(null);
+      alert(error?.response?.data?.message || "Không thể tải danh sách bài tập của chủ đề này. Vui lòng thử lại!");
     } finally {
       setIsLoading(false);
     }

@@ -20,6 +20,7 @@ public class DictationService {
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
     private final StreakService streakService;
+    private final StudyRecordService studyRecordService;
 
     public DictationService(DictationTopicRepository dictationTopicRepository, 
                             DictationAudioRepository dictationAudioRepository, 
@@ -27,7 +28,8 @@ public class DictationService {
                             StudyRecordRepository studyRecordRepository, 
                             UserRepository userRepository,
                             StudentClassRepository studentClassRepository,
-                            StreakService streakService) {
+                            StreakService streakService,
+                            StudyRecordService studyRecordService) {
         this.dictationTopicRepository = dictationTopicRepository;
         this.dictationAudioRepository = dictationAudioRepository;
         this.dictationQuestionRepository = dictationQuestionRepository;
@@ -35,6 +37,7 @@ public class DictationService {
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
         this.streakService = streakService;
+        this.studyRecordService = studyRecordService;
     }
 
     // --- CÁC HÀM GET DỮ LIỆU ĐỂ HỌC VIÊN LÀM BÀI ---
@@ -121,14 +124,9 @@ public class DictationService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("DICTATION"); 
-        record.setRefId(audioId);
-        record.setScore(Math.round(finalAverage * 10.0) / 10.0);
-        record.setDurationSeconds(duration);
-        
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user, "DICTATION", audioId, finalAverage, duration
+        );
 
         streakService.updateStreakProgress(user, "DICTATION", audioId);
 

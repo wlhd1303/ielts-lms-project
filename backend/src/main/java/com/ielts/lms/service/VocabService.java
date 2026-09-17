@@ -28,6 +28,7 @@ public class VocabService {
     private final UserRepository userRepository;
     private final StudentClassRepository studentClassRepository;
     private final StreakService streakService;
+    private final StudyRecordService studyRecordService;
 
     private static final List<String> FALLBACK_MEANINGS = List.of(
             "Khả năng", "Môi trường", "Thách thức", "Phát triển",
@@ -41,13 +42,15 @@ public class VocabService {
                         StudyRecordRepository studyRecordRepository, 
                         UserRepository userRepository, 
                         StudentClassRepository studentClassRepository,
-                        StreakService streakService) {
+                        StreakService streakService,
+                        StudyRecordService studyRecordService) {
         this.vocabTopicRepository = vocabTopicRepository;
         this.vocabWordRepository = vocabWordRepository;
         this.studyRecordRepository = studyRecordRepository;
         this.userRepository = userRepository;
         this.studentClassRepository = studentClassRepository;
         this.streakService = streakService;
+        this.studyRecordService = studyRecordService;
     }
 
     public List<VocabTopic> getTopicsByClass(Long classId) {
@@ -140,14 +143,9 @@ public class VocabService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("VOCAB");
-        record.setRefId(topicId);
-        record.setScore(roundedScore); 
-        record.setDurationSeconds(duration);
-        
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user, "VOCAB", topicId, roundedScore, duration
+        );
 
         streakService.updateStreakProgress(user, "VOCAB", topicId);
 
@@ -167,14 +165,9 @@ public class VocabService {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        StudyRecord record = new StudyRecord();
-        record.setUser(user);
-        record.setModuleType("LISTENING_VOCAB_TEST");
-        record.setRefId(topicId);
-        record.setScore(score);
-        record.setDurationSeconds(duration);
-
-        StudyRecord savedRecord = studyRecordRepository.save(record);
+        StudyRecord savedRecord = studyRecordService.saveOrUpdateBestScore(
+                user, "LISTENING_VOCAB_TEST", topicId, score, duration
+        );
 
         // Cập nhật chuỗi Streak bài tập khớp với moduleType trong StreakService
         streakService.updateStreakProgress(user, "LISTENING_VOCAB_TEST", topicId);

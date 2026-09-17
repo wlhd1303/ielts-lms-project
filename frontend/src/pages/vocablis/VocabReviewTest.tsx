@@ -143,7 +143,7 @@ const FALLBACK_MEANINGS = [
 
     try {
       // Gọi đúng endpoint Backend để chấm điểm và tăng Streak
-      await mockTestService.submitVocabTest(score, durationSeconds);
+      await mockTestService.submitVocabTest(score, durationSeconds, id ? Number(id) : undefined);
     } catch (error) {
       console.error("Lỗi ghi nhận điểm và Streak:", error);
     }

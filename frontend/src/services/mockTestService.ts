@@ -24,8 +24,8 @@ export const mockTestService = {
   getPendingVocabularies: async () => {
     return await axiosClient.get('/api/mock-tests/pending-vocabularies');
   },
-  submitVocabTest: async (score: number, durationSeconds: number) => {
-    return await axiosClient.post('/api/mock-tests/submit-vocab-test', { score, durationSeconds });
+  submitVocabTest: async (score: number, durationSeconds: number, testId?: number) => {
+    return await axiosClient.post('/api/mock-tests/submit-vocab-test', { score, durationSeconds, testId });
   },
 
   // ⚡ MỚI BỔ SUNG: Lấy từ vựng review đích danh của bài Reading này

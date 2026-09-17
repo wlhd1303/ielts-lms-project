@@ -50,6 +50,7 @@ const SpeakingShadowing = () => {
   
   const [startTime, setStartTime] = useState<number>(0);
   const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef<string>('');
 
   // 1. Tải danh sách Topics, các câu hỏi và nạp lịch sử bài đã làm
   useEffect(() => {
@@ -136,9 +137,11 @@ const SpeakingShadowing = () => {
 
       recognition.onresult = (event: any) => {
         let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
+        for (let i = 0; i < event.results.length; i++) {
+          currentTranscript += event.results[i][0].transcript + ' ';
         }
+        currentTranscript = currentTranscript.trim();
+        transcriptRef.current = currentTranscript;
         setTranscriptResult(currentTranscript);
       };
 
@@ -165,6 +168,7 @@ const SpeakingShadowing = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+    transcriptRef.current = '';
     setRecordingState('idle');
     setTranscriptResult('');
     setScoreResult(0);
@@ -218,8 +222,10 @@ const SpeakingShadowing = () => {
     }
 
     if (recordingState === 'idle' || recordingState === 'feedback') {
+      transcriptRef.current = '';
       setTranscriptResult('');
       setRecordingState('recording');
+      setStartTime(Date.now());
       recognitionRef.current.start();
     } else if (recordingState === 'recording') {
       recognitionRef.current.stop();
@@ -334,9 +340,17 @@ const SpeakingShadowing = () => {
     const currentSentence = sentences[currentIndex];
     if (!currentSentence) return;
 
+    const finalTranscript = (transcriptRef.current || transcriptResult).trim();
     const rawTarget = currentSentence.englishSentence || '';
     const rawTargetWords = rawTarget.split(/\s+/).filter(Boolean);
-    const cleanUserWords = normalizeSpeechText(transcriptResult).split(/\s+/).filter(Boolean);
+    const cleanUserWords = normalizeSpeechText(finalTranscript).split(/\s+/).filter(Boolean);
+
+    if (cleanUserWords.length === 0) {
+      setScoreResult(0);
+      setAnalyzedWords(rawTargetWords.map((displayWord: string) => ({ displayWord, isCorrect: false })));
+      setRecordingState('feedback');
+      return;
+    }
 
     let correctCount = 0;
     let userIndexCursor = 0;
@@ -385,7 +399,7 @@ const SpeakingShadowing = () => {
         currentSentence.id, 
         calculatedScore, 
         duration, 
-        transcriptResult
+        finalTranscript
       );
       const serverScore = res?.score ?? res?.data?.score;
       if (serverScore !== undefined && serverScore !== null) {
