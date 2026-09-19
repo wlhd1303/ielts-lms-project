@@ -169,9 +169,43 @@ public class SpeakingService {
         if (clean1.equals(clean2)) return 1.0f;
         if (clean1.isEmpty() || clean2.isEmpty()) return 0.0f;
 
+        // Khử lặp từ bất thường do giật lag micro hoặc trình duyệt (vd: "the the the" -> "the")
+        clean1 = clean1.replaceAll("\\b([a-z0-9]+)(\\s+\\1){2,}\\b", "$1");
+        clean1 = clean1.replaceAll("\\b([a-z0-9]{4,})(\\s+\\1)\\b", "$1");
+        clean1 = clean1.replaceAll("\\s+", " ").trim();
+
         int distance = computeLevenshtein(clean1, clean2);
         int maxLen = Math.max(clean1.length(), clean2.length());
-        return 1.0f - ((float) distance / maxLen);
+        float fullSimilarity = 1.0f - ((float) distance / maxLen);
+
+        // Bảo vệ chống lỗi lặp tiền tố: nếu transcript dài hơn câu chuẩn do lặp/nối từ phía trước,
+        // thử so khớp cửa sổ trượt (sliding window / suffix) để tìm phần đọc chuẩn nhất ở cuối câu
+        String[] words1 = clean1.split("\\s+");
+        String[] words2 = clean2.split("\\s+");
+        if (words1.length > words2.length && words2.length > 0) {
+            float bestSimilarity = fullSimilarity;
+            for (int extra = 0; extra <= 2; extra++) {
+                int windowSize = words2.length + extra;
+                if (windowSize <= words1.length) {
+                    int startIdx = words1.length - windowSize;
+                    StringBuilder suffixBuilder = new StringBuilder();
+                    for (int i = startIdx; i < words1.length; i++) {
+                        if (suffixBuilder.length() > 0) suffixBuilder.append(" ");
+                        suffixBuilder.append(words1[i]);
+                    }
+                    String suffix = suffixBuilder.toString();
+                    int d = computeLevenshtein(suffix, clean2);
+                    int m = Math.max(suffix.length(), clean2.length());
+                    float sim = 1.0f - ((float) d / m);
+                    if (sim > bestSimilarity) {
+                        bestSimilarity = sim;
+                    }
+                }
+            }
+            return bestSimilarity;
+        }
+
+        return fullSimilarity;
     }
 
     private int computeLevenshtein(String lhs, String rhs) {

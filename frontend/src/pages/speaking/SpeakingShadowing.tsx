@@ -26,6 +26,108 @@ interface SpeakingSentenceItem {
 
 const PASS_SCORE = 60; // Ngưỡng điểm chuẩn để ĐẠT (PASS) câu luyện nói
 
+// Khử các từ lặp lại bất thường do giật lag trình duyệt hoặc micro (vd: "the the the" -> "the")
+const cleanDuplicatedWords = (text: string): string => {
+  if (!text) return '';
+  return text
+    // Khử 3 từ trở lên lặp liên tiếp: "the the the the" -> "the"
+    .replace(/\b([a-zA-Z0-9']+)(\s+\1){2,}\b/gi, '$1')
+    // Khử 2 từ lặp liên tiếp nếu độ dài từ >= 4 ký tự (ví dụ: "Locking Locking" -> "Locking")
+    .replace(/\b([a-zA-Z0-9']{4,})(\s+\1)\b/gi, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// Hàm làm sạch và gộp kết quả nhận dạng giọng nói thông minh (tối ưu mượt mà cho cả Android Mobile, iOS và PC)
+const extractSmartTranscript = (event: any): string => {
+  if (!event || !event.results || event.results.length === 0) {
+    return '';
+  }
+
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // 1. Trên Mobile (Đặc biệt là Android Chrome):
+  // SpeechRecognition thường trả về dạng lũy kế (cumulative streaming).
+  // Mỗi phần tử mới trong event.results thường chứa toàn bộ câu nói từ đầu đến thời điểm đó.
+  if (isMobile) {
+    let consolidated = '';
+    for (let i = 0; i < event.results.length; i++) {
+      const phrase = event.results[i][0]?.transcript?.trim() || '';
+      if (!phrase) continue;
+
+      if (!consolidated) {
+        consolidated = phrase;
+      } else {
+        const lowerConsolidated = consolidated.toLowerCase();
+        const lowerPhrase = phrase.toLowerCase();
+
+        // Nếu phrase mới bao hàm hoặc bắt đầu bằng consolidated cũ -> phrase mới là bản ghi lũy kế đầy đủ hơn
+        if (lowerPhrase.startsWith(lowerConsolidated) || lowerPhrase.includes(lowerConsolidated)) {
+          consolidated = phrase;
+        } else if (lowerConsolidated.startsWith(lowerPhrase) || lowerConsolidated.includes(lowerPhrase)) {
+          // consolidated hiện tại đã đầy đủ hơn phrase, tiếp tục
+          continue;
+        } else {
+          // Là 2 đoạn câu ngắt nghỉ tách biệt không trùng lặp -> ghép lại
+          consolidated += ' ' + phrase;
+        }
+      }
+    }
+
+    // Ưu tiên lấy kết quả dài nhất từ phần tử cuối cùng nếu có
+    const lastItem = event.results[event.results.length - 1][0]?.transcript?.trim() || '';
+    if (lastItem.length > consolidated.length) {
+      consolidated = lastItem;
+    }
+
+    return cleanDuplicatedWords(consolidated);
+  }
+
+  // 2. Trên Desktop (PC/Laptop):
+  // Ghép nối theo isFinal & interim, đồng thời phòng tránh lặp lũy kế nếu trình duyệt hỗ trợ
+  let finalTranscript = '';
+  let interimTranscript = '';
+
+  for (let i = 0; i < event.results.length; i++) {
+    const res = event.results[i];
+    const text = res[0]?.transcript?.trim() || '';
+    if (!text) continue;
+
+    if (res.isFinal) {
+      const lowerFinal = finalTranscript.toLowerCase();
+      const lowerText = text.toLowerCase();
+
+      if (lowerFinal && (lowerText.startsWith(lowerFinal) || lowerText.includes(lowerFinal))) {
+        finalTranscript = text;
+      } else if (lowerFinal && (lowerFinal.endsWith(lowerText) || lowerFinal.includes(lowerText))) {
+        continue;
+      } else {
+        finalTranscript = finalTranscript ? `${finalTranscript} ${text}` : text;
+      }
+    } else {
+      interimTranscript = text;
+    }
+  }
+
+  let full = finalTranscript;
+  if (interimTranscript) {
+    const lowerFull = full.toLowerCase();
+    const lowerInterim = interimTranscript.toLowerCase();
+
+    if (lowerInterim.startsWith(lowerFull)) {
+      full = interimTranscript;
+    } else if (!lowerFull.includes(lowerInterim)) {
+      full = full ? `${full} ${interimTranscript}` : interimTranscript;
+    }
+  }
+
+  if (!full && event.results.length > 0) {
+    full = event.results[event.results.length - 1][0]?.transcript?.trim() || '';
+  }
+
+  return cleanDuplicatedWords(full);
+};
+
 const SpeakingShadowing = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -51,6 +153,23 @@ const SpeakingShadowing = () => {
   const [startTime, setStartTime] = useState<number>(0);
   const recognitionRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
+  const recordingStateRef = useRef(recordingState);
+  const isAnalyzingRef = useRef<boolean>(false);
+  const triggerAnalysisRef = useRef<() => void>(() => {});
+  const sentencesRef = useRef(sentences);
+  const currentIndexRef = useRef(currentIndex);
+
+  useEffect(() => {
+    recordingStateRef.current = recordingState;
+  }, [recordingState]);
+
+  useEffect(() => {
+    sentencesRef.current = sentences;
+  }, [sentences]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   // 1. Tải danh sách Topics, các câu hỏi và nạp lịch sử bài đã làm
   useEffect(() => {
@@ -126,6 +245,41 @@ const SpeakingShadowing = () => {
     fetchTopicsAndHistory();
   }, [navigate, streakLessonId]);
 
+  const resetRecording = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {}
+    }
+    isAnalyzingRef.current = false;
+    transcriptRef.current = '';
+    setRecordingState('idle');
+    setTranscriptResult('');
+    setScoreResult(0);
+    setAnalyzedWords([]);
+    setStartTime(Date.now());
+  };
+
+  const triggerAnalysis = () => {
+    if (isAnalyzingRef.current) return;
+    isAnalyzingRef.current = true;
+    setRecordingState('analyzing');
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
+    }
+
+    setTimeout(() => {
+      analyzePronunciation();
+    }, 600);
+  };
+  triggerAnalysisRef.current = triggerAnalysis;
+
   // 2. Khởi tạo Web Speech Recognition
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -136,17 +290,30 @@ const SpeakingShadowing = () => {
       recognition.lang = 'en-US';
 
       recognition.onresult = (event: any) => {
-        let currentTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript + ' ';
+        const currentTranscript = extractSmartTranscript(event);
+        if (currentTranscript) {
+          transcriptRef.current = currentTranscript;
+          setTranscriptResult(currentTranscript);
         }
-        currentTranscript = currentTranscript.trim();
-        transcriptRef.current = currentTranscript;
-        setTranscriptResult(currentTranscript);
+      };
+
+      recognition.onend = () => {
+        // Nếu trình duyệt tự ngắt mic khi đang thu âm (ví dụ: học sinh đọc xong và ngắt quãng trên Android)
+        if (recordingStateRef.current === 'recording') {
+          if (transcriptRef.current && transcriptRef.current.trim().length > 0) {
+            triggerAnalysisRef.current();
+          } else {
+            setRecordingState('idle');
+          }
+        }
       };
 
       recognition.onerror = (event: any) => {
         console.error("Lỗi Micro:", event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          alert("Vui lòng cấp quyền truy cập Microphone cho trình duyệt để luyện nói!");
+          setRecordingState('idle');
+        }
       };
 
       recognitionRef.current = recognition;
@@ -163,18 +330,6 @@ const SpeakingShadowing = () => {
       }
     };
   }, []);
-
-  const resetRecording = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    transcriptRef.current = '';
-    setRecordingState('idle');
-    setTranscriptResult('');
-    setScoreResult(0);
-    setAnalyzedWords([]);
-    setStartTime(Date.now());
-  };
 
   // Chọn Topic để bắt đầu luyện tập
   const handleSelectTopic = (topic: SpeakingTopicItem) => {
@@ -222,18 +377,17 @@ const SpeakingShadowing = () => {
     }
 
     if (recordingState === 'idle' || recordingState === 'feedback') {
-      transcriptRef.current = '';
-      setTranscriptResult('');
+      resetRecording();
+      isAnalyzingRef.current = false;
       setRecordingState('recording');
       setStartTime(Date.now());
-      recognitionRef.current.start();
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error("Lỗi bật Micro:", err);
+      }
     } else if (recordingState === 'recording') {
-      recognitionRef.current.stop();
-      setRecordingState('analyzing');
-
-      setTimeout(() => {
-        analyzePronunciation();
-      }, 800);
+      triggerAnalysis();
     }
   };
 
@@ -737,7 +891,7 @@ const SpeakingShadowing = () => {
                   {/* CÁC NÚT ĐIỀU HƯỚNG THEO CÁCH A */}
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     <button 
-                      onClick={() => setRecordingState('idle')}
+                      onClick={resetRecording}
                       className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                     >
                       Thu Âm Lại Câu Này
