@@ -189,6 +189,13 @@ const StudentDashboard = () => {
           >
             <span className="text-base">🏆</span> Bảng Xếp Hạng
           </button>
+
+          <button 
+            onClick={() => navigate('/booking')}
+            className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer text-slate-600 hover:bg-blue-50/80 hover:text-blue-700 hover:shadow-sm"
+          >
+            <span className="text-base">🗓️</span> Lịch Hỗ Trợ & Thi Thử
+          </button>
         </nav>
 
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
@@ -505,6 +512,23 @@ const StudentDashboard = () => {
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 group-hover:text-rose-600 transition-colors">Writing</h3>
                 <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Luyện dịch câu tiếng Việt sang tiếng Anh chuẩn Keywords & Cấu trúc.</p>
+              </div>
+            </div>
+
+            {/* Card 7: Lịch Hỗ Trợ & Thi Thử */}
+            <div 
+              onClick={() => navigate('/booking')}
+              className="p-6 rounded-3xl border border-slate-200/80 bg-white shadow-sm hover:shadow-md hover:border-blue-400 cursor-pointer active:scale-[0.99] group transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden"
+            >
+              <div className="flex items-center justify-between">
+                <div className="w-13 h-13 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-inner border border-blue-100">
+                  🗓️
+                </div>
+                <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md">Mới ra mắt</span>
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">Lịch Hỗ Trợ & Thi Thử</h3>
+                <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">Chủ động đặt lịch kèm 1-1 30 phút hoặc đăng ký các ca thi thử IELTS tập trung.</p>
               </div>
             </div>
 

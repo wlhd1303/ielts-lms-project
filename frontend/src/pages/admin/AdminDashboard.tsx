@@ -10,10 +10,11 @@ import StatisticsManagement from './StatisticsManagement';
 import WritingManagement from './WritingManagement';
 import SpeakingManagement from './SpeakingManagement';
 import CycleManagement from './CycleManagement';
+import BookingManagement from './BookingManagement';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [currentMenu, setCurrentMenu] = useState<'dashboard' | 'vocab' | 'dictation' | 'mocktest' | 'statistics' | 'writing' | 'speaking' | 'cycle'>('dashboard');
+  const [currentMenu, setCurrentMenu] = useState<'dashboard' | 'vocab' | 'dictation' | 'mocktest' | 'statistics' | 'writing' | 'speaking' | 'cycle' | 'booking'>('dashboard');
   
   // ⚡ TỐI ƯU HIỆU NĂNG: Giữ các tab đã mở trong bộ nhớ để chuyển tab tức thì 0 giây (Keep-Alive)
   const [visitedMenus, setVisitedMenus] = useState<Set<string>>(new Set(['dashboard']));
@@ -32,6 +33,7 @@ const AdminDashboard = () => {
 
   const menuTitles: Record<string, { title: string; desc: string }> = {
     dashboard: { title: 'Quản lý Học viên & Xếp lớp', desc: 'Duyệt tài khoản, phân lớp và theo dõi chuỗi bài tập Streak' },
+    booking: { title: 'Quản lý Đặt lịch & Thi thử', desc: 'Duyệt ca hỗ trợ 1-1, điểm danh và chấm điểm sự kiện Mock Test' },
     vocab: { title: 'Ngân hàng Từ vựng', desc: 'Quản lý chủ đề và bộ từ vựng trắc nghiệm' },
     dictation: { title: 'Dữ liệu Nghe chép chính tả', desc: 'Quản lý bài luyện Listening Dictation theo lớp' },
     mocktest: { title: 'Thư viện Đề Thi (Mock Test)', desc: 'Tạo và cấu hình đề thi thử Reading & Listening' },
@@ -44,6 +46,7 @@ const AdminDashboard = () => {
   const navItems = [
     { section: 'Hệ thống' },
     { key: 'dashboard', label: 'Quản lý Học viên', icon: '📊' },
+    { key: 'booking', label: 'Quản lý Đặt lịch & Thi thử', icon: '📅' },
     { key: 'statistics', label: 'Thống kê tiến độ', icon: '📈' },
     { section: 'Lộ trình đào tạo' },
     { key: 'cycle', label: 'Quản lý Vòng học', icon: '🔄' },
@@ -233,6 +236,9 @@ const AdminDashboard = () => {
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
           <div className={currentMenu === 'dashboard' ? 'block' : 'hidden'}>
             {visitedMenus.has('dashboard') && <UserManagement />}
+          </div>
+          <div className={currentMenu === 'booking' ? 'block' : 'hidden'}>
+            {visitedMenus.has('booking') && <BookingManagement />}
           </div>
           <div className={currentMenu === 'statistics' ? 'block' : 'hidden'}>
             {visitedMenus.has('statistics') && <StatisticsManagement />}
