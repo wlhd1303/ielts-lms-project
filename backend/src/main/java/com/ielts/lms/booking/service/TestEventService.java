@@ -75,6 +75,99 @@ public class TestEventService {
     }
 
     /**
+     * Admin cập nhật thông tin sự kiện thi và các ca thi
+     */
+    @Transactional
+    public TestEvent updateEvent(Long eventId, CreateTestEventDto dto) {
+        TestEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kỳ thi thử có ID " + eventId));
+
+        event.setTitle(dto.getTitle().trim());
+        event.setDescription(dto.getDescription());
+        event.setEventDate(dto.getEventDate());
+        event.setLocation(dto.getLocation().trim());
+        event.setRegistrationDeadline(dto.getRegistrationDeadline());
+        if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
+            event.setStatus(dto.getStatus().trim());
+        }
+
+        if (dto.getShifts() != null) {
+            List<TestEventShift> currentShifts = event.getShifts();
+            if (currentShifts == null) {
+                currentShifts = new ArrayList<>();
+                event.setShifts(currentShifts);
+            }
+
+            List<TestEventShift> updatedShifts = new ArrayList<>();
+            for (CreateTestEventDto.ShiftDto sDto : dto.getShifts()) {
+                TestEventShift shiftToUse = null;
+                if (sDto.getId() != null) {
+                    for (TestEventShift cur : currentShifts) {
+                        if (Objects.equals(cur.getId(), sDto.getId())) {
+                            shiftToUse = cur;
+                            break;
+                        }
+                    }
+                }
+                if (shiftToUse == null) {
+                    for (TestEventShift cur : currentShifts) {
+                        if (cur.getShiftName().trim().equalsIgnoreCase(sDto.getShiftName().trim())) {
+                            shiftToUse = cur;
+                            break;
+                        }
+                    }
+                }
+
+                if (shiftToUse == null) {
+                    shiftToUse = new TestEventShift();
+                    shiftToUse.setTestEvent(event);
+                    shiftToUse.setCurrentRegistered(0);
+                }
+
+                shiftToUse.setShiftName(sDto.getShiftName().trim());
+                shiftToUse.setStartTime(sDto.getStartTime().trim());
+                shiftToUse.setEndTime(sDto.getEndTime().trim());
+                shiftToUse.setMaxCapacity(sDto.getMaxCapacity());
+                updatedShifts.add(shiftToUse);
+            }
+
+            // Xóa các đăng ký thuộc các shift đã bị gỡ bỏ
+            for (TestEventShift existing : currentShifts) {
+                if (!updatedShifts.contains(existing)) {
+                    List<TestEventRegistration> regs = registrationRepository.findByShiftId(existing.getId());
+                    if (!regs.isEmpty()) {
+                        registrationRepository.deleteAll(regs);
+                    }
+                }
+            }
+
+            currentShifts.clear();
+            currentShifts.addAll(updatedShifts);
+        }
+
+        return eventRepository.save(event);
+    }
+
+    /**
+     * Admin xóa sự kiện thi và các dữ liệu liên quan
+     */
+    @Transactional
+    public void deleteEvent(Long eventId) {
+        TestEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kỳ thi thử có ID " + eventId));
+
+        if (event.getShifts() != null) {
+            for (TestEventShift shift : event.getShifts()) {
+                List<TestEventRegistration> regs = registrationRepository.findByShiftId(shift.getId());
+                if (!regs.isEmpty()) {
+                    registrationRepository.deleteAll(regs);
+                }
+            }
+        }
+        eventRepository.delete(event);
+    }
+
+    /**
      * Học viên đăng ký ca thi với cơ chế khóa số lượng an toàn
      */
     @Transactional

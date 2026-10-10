@@ -25,11 +25,15 @@ public class CreateTestEventDto {
 
     private LocalDateTime registrationDeadline;
 
+    private String status; // OPEN, CLOSED, COMPLETED (optional for update)
+
     @NotEmpty(message = "Phải có ít nhất 1 ca thi")
     private List<ShiftDto> shifts;
 
     @Data
     public static class ShiftDto {
+        private Long id; // ID ca thi nếu đã tồn tại khi cập nhật
+
         @NotBlank(message = "Tên ca thi không được để trống")
         private String shiftName;
 

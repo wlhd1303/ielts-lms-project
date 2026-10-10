@@ -16,4 +16,21 @@ public class AvailableSlotDto {
     private boolean bookedByMe; // true nếu chính user đang đăng nhập đã book slot này
     private Long bookingId;    // ID của booking nếu do user book
     private String assignedTaName; // Tên TA nếu có
+    private String skill; // Kỹ năng nếu slot đã có người đặt (cho ca nhóm)
+    private Integer currentRegistered; // Số học viên đã đăng ký
+    private Integer maxCapacity; // Sức chứa tối đa (1 cho cá nhân, 5 cho Reading/Listening/Writing)
+    private Boolean isGroup; // true nếu là môn nhóm (Reading, Listening, Writing)
+
+    // Backward-compatible constructor for existing tests / callers
+    public AvailableSlotDto(String startTime, String endTime, boolean available, boolean bookedByMe, Long bookingId, String assignedTaName) {
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.available = available;
+        this.bookedByMe = bookedByMe;
+        this.bookingId = bookingId;
+        this.assignedTaName = assignedTaName;
+        this.currentRegistered = bookedByMe || !available ? 1 : 0;
+        this.maxCapacity = 1;
+        this.isGroup = false;
+    }
 }

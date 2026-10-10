@@ -36,6 +36,8 @@ export default function BookingHub() {
 
   // Modal đặt lịch 30p
   const [bookingModalSlot, setBookingModalSlot] = useState<AvailableSlot | null>(null);
+  const [isCustomTimeMode, setIsCustomTimeMode] = useState(false);
+  const [customStartTime, setCustomStartTime] = useState('09:00');
   const [selectedSkill, setSelectedSkill] = useState('SPEAKING');
   const [studentNote, setStudentNote] = useState('');
   const [submittingBooking, setSubmittingBooking] = useState(false);
@@ -139,9 +141,38 @@ export default function BookingHub() {
   };
 
   // --- ACTIONS SUPPORT ---
+  const calculateEndTime = (startTime: string) => {
+    try {
+      const [h, m] = startTime.split(':').map(Number);
+      const total = h * 60 + m + 30;
+      const endH = Math.floor(total / 60);
+      const endM = total % 60;
+      return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    } catch {
+      return '';
+    }
+  };
+
   const handleOpenBookingModal = (slot: AvailableSlot) => {
     if (!slot.available) return;
+    setIsCustomTimeMode(false);
     setBookingModalSlot(slot);
+    if (slot.isGroup && slot.skill) {
+      setSelectedSkill(slot.skill);
+    }
+    setStudentNote('');
+  };
+
+  const handleOpenCustomBookingModal = () => {
+    setIsCustomTimeMode(true);
+    const start = customStartTime || '09:00';
+    const end = calculateEndTime(start);
+    setBookingModalSlot({
+      startTime: start,
+      endTime: end,
+      available: true,
+      bookedByMe: false
+    });
     setStudentNote('');
   };
 
@@ -149,10 +180,13 @@ export default function BookingHub() {
     if (!bookingModalSlot) return;
     setSubmittingBooking(true);
     try {
+      const start = isCustomTimeMode ? customStartTime : bookingModalSlot.startTime;
+      const end = isCustomTimeMode ? calculateEndTime(customStartTime) : bookingModalSlot.endTime;
+
       await bookingService.bookSupportSession({
         bookingDate: selectedDate,
-        startTime: bookingModalSlot.startTime,
-        endTime: bookingModalSlot.endTime,
+        startTime: start,
+        endTime: end,
         skill: selectedSkill,
         studentNote: studentNote
       });
@@ -346,6 +380,10 @@ export default function BookingHub() {
                   <span>Còn trống</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded-md bg-indigo-500 ring-2 ring-indigo-200"></span>
+                  <span>Nhóm (tối đa 5 bạn)</span>
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 rounded-md bg-slate-300 ring-2 ring-slate-200"></span>
                   <span>Đã kín chỗ</span>
                 </div>
@@ -358,13 +396,21 @@ export default function BookingHub() {
 
             {/* Grid các khung giờ 30 phút */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <span>⏰</span> Khung giờ ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}
                 </h3>
-                <span className="text-xs font-bold text-slate-400">
-                  {slots.filter((s) => s.available).length} ca khả dụng
-                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleOpenCustomBookingModal}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-95 rounded-xl shadow-sm transition-all cursor-pointer"
+                  >
+                    <span>⚡</span> Tùy chọn giờ linh động
+                  </button>
+                  <span className="text-xs font-bold text-slate-400">
+                    {slots.filter((s) => s.available).length} ca khả dụng
+                  </span>
+                </div>
               </div>
 
               {loadingSlots ? (
@@ -394,6 +440,11 @@ export default function BookingHub() {
                           <p className="text-base font-black text-slate-900">
                             {slot.startTime} - {slot.endTime}
                           </p>
+                          {slot.skill && (
+                            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
+                              {slot.skill} {slot.isGroup && `(${slot.currentRegistered}/5)`}
+                            </span>
+                          )}
                           <button
                             onClick={() => slot.bookingId && handleCancelBooking(slot.bookingId)}
                             className="w-full py-1 text-[11px] font-black text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all cursor-pointer"
@@ -415,25 +466,39 @@ export default function BookingHub() {
                             {slot.startTime} - {slot.endTime}
                           </p>
                           <span className="inline-block text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md">
-                            🔒 Khóa
+                            🔒 Khóa {slot.isGroup && '(Đủ 5/5)'}
                           </span>
                         </div>
                       );
                     }
 
+                    const isGroupJoinable = slot.isGroup && slot.currentRegistered && slot.currentRegistered > 0;
+
                     return (
                       <button
                         key={index}
                         onClick={() => handleOpenBookingModal(slot)}
-                        className="bg-white border-2 border-emerald-400/80 hover:border-emerald-600 hover:bg-emerald-50/40 hover:shadow-md p-3.5 rounded-2xl text-center space-y-1.5 transition-all cursor-pointer group"
+                        className={`border-2 p-3.5 rounded-2xl text-center space-y-1.5 transition-all cursor-pointer group ${
+                          isGroupJoinable
+                            ? 'bg-indigo-50/30 border-indigo-400/80 hover:border-indigo-600 hover:bg-indigo-50/70 hover:shadow-md'
+                            : 'bg-white border-emerald-400/80 hover:border-emerald-600 hover:bg-emerald-50/40 hover:shadow-md'
+                        }`}
                       >
-                        <span className="inline-block text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                          🟢 Còn trống
-                        </span>
+                        {isGroupJoinable ? (
+                          <span className="inline-block text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                            👥 Nhóm ({slot.currentRegistered}/5)
+                          </span>
+                        ) : (
+                          <span className="inline-block text-[10px] font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                            🟢 Còn trống
+                          </span>
+                        )}
                         <p className="text-base font-black text-slate-900 group-hover:text-blue-600 transition-all">
                           {slot.startTime} - {slot.endTime}
                         </p>
-                        <p className="text-[11px] font-bold text-emerald-600">Đặt 30 phút →</p>
+                        <p className={`text-[11px] font-bold ${isGroupJoinable ? 'text-indigo-600' : 'text-emerald-600'}`}>
+                          {isGroupJoinable ? `Ghép ${slot.skill} (còn ${5 - (slot.currentRegistered || 0)}) →` : 'Đặt 30 phút →'}
+                        </p>
                       </button>
                     );
                   })}
@@ -795,35 +860,99 @@ export default function BookingHub() {
               </button>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-1 text-xs">
-              <p className="font-bold text-blue-900">
-                Ngày: <span className="font-black">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span>
-              </p>
-              <p className="font-bold text-blue-900">
-                Khung giờ: <span className="font-black">{bookingModalSlot.startTime} - {bookingModalSlot.endTime} (30 phút)</span>
-              </p>
-            </div>
+            {isCustomTimeMode ? (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-200/80 space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-blue-900">
+                    Ngày: <span className="font-black">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span>
+                  </p>
+                  <span className="text-[10px] font-black text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                    ⚡ Tự chọn giờ linh động
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-blue-900 tracking-wider block mb-1">
+                      Giờ bắt đầu:
+                    </label>
+                    <input
+                      type="time"
+                      value={customStartTime}
+                      onChange={(e) => setCustomStartTime(e.target.value)}
+                      className="w-full text-sm font-black text-slate-900 bg-white border border-blue-200 rounded-xl px-3 py-1.5 outline-none focus:border-blue-600 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-blue-900 tracking-wider block mb-1">
+                      Giờ kết thúc (+30p):
+                    </label>
+                    <div className="text-sm font-black text-slate-800 bg-white/90 border border-blue-200 rounded-xl px-3 py-1.5">
+                      {calculateEndTime(customStartTime)}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[11px] text-blue-700 font-medium">
+                  🕒 Giờ làm việc Trợ giảng: Sáng (08:30-11:30), Chiều (14:00-18:00), Tối (18:30-21:30). Ca mở muộn nhất là <strong>21:00</strong>.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-1 text-xs">
+                <p className="font-bold text-blue-900">
+                  Ngày: <span className="font-black">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span>
+                </p>
+                <p className="font-bold text-blue-900">
+                  Khung giờ: <span className="font-black">{bookingModalSlot.startTime} - {bookingModalSlot.endTime} (30 phút)</span>
+                </p>
+                {bookingModalSlot.isGroup && bookingModalSlot.skill && (
+                  <div className="pt-2">
+                    <span className="inline-block text-[11px] font-black text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-lg">
+                      👥 Buổi ghép nhóm kỹ năng {bookingModalSlot.skill} ({bookingModalSlot.currentRegistered}/5 học viên)
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
-              <label className="text-xs font-black text-slate-700 block">
-                Kỹ năng bạn muốn được hỗ trợ:
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-slate-700 block">
+                  Kỹ năng bạn muốn được hỗ trợ:
+                </label>
+                <span className="text-[10px] font-bold text-slate-400">
+                  R, L, W: Nhóm tối đa 5 bạn
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-2">
-                {SKILLS.map((sk) => (
-                  <button
-                    key={sk.key}
-                    type="button"
-                    onClick={() => setSelectedSkill(sk.key)}
-                    className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                      selectedSkill === sk.key
-                        ? 'border-blue-600 bg-blue-50/80 text-blue-700 font-black'
-                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                    }`}
-                  >
-                    <span>{sk.emoji}</span>
-                    <span className="truncate">{sk.label}</span>
-                  </button>
-                ))}
+                {SKILLS.map((sk) => {
+                  const isLockedByGroup = !isCustomTimeMode && Boolean(bookingModalSlot.isGroup && bookingModalSlot.skill && bookingModalSlot.skill !== sk.key);
+                  const isGroupSkillType = ['READING', 'LISTENING', 'WRITING'].includes(sk.key);
+
+                  return (
+                    <button
+                      key={sk.key}
+                      type="button"
+                      disabled={isLockedByGroup}
+                      onClick={() => setSelectedSkill(sk.key)}
+                      className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
+                        isLockedByGroup
+                          ? 'opacity-40 border-slate-200 bg-slate-100 cursor-not-allowed'
+                          : selectedSkill === sk.key
+                          ? 'border-blue-600 bg-blue-50/80 text-blue-700 font-black cursor-pointer'
+                          : 'border-slate-200 hover:border-slate-300 text-slate-700 cursor-pointer'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5 truncate">
+                        <span>{sk.emoji}</span>
+                        <span className="truncate">{sk.label}</span>
+                      </span>
+                      {isGroupSkillType && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 shrink-0">
+                          Nhóm
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

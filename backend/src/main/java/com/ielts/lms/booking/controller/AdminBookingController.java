@@ -65,6 +65,25 @@ public class AdminBookingController {
     }
 
     /**
+     * Cập nhật thông tin đợt thi thử và ca thi
+     */
+    @PutMapping("/events/{id}")
+    public ResponseEntity<TestEvent> updateEvent(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateTestEventDto dto) {
+        return ResponseEntity.ok(eventService.updateEvent(id, dto));
+    }
+
+    /**
+     * Xóa đợt thi thử và dữ liệu liên quan
+     */
+    @DeleteMapping("/events/{id}")
+    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
+        eventService.deleteEvent(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Xem danh sách học viên đăng ký theo từng ca
      */
     @GetMapping("/events/shifts/{shiftId}/students")

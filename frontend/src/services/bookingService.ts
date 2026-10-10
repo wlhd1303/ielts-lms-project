@@ -7,6 +7,10 @@ export interface AvailableSlot {
   bookedByMe: boolean;
   bookingId?: number;
   assignedTaName?: string;
+  skill?: string;
+  currentRegistered?: number;
+  maxCapacity?: number;
+  isGroup?: boolean;
 }
 
 export interface SupportBooking {
@@ -143,6 +147,15 @@ export const bookingService = {
   createEventAdmin: async (data: any): Promise<TestEvent> => {
     const res: any = await axiosClient.post('/api/admin/booking/events', data);
     return res.data || res;
+  },
+
+  updateEventAdmin: async (id: number, data: any): Promise<TestEvent> => {
+    const res: any = await axiosClient.put(`/api/admin/booking/events/${id}`, data);
+    return res.data || res;
+  },
+
+  deleteEventAdmin: async (id: number): Promise<any> => {
+    return await axiosClient.delete(`/api/admin/booking/events/${id}`);
   },
 
   getShiftStudentsAdmin: async (shiftId: number): Promise<TestEventRegistration[]> => {

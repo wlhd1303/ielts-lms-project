@@ -31,6 +31,17 @@ export default function BookingManagement() {
     { shiftName: 'Ca Chiều', startTime: '14:00', endTime: '17:00', maxCapacity: 20 }
   ]);
 
+  // Modal Admin Chỉnh sửa Event
+  const [editingEvent, setEditingEvent] = useState<TestEvent | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
+  const [editStatus, setEditStatus] = useState<'OPEN' | 'CLOSED' | 'COMPLETED'>('OPEN');
+  const [editShifts, setEditShifts] = useState<any[]>([]);
+  const [submittingEditEvent, setSubmittingEditEvent] = useState(false);
+
   // Modal xem danh sách thí sinh ca thi
   const [selectedShiftForStudents, setSelectedShiftForStudents] = useState<any | null>(null);
   const [shiftStudents, setShiftStudents] = useState<TestEventRegistration[]>([]);
@@ -139,6 +150,93 @@ export default function BookingManagement() {
     } finally {
       setLoadingShiftStudents(false);
     }
+  };
+
+  // --- ACTIONS CHỈNH SỬA & XÓA KỲ THI THỬ ---
+  const handleOpenEditEvent = (ev: TestEvent) => {
+    setEditingEvent(ev);
+    setEditTitle(ev.title);
+    setEditDesc(ev.description || '');
+    setEditDate(ev.eventDate);
+    setEditLocation(ev.location);
+    setEditDeadline(ev.registrationDeadline ? ev.registrationDeadline.substring(0, 16) : '');
+    setEditStatus((ev.status as any) || 'OPEN');
+    setEditShifts(
+      ev.shifts && ev.shifts.length > 0
+        ? ev.shifts.map((s) => ({
+            id: s.id,
+            shiftName: s.shiftName,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            maxCapacity: s.maxCapacity
+          }))
+        : [
+            { shiftName: 'Ca Sáng', startTime: '08:30', endTime: '11:30', maxCapacity: 20 },
+            { shiftName: 'Ca Chiều', startTime: '14:00', endTime: '17:00', maxCapacity: 20 }
+          ]
+    );
+  };
+
+  const handleSaveEditEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) return;
+    setSubmittingEditEvent(true);
+    try {
+      await bookingService.updateEventAdmin(editingEvent.id, {
+        title: editTitle,
+        description: editDesc,
+        eventDate: editDate,
+        location: editLocation,
+        registrationDeadline: editDeadline ? editDeadline + ':00' : undefined,
+        status: editStatus,
+        shifts: editShifts
+      });
+      showToast('Cập nhật đợt thi thử thành công!', 'success');
+      setEditingEvent(null);
+      fetchAdminData();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể cập nhật đợt thi. Vui lòng thử lại!';
+      showToast(errorMsg, 'error');
+    } finally {
+      setSubmittingEditEvent(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: number, title: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa kỳ thi "${title}" không? Toàn bộ ca thi và danh sách thí sinh đăng ký sẽ bị xóa.`)) {
+      return;
+    }
+    try {
+      await bookingService.deleteEventAdmin(eventId);
+      showToast('Đã xóa kỳ thi thử thành công!', 'success');
+      fetchAdminData();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể xóa kỳ thi. Vui lòng thử lại!';
+      showToast(errorMsg, 'error');
+    }
+  };
+
+  const handleAddEditShift = () => {
+    setEditShifts((prev) => [
+      ...prev,
+      { shiftName: `Ca ${prev.length + 1}`, startTime: '08:30', endTime: '11:30', maxCapacity: 20 }
+    ]);
+  };
+
+  const handleRemoveEditShift = (index: number) => {
+    if (editShifts.length <= 1) {
+      showToast('Phải có ít nhất 1 ca thi trong đợt thi!', 'error');
+      return;
+    }
+    setEditShifts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateEditShiftField = (index: number, field: string, value: any) => {
+    setEditShifts((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const handleOpenScoreStudent = (st: TestEventRegistration) => {
@@ -336,11 +434,37 @@ export default function BookingManagement() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {adminEvents.map((ev) => (
               <div key={ev.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h5 className="font-black text-slate-900 text-sm">{ev.title}</h5>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded bg-white text-slate-600 border">
-                    {ev.eventDate}
-                  </span>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h5 className="font-black text-slate-900 text-sm leading-snug">{ev.title}</h5>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-white text-slate-700 border">
+                        📅 {ev.eventDate}
+                      </span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                        ev.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' :
+                        ev.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {ev.status || 'OPEN'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleOpenEditEvent(ev)}
+                      className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg transition-colors cursor-pointer"
+                      title="Chỉnh sửa thông tin kỳ thi"
+                    >
+                      ✏️ Sửa
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                      className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 rounded-lg transition-colors cursor-pointer"
+                      title="Xóa kỳ thi này"
+                    >
+                      🗑️ Xóa
+                    </button>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500 font-medium">{ev.location}</p>
 
@@ -586,6 +710,180 @@ export default function BookingManagement() {
                 className="flex-1 py-2 rounded-xl bg-blue-600 text-white font-black text-xs cursor-pointer shadow-sm hover:bg-blue-700"
               >
                 Tạo Kỳ Thi
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL 2B: CHỈNH SỬA KỲ THI THỬ & CA THI */}
+      {editingEvent && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveEditEvent}
+            className="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto animate-scaleUp"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-900">✏️ Chỉnh Sửa Kỳ Thi Thử</h3>
+              <button
+                type="button"
+                onClick={() => setEditingEvent(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Tên kỳ thi: *</label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Ví dụ: IELTS Mock Test Tháng 10"
+                  className="w-full border rounded-xl p-2.5 font-bold outline-none focus:border-blue-600"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Mô tả kỳ thi:</label>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  rows={2}
+                  className="w-full border rounded-xl p-2 outline-none focus:border-blue-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Ngày thi: *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    className="w-full border rounded-xl p-2 font-bold outline-none focus:border-blue-600 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Địa điểm: *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    placeholder="Phòng Lab 2"
+                    className="w-full border rounded-xl p-2 font-bold outline-none focus:border-blue-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Hạn chót đăng ký:</label>
+                  <input
+                    type="datetime-local"
+                    value={editDeadline}
+                    onChange={(e) => setEditDeadline(e.target.value)}
+                    className="w-full border rounded-xl p-2 font-bold outline-none focus:border-blue-600 cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Trạng thái:</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full border rounded-xl p-2 font-bold outline-none focus:border-blue-600 bg-white cursor-pointer"
+                  >
+                    <option value="OPEN">🟢 Đang mở đăng ký (OPEN)</option>
+                    <option value="CLOSED">🔒 Khóa đăng ký (CLOSED)</option>
+                    <option value="COMPLETED">✅ Hoàn thành (COMPLETED)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-black text-slate-900">Danh sách ca thi:</p>
+                  <button
+                    type="button"
+                    onClick={handleAddEditShift}
+                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                  >
+                    + Thêm ca thi
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {editShifts.map((sh, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <input
+                        type="text"
+                        required
+                        value={sh.shiftName}
+                        onChange={(e) => handleUpdateEditShiftField(idx, 'shiftName', e.target.value)}
+                        placeholder="Tên ca"
+                        className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={sh.startTime}
+                        onChange={(e) => handleUpdateEditShiftField(idx, 'startTime', e.target.value)}
+                        placeholder="08:30"
+                        className="w-16 border rounded-lg p-1.5 text-xs bg-white text-center font-semibold"
+                      />
+                      <span>-</span>
+                      <input
+                        type="text"
+                        required
+                        value={sh.endTime}
+                        onChange={(e) => handleUpdateEditShiftField(idx, 'endTime', e.target.value)}
+                        placeholder="11:30"
+                        className="w-16 border rounded-lg p-1.5 text-xs bg-white text-center font-semibold"
+                      />
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400">Max:</span>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          value={sh.maxCapacity}
+                          onChange={(e) => handleUpdateEditShiftField(idx, 'maxCapacity', parseInt(e.target.value) || 1)}
+                          className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEditShift(idx)}
+                        className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
+                        title="Xóa ca này"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingEvent(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold cursor-pointer hover:bg-slate-50 text-slate-600"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="submit"
+                disabled={submittingEditEvent}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white font-black text-xs cursor-pointer shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              >
+                {submittingEditEvent ? 'Đang lưu...' : 'Lưu Thay Đổi'}
               </button>
             </div>
           </form>

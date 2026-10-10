@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -56,7 +57,7 @@ class BookingServiceTest {
     }
 
     @Test
-    @DisplayName("TC01: Khi chưa có ai đặt, tất cả các slot 30 phút trong ngày đều khả dụng")
+    @DisplayName("TC01: Khi chưa có ai đặt, tất cả các slot 30 phút trong ngày đều khả dụng (bao gồm ca tối tới 21h30)")
     void testGetAvailableSlots_AllAvailable() {
         LocalDate date = LocalDate.now().plusDays(1);
         when(bookingRepository.findByBookingDateAndStatusNot(date, "CANCELLED")).thenReturn(Collections.emptyList());
@@ -65,8 +66,14 @@ class BookingServiceTest {
         List<AvailableSlotDto> slots = bookingService.getAvailableSlots(date, testStudent);
 
         assertThat(slots).isNotEmpty();
+        assertThat(slots.size()).isEqualTo(20); // 6 sáng + 8 chiều + 6 tối
         assertThat(slots).allMatch(AvailableSlotDto::isAvailable);
         assertThat(slots).noneMatch(AvailableSlotDto::isBookedByMe);
+
+        // Kiểm tra ca cuối cùng mở lúc 21:00 kết thúc lúc 21:30
+        AvailableSlotDto lastSlot = slots.get(slots.size() - 1);
+        assertThat(lastSlot.getStartTime()).isEqualTo("21:00");
+        assertThat(lastSlot.getEndTime()).isEqualTo("21:30");
     }
 
     @Test
@@ -81,6 +88,7 @@ class BookingServiceTest {
         myBooking.setStartTime("08:30");
         myBooking.setEndTime("09:00");
         myBooking.setStatus("CONFIRMED");
+        myBooking.setSkill("SPEAKING");
 
         User otherUser = new User();
         otherUser.setId(200L);
@@ -92,6 +100,7 @@ class BookingServiceTest {
         otherBooking.setStartTime("09:00");
         otherBooking.setEndTime("09:30");
         otherBooking.setStatus("CONFIRMED");
+        otherBooking.setSkill("SPEAKING");
 
         when(bookingRepository.findByBookingDateAndStatusNot(date, "CANCELLED"))
                 .thenReturn(List.of(myBooking, otherBooking));
@@ -105,7 +114,7 @@ class BookingServiceTest {
         assertThat(slot1.isBookedByMe()).isTrue();
         assertThat(slot1.getBookingId()).isEqualTo(1L);
 
-        // Slot 09:00 - 09:30: Người khác đặt
+        // Slot 09:00 - 09:30: Người khác đặt 1-1
         AvailableSlotDto slot2 = slots.stream().filter(s -> s.getStartTime().equals("09:00")).findFirst().orElseThrow();
         assertThat(slot2.isAvailable()).isFalse();
         assertThat(slot2.isBookedByMe()).isFalse();
@@ -177,16 +186,17 @@ class BookingServiceTest {
     }
 
     @Test
-    @DisplayName("TC06: Chống trùng slot: Khung giờ đã có người khác đặt trước phải ném ra ngoại lệ")
+    @DisplayName("TC06: Chống trùng slot 1-1: Khung giờ 1-1 đã có người khác đặt trước phải ném ra ngoại lệ")
     void testBookSupportSession_SlotConflict_Throws() {
         LocalDate date = LocalDate.now().plusDays(1);
         CreateSupportBookingDto dto = new CreateSupportBookingDto();
         dto.setBookingDate(date);
         dto.setStartTime("16:00");
-        dto.setSkill("LISTENING");
+        dto.setSkill("SPEAKING");
 
         SupportBooking otherBooking = new SupportBooking();
         otherBooking.setId(20L);
+        otherBooking.setSkill("SPEAKING");
 
         when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), date, "16:00", "16:30"))
                 .thenReturn(Collections.emptyList());
@@ -256,5 +266,129 @@ class BookingServiceTest {
         assertThat(result.getTaComment()).isEqualTo("Học viên phát âm rõ ràng, tiến bộ tốt");
         assertThat(result.getAssignedTaName()).isEqualTo("Trợ Giảng Thảo");
         assertThat(result.getEvaluatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("TC10: Kỹ năng nhóm (WRITING/READING/LISTENING) cho phép ghép nhóm tối đa 5 bạn cùng khung giờ")
+    void testBookSupportSession_GroupSkill_AllowsMultipleStudents() {
+        LocalDate futureDate = LocalDate.now().plusDays(2);
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(futureDate);
+        dto.setStartTime("19:00");
+        dto.setSkill("WRITING");
+
+        // Đã có 2 bạn khác đặt môn WRITING
+        SupportBooking b1 = new SupportBooking();
+        b1.setId(101L);
+        b1.setSkill("WRITING");
+        b1.setAssignedTaId("TA01");
+        b1.setAssignedTaName("Trợ Giảng Nam");
+
+        SupportBooking b2 = new SupportBooking();
+        b2.setId(102L);
+        b2.setSkill("WRITING");
+        b2.setAssignedTaName("Trợ Giảng Nam");
+
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), futureDate, "19:00", "19:30"))
+                .thenReturn(Collections.emptyList());
+        when(bookingRepository.findOverlappingBookings(futureDate, "19:00", "19:30"))
+                .thenReturn(List.of(b1, b2));
+        when(externalDbSyncService.getBusySlotsForDate(futureDate)).thenReturn(Collections.emptyList());
+        when(bookingRepository.save(any(SupportBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SupportBooking result = bookingService.bookSupportSession(dto, testStudent);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSkill()).isEqualTo("WRITING");
+        assertThat(result.getAssignedTaName()).isEqualTo("Trợ Giảng Nam");
+    }
+
+    @Test
+    @DisplayName("TC11: Kỹ năng nhóm từ chối khi ca đã đủ 5 học viên")
+    void testBookSupportSession_GroupSkill_FullCapacity_Throws() {
+        LocalDate futureDate = LocalDate.now().plusDays(2);
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(futureDate);
+        dto.setStartTime("19:00");
+        dto.setSkill("READING");
+
+        List<SupportBooking> fiveBookings = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            SupportBooking b = new SupportBooking();
+            b.setId((long) (200 + i));
+            b.setSkill("READING");
+            fiveBookings.add(b);
+        }
+
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), futureDate, "19:00", "19:30"))
+                .thenReturn(Collections.emptyList());
+        when(bookingRepository.findOverlappingBookings(futureDate, "19:00", "19:30"))
+                .thenReturn(fiveBookings);
+
+        assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("đã đủ 5 học viên");
+    }
+
+    @Test
+    @DisplayName("TC12: Môn nhóm từ chối ghép khi ca đã được đặt cho kỹ năng khác")
+    void testBookSupportSession_GroupSkill_DifferentSkillConflict_Throws() {
+        LocalDate futureDate = LocalDate.now().plusDays(2);
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(futureDate);
+        dto.setStartTime("19:00");
+        dto.setSkill("LISTENING");
+
+        SupportBooking existing = new SupportBooking();
+        existing.setId(301L);
+        existing.setSkill("WRITING"); // Đã có người đặt Writing
+
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), futureDate, "19:00", "19:30"))
+                .thenReturn(Collections.emptyList());
+        when(bookingRepository.findOverlappingBookings(futureDate, "19:00", "19:30"))
+                .thenReturn(List.of(existing));
+
+        assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Môn nhóm chỉ ghép cùng kỹ năng");
+    }
+
+    @Test
+    @DisplayName("TC13: Ca muộn nhất mở lúc 21:00 kết thúc lúc 21:30 được đặt thành công")
+    void testBookSupportSession_LateShift_Success() {
+        LocalDate futureDate = LocalDate.now().plusDays(2);
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(futureDate);
+        dto.setStartTime("21:00");
+        dto.setEndTime("21:30");
+        dto.setSkill("SPEAKING");
+
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), futureDate, "21:00", "21:30"))
+                .thenReturn(Collections.emptyList());
+        when(bookingRepository.findOverlappingBookings(futureDate, "21:00", "21:30"))
+                .thenReturn(Collections.emptyList());
+        when(externalDbSyncService.getBusySlotsForDate(futureDate)).thenReturn(Collections.emptyList());
+        when(bookingRepository.save(any(SupportBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SupportBooking result = bookingService.bookSupportSession(dto, testStudent);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStartTime()).isEqualTo("21:00");
+        assertThat(result.getEndTime()).isEqualTo("21:30");
+    }
+
+    @Test
+    @DisplayName("TC14: Đặt sau 21h00 (kết thúc sau 21h30) phải ném ra ngoại lệ vì ngoài giờ làm việc")
+    void testBookSupportSession_BeyondWorkingHours_Throws() {
+        LocalDate futureDate = LocalDate.now().plusDays(2);
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(futureDate);
+        dto.setStartTime("21:15");
+        dto.setEndTime("21:45");
+        dto.setSkill("SPEAKING");
+
+        assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Khung giờ đặt lịch phải nằm trong thời gian làm việc của Trợ giảng");
     }
 }
