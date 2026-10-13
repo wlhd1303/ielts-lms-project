@@ -57,7 +57,7 @@ class BookingServiceTest {
     }
 
     @Test
-    @DisplayName("TC01: Khi chưa có ai đặt, tất cả các slot 30 phút trong ngày đều khả dụng (bao gồm ca tối tới 21h30)")
+    @DisplayName("TC01: Khi chưa có ai đặt, tất cả 9 slot 30 phút (từ 17:00 đến 21:30) đều khả dụng")
     void testGetAvailableSlots_AllAvailable() {
         LocalDate date = LocalDate.now().plusDays(1);
         when(bookingRepository.findByBookingDateAndStatusNot(date, "CANCELLED")).thenReturn(Collections.emptyList());
@@ -66,11 +66,16 @@ class BookingServiceTest {
         List<AvailableSlotDto> slots = bookingService.getAvailableSlots(date, testStudent);
 
         assertThat(slots).isNotEmpty();
-        assertThat(slots.size()).isEqualTo(20); // 6 sáng + 8 chiều + 6 tối
+        assertThat(slots.size()).isEqualTo(9); // 17:00 đến 21:30 (9 ca)
         assertThat(slots).allMatch(AvailableSlotDto::isAvailable);
         assertThat(slots).noneMatch(AvailableSlotDto::isBookedByMe);
 
-        // Kiểm tra ca cuối cùng mở lúc 21:00 kết thúc lúc 21:30
+        // Ca đầu tiên mở lúc 17:00
+        AvailableSlotDto firstSlot = slots.get(0);
+        assertThat(firstSlot.getStartTime()).isEqualTo("17:00");
+        assertThat(firstSlot.getEndTime()).isEqualTo("17:30");
+
+        // Ca cuối cùng mở lúc 21:00 kết thúc lúc 21:30
         AvailableSlotDto lastSlot = slots.get(slots.size() - 1);
         assertThat(lastSlot.getStartTime()).isEqualTo("21:00");
         assertThat(lastSlot.getEndTime()).isEqualTo("21:30");
@@ -85,8 +90,8 @@ class BookingServiceTest {
         myBooking.setId(1L);
         myBooking.setUser(testStudent);
         myBooking.setBookingDate(date);
-        myBooking.setStartTime("08:30");
-        myBooking.setEndTime("09:00");
+        myBooking.setStartTime("17:00");
+        myBooking.setEndTime("17:30");
         myBooking.setStatus("CONFIRMED");
         myBooking.setSkill("SPEAKING");
 
@@ -97,8 +102,8 @@ class BookingServiceTest {
         otherBooking.setId(2L);
         otherBooking.setUser(otherUser);
         otherBooking.setBookingDate(date);
-        otherBooking.setStartTime("09:00");
-        otherBooking.setEndTime("09:30");
+        otherBooking.setStartTime("17:30");
+        otherBooking.setEndTime("18:00");
         otherBooking.setStatus("CONFIRMED");
         otherBooking.setSkill("SPEAKING");
 
@@ -108,36 +113,36 @@ class BookingServiceTest {
 
         List<AvailableSlotDto> slots = bookingService.getAvailableSlots(date, testStudent);
 
-        // Slot 08:30 - 09:00: Của chính mình
-        AvailableSlotDto slot1 = slots.stream().filter(s -> s.getStartTime().equals("08:30")).findFirst().orElseThrow();
+        // Slot 17:00 - 17:30: Của chính mình
+        AvailableSlotDto slot1 = slots.stream().filter(s -> s.getStartTime().equals("17:00")).findFirst().orElseThrow();
         assertThat(slot1.isAvailable()).isFalse();
         assertThat(slot1.isBookedByMe()).isTrue();
         assertThat(slot1.getBookingId()).isEqualTo(1L);
 
-        // Slot 09:00 - 09:30: Người khác đặt 1-1
-        AvailableSlotDto slot2 = slots.stream().filter(s -> s.getStartTime().equals("09:00")).findFirst().orElseThrow();
+        // Slot 17:30 - 18:00: Người khác đặt 1-1
+        AvailableSlotDto slot2 = slots.stream().filter(s -> s.getStartTime().equals("17:30")).findFirst().orElseThrow();
         assertThat(slot2.isAvailable()).isFalse();
         assertThat(slot2.isBookedByMe()).isFalse();
 
-        // Slot 09:30 - 10:00: Vẫn còn trống
-        AvailableSlotDto slot3 = slots.stream().filter(s -> s.getStartTime().equals("09:30")).findFirst().orElseThrow();
+        // Slot 18:00 - 18:30: Vẫn còn trống
+        AvailableSlotDto slot3 = slots.stream().filter(s -> s.getStartTime().equals("18:00")).findFirst().orElseThrow();
         assertThat(slot3.isAvailable()).isTrue();
     }
 
     @Test
-    @DisplayName("TC03: Đặt lịch hỗ trợ thành công khi khung giờ hợp lệ và còn trống")
+    @DisplayName("TC03: Đặt lịch hỗ trợ thành công khi khung giờ hợp lệ từ 17:00 và còn trống")
     void testBookSupportSession_Success() {
         LocalDate futureDate = LocalDate.now().plusDays(2);
         CreateSupportBookingDto dto = new CreateSupportBookingDto();
         dto.setBookingDate(futureDate);
-        dto.setStartTime("14:00");
-        dto.setEndTime("14:30");
+        dto.setStartTime("17:00");
+        dto.setEndTime("17:30");
         dto.setSkill("SPEAKING");
         dto.setStudentNote("Muốn luyện Part 2 chủ đề Hometown");
 
-        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), futureDate, "14:00", "14:30"))
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), futureDate, "17:00", "17:30"))
                 .thenReturn(Collections.emptyList());
-        when(bookingRepository.findOverlappingBookings(futureDate, "14:00", "14:30"))
+        when(bookingRepository.findOverlappingBookings(futureDate, "17:00", "17:30"))
                 .thenReturn(Collections.emptyList());
         when(externalDbSyncService.getBusySlotsForDate(futureDate)).thenReturn(Collections.emptyList());
         when(bookingRepository.save(any(SupportBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -145,8 +150,8 @@ class BookingServiceTest {
         SupportBooking result = bookingService.bookSupportSession(dto, testStudent);
 
         assertThat(result).isNotNull();
-        assertThat(result.getStartTime()).isEqualTo("14:00");
-        assertThat(result.getEndTime()).isEqualTo("14:30");
+        assertThat(result.getStartTime()).isEqualTo("17:00");
+        assertThat(result.getEndTime()).isEqualTo("17:30");
         assertThat(result.getStatus()).isEqualTo("CONFIRMED");
         assertThat(result.getSkill()).isEqualTo("SPEAKING");
         assertThat(result.getUser()).isEqualTo(testStudent);
@@ -157,7 +162,7 @@ class BookingServiceTest {
     void testBookSupportSession_PastDate_Throws() {
         CreateSupportBookingDto dto = new CreateSupportBookingDto();
         dto.setBookingDate(LocalDate.now().minusDays(1));
-        dto.setStartTime("14:00");
+        dto.setStartTime("17:00");
         dto.setSkill("WRITING");
 
         assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
@@ -171,13 +176,13 @@ class BookingServiceTest {
         LocalDate date = LocalDate.now().plusDays(1);
         CreateSupportBookingDto dto = new CreateSupportBookingDto();
         dto.setBookingDate(date);
-        dto.setStartTime("15:00");
+        dto.setStartTime("17:30");
         dto.setSkill("READING");
 
         SupportBooking existingBooking = new SupportBooking();
         existingBooking.setId(10L);
 
-        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), date, "15:00", "15:30"))
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), date, "17:30", "18:00"))
                 .thenReturn(List.of(existingBooking));
 
         assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
@@ -191,16 +196,16 @@ class BookingServiceTest {
         LocalDate date = LocalDate.now().plusDays(1);
         CreateSupportBookingDto dto = new CreateSupportBookingDto();
         dto.setBookingDate(date);
-        dto.setStartTime("16:00");
+        dto.setStartTime("18:00");
         dto.setSkill("SPEAKING");
 
         SupportBooking otherBooking = new SupportBooking();
         otherBooking.setId(20L);
         otherBooking.setSkill("SPEAKING");
 
-        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), date, "16:00", "16:30"))
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), date, "18:00", "18:30"))
                 .thenReturn(Collections.emptyList());
-        when(bookingRepository.findOverlappingBookings(date, "16:00", "16:30"))
+        when(bookingRepository.findOverlappingBookings(date, "18:00", "18:30"))
                 .thenReturn(List.of(otherBooking));
 
         assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
@@ -389,6 +394,21 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Khung giờ đặt lịch phải nằm trong thời gian làm việc của Trợ giảng");
+                .hasMessageContaining("Khung giờ đặt lịch chỉ mở từ 17:00 đến 21:30");
+    }
+
+    @Test
+    @DisplayName("TC15: Đặt trước 17:00 (buổi sáng hoặc đầu giờ chiều) phải ném ra ngoại lệ vì chỉ mở từ 17h00")
+    void testBookSupportSession_Before17h00_Throws() {
+        LocalDate futureDate = LocalDate.now().plusDays(2);
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(futureDate);
+        dto.setStartTime("14:00");
+        dto.setEndTime("14:30");
+        dto.setSkill("SPEAKING");
+
+        assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Khung giờ đặt lịch chỉ mở từ 17:00 đến 21:30");
     }
 }

@@ -28,25 +28,11 @@ public class BookingService {
     private final SupportBookingRepository bookingRepository;
     private final ExternalDbSyncService externalDbSyncService;
 
-    // Danh sách khung giờ chuẩn 30 phút trong ngày (mở tới 21h00, ca kết thúc 21h30)
+    // Danh sách khung giờ chuẩn 30 phút trong ngày (chỉ mở từ 17h00 đến 21h30, ca muộn nhất mở lúc 21h00)
     private static final String[][] STANDARD_SLOTS = {
-        // Ca sáng (08:30 - 11:30)
-        {"08:30", "09:00"},
-        {"09:00", "09:30"},
-        {"09:30", "10:00"},
-        {"10:00", "10:30"},
-        {"10:30", "11:00"},
-        {"11:00", "11:30"},
-        // Ca chiều (14:00 - 18:00)
-        {"14:00", "14:30"},
-        {"14:30", "15:00"},
-        {"15:00", "15:30"},
-        {"15:30", "16:00"},
-        {"16:00", "16:30"},
-        {"16:30", "17:00"},
         {"17:00", "17:30"},
         {"17:30", "18:00"},
-        // Ca tối (18:30 - 21:30)
+        {"18:00", "18:30"},
         {"18:30", "19:00"},
         {"19:00", "19:30"},
         {"19:30", "20:00"},
@@ -352,9 +338,7 @@ public class BookingService {
 
     /**
      * Kiểm tra khung giờ làm việc:
-     * - Sáng: 08:30 - 11:30
-     * - Chiều: 14:00 - 18:00
-     * - Tối: 18:30 - 21:30 (Mở ca muộn nhất là 21:00, kết thúc 21:30)
+     * - Chỉ mở từ 17:00 đến 21:30 (Ca mở muộn nhất là 21:00, kết thúc lúc 21:30)
      */
     private void validateOperatingHours(String startTime, String endTime) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -366,19 +350,13 @@ public class BookingService {
             throw new RuntimeException("Mỗi ca hỗ trợ có thời lượng chuẩn là 30 phút!");
         }
 
-        LocalTime morningStart = LocalTime.of(8, 30);
-        LocalTime morningEnd = LocalTime.of(11, 30);
-        LocalTime afternoonStart = LocalTime.of(14, 0);
-        LocalTime afternoonEnd = LocalTime.of(18, 0);
-        LocalTime eveningStart = LocalTime.of(18, 30);
-        LocalTime eveningEnd = LocalTime.of(21, 30);
+        LocalTime openStart = LocalTime.of(17, 0);
+        LocalTime openEnd = LocalTime.of(21, 30);
 
-        boolean inMorning = !start.isBefore(morningStart) && !end.isAfter(morningEnd);
-        boolean inAfternoon = !start.isBefore(afternoonStart) && !end.isAfter(afternoonEnd);
-        boolean inEvening = !start.isBefore(eveningStart) && !end.isAfter(eveningEnd);
+        boolean inOperatingHours = !start.isBefore(openStart) && !end.isAfter(openEnd);
 
-        if (!inMorning && !inAfternoon && !inEvening) {
-            throw new RuntimeException("Khung giờ đặt lịch phải nằm trong thời gian làm việc của Trợ giảng (Sáng: 08:30 - 11:30, Chiều: 14:00 - 18:00, Tối: 18:30 - 21:30. Ca muộn nhất bắt đầu lúc 21:00)!");
+        if (!inOperatingHours) {
+            throw new RuntimeException("Khung giờ đặt lịch chỉ mở từ 17:00 đến 21:30 (ca muộn nhất bắt đầu lúc 21:00)!");
         }
     }
 
