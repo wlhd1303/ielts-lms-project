@@ -233,4 +233,42 @@ class TestEventServiceTest {
         assertThat(updated.getOverallScore()).isEqualTo(7.5);
         assertThat(updated.getFeedback()).contains("Writing Task 2");
     }
+
+    @Test
+    @DisplayName("TC18: Admin thay đổi ngày diễn ra sự kiện và khung giờ các ca thi thành công")
+    void testUpdateEventDateAndShiftTimes_Success() {
+        // Given: Sự kiện cũ có ngày thi hôm nay, ca thi 08:30 - 11:30
+        when(eventRepository.findById(1L)).thenReturn(Optional.of(testEvent));
+        when(eventRepository.save(any(TestEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LocalDate newDate = LocalDate.now().plusDays(7);
+        CreateTestEventDto updateDto = new CreateTestEventDto();
+        updateDto.setTitle("IELTS Mock Test Tháng 10 (Dời Lịch)");
+        updateDto.setDescription("Cập nhật ngày thi và giờ thi mới");
+        updateDto.setEventDate(newDate); // Đổi ngày thi mới
+        updateDto.setLocation("Phòng Lab A");
+        updateDto.setStatus("OPEN");
+        updateDto.setExamFormat("ONLINE");
+        updateDto.setSkillType("BOTH");
+        updateDto.setDurationMinutes(120);
+
+        CreateTestEventDto.ShiftDto shiftDto = new CreateTestEventDto.ShiftDto();
+        shiftDto.setId(10L); // Giữ ID ca thi cũ để không mất học viên đã đăng ký
+        shiftDto.setShiftName("Ca Sáng");
+        shiftDto.setStartTime("09:00"); // Đổi giờ bắt đầu từ 08:30 -> 09:00
+        shiftDto.setEndTime("11:30");
+        shiftDto.setMaxCapacity(30);
+        updateDto.setShifts(List.of(shiftDto));
+
+        // When: Admin thực hiện cập nhật
+        TestEvent updated = eventService.updateEvent(1L, updateDto);
+
+        // Then:
+        assertThat(updated.getEventDate()).isEqualTo(newDate);
+        assertThat(updated.getShifts()).hasSize(1);
+        assertThat(updated.getShifts().get(0).getStartTime()).isEqualTo("09:00");
+        assertThat(updated.getShifts().get(0).getEndTime()).isEqualTo("11:30");
+        assertThat(updated.getShifts().get(0).getMaxCapacity()).isEqualTo(30);
+        verify(eventRepository).save(updated);
+    }
 }

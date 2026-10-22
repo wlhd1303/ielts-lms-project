@@ -651,10 +651,26 @@ export default function BookingHub() {
                     >
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-3">
-                          <span className="text-[11px] font-black px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
-                            📅 {new Date(ev.eventDate).toLocaleDateString('vi-VN')}
-                          </span>
-                          <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-black px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                              📅 {new Date(ev.eventDate).toLocaleDateString('vi-VN')}
+                            </span>
+                            {ev.examFormat === 'ONLINE' ? (
+                              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                                🌐 Thi Online
+                              </span>
+                            ) : (
+                              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                🏫 Thi Trực Tiếp
+                              </span>
+                            )}
+                            {ev.skillType && (
+                              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                                {ev.skillType === 'LISTENING' ? '🎧 Listening' : ev.skillType === 'READING' ? '📖 Reading' : '🎧📖 Cả 2 kỹ năng'}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full shrink-0">
                             Đang mở đăng ký
                           </span>
                         </div>
@@ -715,9 +731,20 @@ export default function BookingHub() {
                                   </div>
 
                                   {isAlreadyRegistered ? (
-                                    <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl shrink-0">
-                                      ✓ Đã đăng ký
-                                    </span>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
+                                        ✓ Đã đăng ký
+                                      </span>
+                                      {ev.examFormat === 'ONLINE' && (
+                                        <button
+                                          onClick={() => navigate(`/exam/${shift.id}`)}
+                                          className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm flex items-center gap-1.5 animate-pulse"
+                                        >
+                                          <span>Vào phòng thi</span>
+                                          <span>➔</span>
+                                        </button>
+                                      )}
+                                    </div>
                                   ) : isFull ? (
                                     <span className="text-[11px] font-bold text-slate-400 bg-slate-200 px-3 py-1.5 rounded-xl shrink-0">
                                       Hết chỗ
@@ -824,14 +851,38 @@ export default function BookingHub() {
                         </div>
                       )}
 
-                      {reg.status === 'REGISTERED' && (
-                        <button
-                          onClick={() => handleCancelReg(reg.id)}
-                          className="w-full py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer border border-rose-200"
-                        >
-                          Hủy đăng ký ca thi
-                        </button>
-                      )}
+                      {/* Hành động ca thi */}
+                      <div className="space-y-2 pt-2 border-t border-slate-100">
+                        {reg.shift?.id && (reg.status === 'REGISTERED' || reg.status === 'IN_PROGRESS') && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigate(`/exam/${reg.shift.id}`)}
+                              className="flex-1 py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>🚀</span>
+                              <span>Vào Phòng Thi Online</span>
+                            </button>
+                            {reg.status === 'REGISTERED' && (
+                              <button
+                                onClick={() => handleCancelReg(reg.id)}
+                                className="py-2.5 px-3 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer border border-rose-200"
+                              >
+                                Hủy ca
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {reg.shift?.id && (reg.status === 'ATTENDED' || reg.status === 'SUBMITTED') && (
+                          <button
+                            onClick={() => navigate(`/exam/${reg.shift.id}`)}
+                            className="w-full py-2.5 px-3 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-black rounded-xl border border-slate-200/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>📝</span>
+                            <span>Xem Chi Tiết Bài Làm & Đáp Án</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

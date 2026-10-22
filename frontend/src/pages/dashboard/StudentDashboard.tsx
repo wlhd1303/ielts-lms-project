@@ -543,6 +543,14 @@ const StudentDashboard = () => {
           <span className="text-lg">🏠</span>
           <span className="text-[10px]">Lộ trình</span>
         </button>
+
+        <button 
+          onClick={() => navigate('/booking')} 
+          className="flex flex-col items-center gap-1 text-slate-400 hover:text-blue-600 font-bold p-1 transition-colors cursor-pointer"
+        >
+          <span className="text-lg">🗓️</span>
+          <span className="text-[10px]">Thi & Kèm</span>
+        </button>
         
         <button 
           onClick={() => !studentInfo.isLocked && navigate('/leaderboard')} 

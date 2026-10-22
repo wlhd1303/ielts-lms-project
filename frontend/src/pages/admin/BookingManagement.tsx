@@ -5,9 +5,11 @@ import {
   type TestEvent,
   type TestEventRegistration
 } from '../../services/bookingService';
+import EventExamConfigModal from './EventExamConfigModal';
+import StudentExamDetailModal from './StudentExamDetailModal';
 
 export default function BookingManagement() {
-  const [activeSection, setActiveSection] = useState<'support' | 'events'>('support');
+  const [activeSection, setActiveSection] = useState<'support' | 'events' | 'online_exam'>('support');
   const [adminBookings, setAdminBookings] = useState<SupportBooking[]>([]);
   const [adminEvents, setAdminEvents] = useState<TestEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,9 @@ export default function BookingManagement() {
   const [newEventDate, setNewEventDate] = useState('');
   const [newEventLocation, setNewEventLocation] = useState('');
   const [newEventDeadline, setNewEventDeadline] = useState('');
+  const [newEventExamFormat, setNewEventExamFormat] = useState<'OFFLINE' | 'ONLINE'>('ONLINE');
+  const [newEventSkillType, setNewEventSkillType] = useState<'LISTENING' | 'READING' | 'BOTH'>('READING');
+  const [newEventDuration, setNewEventDuration] = useState<number>(60);
   const [shiftsInput, setShiftsInput] = useState([
     { shiftName: 'Ca Sáng', startTime: '08:30', endTime: '11:30', maxCapacity: 20 },
     { shiftName: 'Ca Chiều', startTime: '14:00', endTime: '17:00', maxCapacity: 20 }
@@ -39,8 +44,18 @@ export default function BookingManagement() {
   const [editLocation, setEditLocation] = useState('');
   const [editDeadline, setEditDeadline] = useState('');
   const [editStatus, setEditStatus] = useState<'OPEN' | 'CLOSED' | 'COMPLETED'>('OPEN');
+  const [editExamFormat, setEditExamFormat] = useState<'OFFLINE' | 'ONLINE'>('ONLINE');
+  const [editSkillType, setEditSkillType] = useState<'LISTENING' | 'READING' | 'BOTH'>('READING');
+  const [editDuration, setEditDuration] = useState<number>(60);
   const [editShifts, setEditShifts] = useState<any[]>([]);
   const [submittingEditEvent, setSubmittingEditEvent] = useState(false);
+
+  // State Quản lý Đề Thi & Bảng Điểm Online
+  const [configExamEvent, setConfigExamEvent] = useState<TestEvent | null>(null);
+  const [selectedExamEventId, setSelectedExamEventId] = useState<number | ''>('');
+  const [viewingRegistrationId, setViewingRegistrationId] = useState<number | null>(null);
+  const [onlineRegistrations, setOnlineRegistrations] = useState<TestEventRegistration[]>([]);
+  const [loadingOnlineRegistrations, setLoadingOnlineRegistrations] = useState(false);
 
   // Modal xem danh sách thí sinh ca thi
   const [selectedShiftForStudents, setSelectedShiftForStudents] = useState<any | null>(null);
@@ -111,6 +126,27 @@ export default function BookingManagement() {
     }
   };
 
+  const fetchOnlineRegistrations = async (eventId: number) => {
+    setLoadingOnlineRegistrations(true);
+    try {
+      const data = await bookingService.getEventRegistrationsAdmin(eventId);
+      setOnlineRegistrations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách thí sinh thi online:', err);
+      setOnlineRegistrations([]);
+    } finally {
+      setLoadingOnlineRegistrations(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedExamEventId) {
+      fetchOnlineRegistrations(Number(selectedExamEventId));
+    } else {
+      setOnlineRegistrations([]);
+    }
+  }, [selectedExamEventId]);
+
   // --- ACTIONS TẠO KỲ THI THỬ MỚI ---
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +157,9 @@ export default function BookingManagement() {
         eventDate: newEventDate,
         location: newEventLocation,
         registrationDeadline: newEventDeadline ? newEventDeadline + ':00' : undefined,
+        examFormat: newEventExamFormat,
+        skillType: newEventExamFormat === 'ONLINE' ? newEventSkillType : undefined,
+        durationMinutes: newEventExamFormat === 'ONLINE' ? newEventDuration : undefined,
         shifts: shiftsInput
       });
       showToast('Tạo kỳ thi thử mới thành công!', 'success');
@@ -130,6 +169,9 @@ export default function BookingManagement() {
       setNewEventDate('');
       setNewEventLocation('');
       setNewEventDeadline('');
+      setNewEventExamFormat('ONLINE');
+      setNewEventSkillType('READING');
+      setNewEventDuration(60);
       fetchAdminData();
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tạo kỳ thi. Vui lòng thử lại!';
@@ -161,6 +203,9 @@ export default function BookingManagement() {
     setEditLocation(ev.location);
     setEditDeadline(ev.registrationDeadline ? ev.registrationDeadline.substring(0, 16) : '');
     setEditStatus((ev.status as any) || 'OPEN');
+    setEditExamFormat(ev.examFormat || 'ONLINE');
+    setEditSkillType(ev.skillType || 'READING');
+    setEditDuration(ev.durationMinutes || 60);
     setEditShifts(
       ev.shifts && ev.shifts.length > 0
         ? ev.shifts.map((s) => ({
@@ -189,6 +234,9 @@ export default function BookingManagement() {
         location: editLocation,
         registrationDeadline: editDeadline ? editDeadline + ':00' : undefined,
         status: editStatus,
+        examFormat: editExamFormat,
+        skillType: editExamFormat === 'ONLINE' ? editSkillType : undefined,
+        durationMinutes: editExamFormat === 'ONLINE' ? editDuration : undefined,
         shifts: editShifts
       });
       showToast('Cập nhật đợt thi thử thành công!', 'success');
@@ -315,6 +363,20 @@ export default function BookingManagement() {
               }`}
             >
               🏆 Kỳ Thi Thử ({adminEvents.length})
+            </button>
+            <button
+              onClick={() => {
+                setActiveSection('online_exam');
+                if (!selectedExamEventId && adminEvents.length > 0) {
+                  const onlineEv = adminEvents.find((e) => e.examFormat === 'ONLINE') || adminEvents[0];
+                  setSelectedExamEventId(onlineEv.id);
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeSection === 'online_exam' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🎯 Thi Online & Bảng Điểm
             </button>
           </div>
 
@@ -447,9 +509,23 @@ export default function BookingManagement() {
                       }`}>
                         {ev.status || 'OPEN'}
                       </span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                        ev.examFormat === 'ONLINE' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {ev.examFormat === 'ONLINE' ? `💻 ONLINE (${ev.skillType || 'READING'})` : '🏛️ OFFLINE'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {ev.examFormat === 'ONLINE' && (
+                      <button
+                        onClick={() => setConfigExamEvent(ev)}
+                        className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-lg transition-colors cursor-pointer"
+                        title="Upload đề thi & bảng đáp án"
+                      >
+                        📝 Soạn Đề
+                      </button>
+                    )}
                     <button
                       onClick={() => handleOpenEditEvent(ev)}
                       className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg transition-colors cursor-pointer"
@@ -494,6 +570,247 @@ export default function BookingManagement() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* SECTION 3: QUẢN LÝ THI ONLINE & BẢNG ĐIỂM */}
+      {activeSection === 'online_exam' && (
+        <div className="space-y-6">
+          {/* Thanh chọn đợt thi Online & Action Soạn đề */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Bước 1: Chọn Kỳ Thi Online
+              </span>
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedExamEventId}
+                  onChange={(e) => setSelectedExamEventId(Number(e.target.value))}
+                  className="p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-blue-600 w-72"
+                >
+                  <option value="" disabled>-- Chọn Kỳ Thi Online --</option>
+                  {adminEvents.map((ev) => (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.title} ({ev.examFormat || 'OFFLINE'} - {ev.eventDate})
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => selectedExamEventId && fetchOnlineRegistrations(Number(selectedExamEventId))}
+                  className="p-2.5 text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  title="Tải lại bảng điểm"
+                >
+                  🔄
+                </button>
+              </div>
+            </div>
+
+            {selectedExamEventId && (() => {
+              const currentEv = adminEvents.find((e) => e.id === Number(selectedExamEventId));
+              return (
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  {currentEv && (
+                    <>
+                      <button
+                        onClick={() => handleOpenEditEvent(currentEv)}
+                        className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+                        title="Đổi ngày thi, thời gian các ca thi hoặc thông tin kỳ thi"
+                      >
+                        <span>📅</span>
+                        <span>Đổi Ngày & Giờ Thi</span>
+                      </button>
+
+                      <button
+                        onClick={() => setConfigExamEvent(currentEv)}
+                        className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-blue-600/20 transition-all active:scale-95 cursor-pointer flex items-center gap-2"
+                      >
+                        <span>📝</span>
+                        <span>Soạn / Cấu Hình Đề Thi</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Chi tiết sự kiện & Bảng điểm thí sinh */}
+          {selectedExamEventId ? (() => {
+            const currentEv = adminEvents.find((e) => e.id === Number(selectedExamEventId));
+            const submittedCount = onlineRegistrations.filter((r) => r.status === 'ATTENDED' || r.status === 'SUBMITTED' || r.examSubmittedAt).length;
+            const inProgressCount = onlineRegistrations.filter((r) => r.status === 'IN_PROGRESS').length;
+            const averageScore = submittedCount > 0
+              ? (onlineRegistrations.reduce((acc, r) => acc + (r.overallScore || 0), 0) / submittedCount).toFixed(1)
+              : '0.0';
+
+            return (
+              <div className="space-y-4">
+                {/* Thống kê nhanh */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Tổng thí sinh đăng ký</span>
+                    <p className="text-2xl font-black text-slate-900 mt-1">{onlineRegistrations.length}</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <span className="text-[10px] font-bold uppercase text-amber-500">Đang làm bài</span>
+                    <p className="text-2xl font-black text-amber-600 mt-1">{inProgressCount}</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <span className="text-[10px] font-bold uppercase text-emerald-500">Đã nộp bài</span>
+                    <p className="text-2xl font-black text-emerald-600 mt-1">{submittedCount}</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-xs">
+                    <span className="text-[10px] font-bold uppercase text-blue-500">Điểm trung bình (Overall)</span>
+                    <p className="text-2xl font-black text-blue-600 mt-1">{averageScore}</p>
+                  </div>
+                </div>
+
+                {/* Bảng danh sách thí sinh */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
+                        <span>🎓</span> Bảng Điểm Thí Sinh Thi Online ({onlineRegistrations.length})
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                        Theo dõi tiến độ, số câu đúng và Band Score quy đổi của từng học viên
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-black border-b">
+                        <tr>
+                          <th className="p-3">Thí sinh</th>
+                          <th className="p-3">Ca thi</th>
+                          <th className="p-3">Trạng thái</th>
+                          <th className="p-3 text-center">Listening Band</th>
+                          <th className="p-3 text-center">Reading Band</th>
+                          <th className="p-3 text-center">Overall</th>
+                          <th className="p-3">Thời gian nộp</th>
+                          <th className="p-3 text-right">Hành động</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {loadingOnlineRegistrations ? (
+                          <tr>
+                            <td colSpan={8} className="p-8 text-center text-slate-400 font-bold">
+                              Đang tải dữ liệu thí sinh...
+                            </td>
+                          </tr>
+                        ) : onlineRegistrations.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="p-8 text-center text-slate-400 italic">
+                              Chưa có thí sinh nào đăng ký tham gia kỳ thi này.
+                            </td>
+                          </tr>
+                        ) : (
+                          onlineRegistrations.map((reg) => (
+                            <tr key={reg.id} className="hover:bg-slate-50/70 transition-colors">
+                              <td className="p-3">
+                                <span className="font-black text-slate-900 block">{reg.fullName}</span>
+                                <span className="text-[11px] text-slate-400">{reg.email || reg.phone || '(Không có liên hệ)'}</span>
+                              </td>
+                              <td className="p-3">
+                                <span className="font-bold text-slate-700">{reg.shift?.shiftName}</span>
+                                <span className="text-[10px] text-slate-400 block">
+                                  {reg.shift?.startTime} - {reg.shift?.endTime}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span
+                                  className={`px-2.5 py-1 rounded-md text-[10px] font-black ${
+                                    reg.status === 'ATTENDED' || reg.status === 'SUBMITTED'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : reg.status === 'IN_PROGRESS'
+                                      ? 'bg-amber-100 text-amber-800 animate-pulse'
+                                      : 'bg-slate-100 text-slate-600'
+                                  }`}
+                                >
+                                  {reg.status === 'ATTENDED' || reg.status === 'SUBMITTED'
+                                    ? '✓ ĐÃ NỘP BÀI'
+                                    : reg.status === 'IN_PROGRESS'
+                                    ? '⏳ ĐANG LÀM BÀI'
+                                    : 'CHƯA VÀO'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                {reg.scoreListening !== null && reg.scoreListening !== undefined ? (
+                                  <div>
+                                    <span className="font-black text-emerald-600 text-sm">{reg.scoreListening.toFixed(1)}</span>
+                                    <span className="text-[9px] text-slate-400 block">({reg.listeningCorrectCount || 0}/40)</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                {reg.scoreReading !== null && reg.scoreReading !== undefined ? (
+                                  <div>
+                                    <span className="font-black text-blue-600 text-sm">{reg.scoreReading.toFixed(1)}</span>
+                                    <span className="text-[9px] text-slate-400 block">({reg.readingCorrectCount || 0}/40)</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center">
+                                {reg.overallScore !== null && reg.overallScore !== undefined ? (
+                                  <span className="px-2 py-0.5 rounded-lg bg-slate-900 text-white font-mono font-black text-xs">
+                                    {reg.overallScore.toFixed(1)}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-slate-500 text-[11px] font-medium">
+                                {reg.examSubmittedAt ? (
+                                  new Date(reg.examSubmittedAt).toLocaleString('vi-VN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    day: '2-digit',
+                                    month: '2-digit'
+                                  })
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                              <td className="p-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {reg.studentAnswers && (
+                                    <button
+                                      onClick={() => setViewingRegistrationId(reg.id)}
+                                      className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg transition-colors cursor-pointer text-[11px]"
+                                      title="Xem chi tiết 40 câu hỏi và câu trả lời của thí sinh"
+                                    >
+                                      👁️ Xem bài làm
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleOpenScoreStudent(reg)}
+                                    className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer text-[11px]"
+                                    title="Sửa điểm hoặc thêm nhận xét"
+                                  >
+                                    ✏️ Chấm điểm
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })() : (
+            <div className="p-12 text-center text-slate-400 text-xs font-bold bg-white rounded-2xl border">
+              Vui lòng chọn một kỳ thi Online để quản lý đề thi và xem bảng điểm.
+            </div>
+          )}
         </div>
       )}
 
@@ -641,13 +958,70 @@ export default function BookingManagement() {
                 />
               </div>
 
-              <div className="pt-2 border-t">
-                <p className="font-black text-slate-900 mb-2">Các ca thi (Shifts):</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-blue-50/60 rounded-xl border border-blue-200/70">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Hình thức:</label>
+                  <select
+                    value={newEventExamFormat}
+                    onChange={(e) => setNewEventExamFormat(e.target.value as any)}
+                    className="w-full border rounded-lg p-1.5 bg-white font-bold"
+                  >
+                    <option value="ONLINE">💻 Online</option>
+                    <option value="OFFLINE">🏛️ Offline</option>
+                  </select>
+                </div>
+                {newEventExamFormat === 'ONLINE' && (
+                  <>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Kỹ năng:</label>
+                      <select
+                        value={newEventSkillType}
+                        onChange={(e) => setNewEventSkillType(e.target.value as any)}
+                        className="w-full border rounded-lg p-1.5 bg-white font-bold text-blue-700"
+                      >
+                        <option value="READING">📖 Reading</option>
+                        <option value="LISTENING">🎧 Listening</option>
+                        <option value="BOTH">🎯 Cả hai</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Thời lượng (p):</label>
+                      <input
+                        type="number"
+                        min={10}
+                        max={180}
+                        value={newEventDuration}
+                        onChange={(e) => setNewEventDuration(Number(e.target.value))}
+                        className="w-full border rounded-lg p-1.5 bg-white font-mono font-bold"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="pt-2 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-black text-slate-900">⏰ Khung giờ các ca thi (Shifts):</p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Học viên được mở đề trong vòng 1 tiếng kể từ Giờ bắt đầu.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShiftsInput([...shiftsInput, { shiftName: `Ca ${shiftsInput.length + 1}`, startTime: '18:00', endTime: '20:00', maxCapacity: 20 }])}
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
+                  >
+                    + Thêm ca
+                  </button>
+                </div>
+
                 <div className="space-y-2">
                   {shiftsInput.map((sh, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border">
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex-wrap sm:flex-nowrap">
                       <input
                         type="text"
+                        required
                         value={sh.shiftName}
                         onChange={(e) => {
                           const updated = [...shiftsInput];
@@ -655,42 +1029,61 @@ export default function BookingManagement() {
                           setShiftsInput(updated);
                         }}
                         placeholder="Tên ca"
-                        className="w-24 border rounded p-1 text-xs font-bold"
+                        className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
                       />
-                      <input
-                        type="text"
-                        value={sh.startTime}
-                        onChange={(e) => {
-                          const updated = [...shiftsInput];
-                          updated[idx].startTime = e.target.value;
-                          setShiftsInput(updated);
-                        }}
-                        placeholder="08:30"
-                        className="w-16 border rounded p-1 text-xs"
-                      />
-                      <span>-</span>
-                      <input
-                        type="text"
-                        value={sh.endTime}
-                        onChange={(e) => {
-                          const updated = [...shiftsInput];
-                          updated[idx].endTime = e.target.value;
-                          setShiftsInput(updated);
-                        }}
-                        placeholder="11:30"
-                        className="w-16 border rounded p-1 text-xs"
-                      />
-                      <input
-                        type="number"
-                        value={sh.maxCapacity}
-                        onChange={(e) => {
-                          const updated = [...shiftsInput];
-                          updated[idx].maxCapacity = parseInt(e.target.value) || 20;
-                          setShiftsInput(updated);
-                        }}
-                        placeholder="Sĩ số"
-                        className="w-16 border rounded p-1 text-xs font-bold"
-                      />
+                      <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 flex-1">
+                        <span className="text-[10px] text-slate-500 font-bold">Từ:</span>
+                        <input
+                          type="time"
+                          required
+                          value={sh.startTime}
+                          onChange={(e) => {
+                            const updated = [...shiftsInput];
+                            updated[idx].startTime = e.target.value;
+                            setShiftsInput(updated);
+                          }}
+                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                        />
+                        <span className="text-slate-400">→</span>
+                        <span className="text-[10px] text-slate-500 font-bold">Đến:</span>
+                        <input
+                          type="time"
+                          required
+                          value={sh.endTime}
+                          onChange={(e) => {
+                            const updated = [...shiftsInput];
+                            updated[idx].endTime = e.target.value;
+                            setShiftsInput(updated);
+                          }}
+                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-500 font-bold">Max:</span>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          value={sh.maxCapacity}
+                          onChange={(e) => {
+                            const updated = [...shiftsInput];
+                            updated[idx].maxCapacity = parseInt(e.target.value) || 20;
+                            setShiftsInput(updated);
+                          }}
+                          placeholder="Sĩ số"
+                          className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
+                        />
+                      </div>
+                      {shiftsInput.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setShiftsInput(shiftsInput.filter((_, i) => i !== idx))}
+                          className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
+                          title="Xóa ca này"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -805,13 +1198,59 @@ export default function BookingManagement() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-blue-50/60 rounded-xl border border-blue-200/70">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Hình thức:</label>
+                  <select
+                    value={editExamFormat}
+                    onChange={(e) => setEditExamFormat(e.target.value as any)}
+                    className="w-full border rounded-lg p-1.5 bg-white font-bold"
+                  >
+                    <option value="ONLINE">💻 Online</option>
+                    <option value="OFFLINE">🏛️ Offline</option>
+                  </select>
+                </div>
+                {editExamFormat === 'ONLINE' && (
+                  <>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Kỹ năng:</label>
+                      <select
+                        value={editSkillType}
+                        onChange={(e) => setEditSkillType(e.target.value as any)}
+                        className="w-full border rounded-lg p-1.5 bg-white font-bold text-blue-700"
+                      >
+                        <option value="READING">📖 Reading</option>
+                        <option value="LISTENING">🎧 Listening</option>
+                        <option value="BOTH">🎯 Cả hai</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Thời lượng (p):</label>
+                      <input
+                        type="number"
+                        min={10}
+                        max={180}
+                        value={editDuration}
+                        onChange={(e) => setEditDuration(Number(e.target.value))}
+                        className="w-full border rounded-lg p-1.5 bg-white font-mono font-bold"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="pt-2 border-t space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="font-black text-slate-900">Danh sách ca thi:</p>
+                  <div>
+                    <p className="font-black text-slate-900">⏰ Khung giờ các ca thi (Shifts):</p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Học viên được mở đề trong vòng 1 tiếng kể từ Giờ bắt đầu.
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={handleAddEditShift}
-                    className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                    className="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 cursor-pointer"
                   >
                     + Thêm ca thi
                   </button>
@@ -819,7 +1258,7 @@ export default function BookingManagement() {
 
                 <div className="space-y-2">
                   {editShifts.map((sh, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex-wrap sm:flex-nowrap">
                       <input
                         type="text"
                         required
@@ -828,25 +1267,27 @@ export default function BookingManagement() {
                         placeholder="Tên ca"
                         className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
                       />
-                      <input
-                        type="text"
-                        required
-                        value={sh.startTime}
-                        onChange={(e) => handleUpdateEditShiftField(idx, 'startTime', e.target.value)}
-                        placeholder="08:30"
-                        className="w-16 border rounded-lg p-1.5 text-xs bg-white text-center font-semibold"
-                      />
-                      <span>-</span>
-                      <input
-                        type="text"
-                        required
-                        value={sh.endTime}
-                        onChange={(e) => handleUpdateEditShiftField(idx, 'endTime', e.target.value)}
-                        placeholder="11:30"
-                        className="w-16 border rounded-lg p-1.5 text-xs bg-white text-center font-semibold"
-                      />
+                      <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 flex-1">
+                        <span className="text-[10px] text-slate-500 font-bold">Từ:</span>
+                        <input
+                          type="time"
+                          required
+                          value={sh.startTime}
+                          onChange={(e) => handleUpdateEditShiftField(idx, 'startTime', e.target.value)}
+                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                        />
+                        <span className="text-slate-400">→</span>
+                        <span className="text-[10px] text-slate-500 font-bold">Đến:</span>
+                        <input
+                          type="time"
+                          required
+                          value={sh.endTime}
+                          onChange={(e) => handleUpdateEditShiftField(idx, 'endTime', e.target.value)}
+                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                        />
+                      </div>
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-400">Max:</span>
+                        <span className="text-[10px] text-slate-500 font-bold">Max:</span>
                         <input
                           type="number"
                           required
@@ -856,14 +1297,16 @@ export default function BookingManagement() {
                           className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveEditShift(idx)}
-                        className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
-                        title="Xóa ca này"
-                      >
-                        ✕
-                      </button>
+                      {editShifts.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEditShift(idx)}
+                          className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
+                          title="Xóa ca này"
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1053,6 +1496,29 @@ export default function BookingManagement() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL CẤU HÌNH ĐỀ THI ONLINE (PDF, AUDIO, BÀI ĐỌC, 40 CÂU HỎI) */}
+      {configExamEvent && (
+        <EventExamConfigModal
+          event={configExamEvent}
+          onClose={() => setConfigExamEvent(null)}
+          onSuccess={() => {
+            fetchAdminData();
+            if (selectedExamEventId) {
+              fetchOnlineRegistrations(Number(selectedExamEventId));
+            }
+          }}
+          showToast={showToast}
+        />
+      )}
+
+      {/* MODAL XEM CHI TIẾT BÀI LÀM CỦA HỌC VIÊN */}
+      {viewingRegistrationId && (
+        <StudentExamDetailModal
+          registrationId={viewingRegistrationId}
+          onClose={() => setViewingRegistrationId(null)}
+        />
       )}
     </div>
   );

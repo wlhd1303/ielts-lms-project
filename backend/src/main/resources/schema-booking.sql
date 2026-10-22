@@ -78,3 +78,39 @@ CREATE TABLE IF NOT EXISTS test_event_registrations (
     INDEX idx_test_reg_shift_user (shift_id, user_id),
     INDEX idx_test_reg_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==============================================================================
+-- 5. MIGRATION BỔ SUNG: TÍNH NĂNG THI ONLINE CHO SỰ KIỆN (TEST EVENTS ONLINE)
+-- ==============================================================================
+
+-- Bổ sung các trường cấu hình thi online vào test_events
+ALTER TABLE test_events 
+    ADD COLUMN IF NOT EXISTS exam_format VARCHAR(20) DEFAULT 'OFFLINE',
+    ADD COLUMN IF NOT EXISTS skill_type VARCHAR(20) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS duration_minutes INT DEFAULT 60,
+    ADD COLUMN IF NOT EXISTS pdf_url TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS audio_url TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS passage_text LONGTEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS allow_review BOOLEAN DEFAULT TRUE;
+
+-- Bảng lưu trữ 40 câu hỏi và bảng đáp án đề thi sự kiện
+CREATE TABLE IF NOT EXISTS test_event_questions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_id BIGINT NOT NULL,
+    skill VARCHAR(20) NOT NULL,
+    question_number INT NOT NULL,
+    question_text TEXT,
+    correct_answer VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_event_question_event FOREIGN KEY (event_id) REFERENCES test_events(id) ON DELETE CASCADE,
+    INDEX idx_event_question_event_skill (event_id, skill, question_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Bổ sung các trường theo dõi làm bài và điểm số chi tiết vào test_event_registrations
+ALTER TABLE test_event_registrations
+    ADD COLUMN IF NOT EXISTS exam_started_at TIMESTAMP NULL,
+    ADD COLUMN IF NOT EXISTS exam_submitted_at TIMESTAMP NULL,
+    ADD COLUMN IF NOT EXISTS student_answers LONGTEXT NULL,
+    ADD COLUMN IF NOT EXISTS listening_correct_count INT DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS reading_correct_count INT DEFAULT 0;
+

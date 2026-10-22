@@ -22,6 +22,7 @@ const VocabReviewTest = lazy(() => import('./pages/vocablis/VocabReviewTest'));
 const SpeakingShadowing = lazy(() => import('./pages/speaking/SpeakingShadowing'));
 const MockTestList = lazy(() => import('./pages/mock-test/MockTestList'));
 const BookingHub = lazy(() => import('./pages/booking/BookingHub'));
+const EventExamRoom = lazy(() => import('./pages/booking/EventExamRoom'));
 
 // Import Màn hình Admin (Lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -125,6 +126,8 @@ function App() {
             
             {/* Route Lịch Hỗ Trợ & Thi Thử */}
             <Route path="/booking" element={<BookingHub />} />
+            <Route path="/exam/:shiftId" element={<EventExamRoom />} />
+            <Route path="/booking/exam/:shiftId" element={<EventExamRoom />} />
             
             {/* Routes Admin (đã bảo vệ bằng AdminRoute) */}
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />

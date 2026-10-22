@@ -26,6 +26,7 @@ public class AdminBookingController {
 
     private final BookingService bookingService;
     private final TestEventService eventService;
+    private final com.ielts.lms.booking.service.TestEventExamService examService;
     private final UserService userService;
 
     /**
@@ -99,5 +100,43 @@ public class AdminBookingController {
             @PathVariable Long regId,
             @RequestBody UpdateShiftScoreDto dto) {
         return ResponseEntity.ok(eventService.updateRegistrationScore(regId, dto));
+    }
+
+    /**
+     * Cấu hình đề thi Online (Upload PDF, Audio, Bài đọc, 40 câu hỏi & đáp án)
+     */
+    @PutMapping("/events/{eventId}/exam-config")
+    public ResponseEntity<TestEvent> saveExamConfig(
+            @PathVariable Long eventId,
+            @RequestBody com.ielts.lms.booking.dto.EventExamConfigDto dto) {
+        return ResponseEntity.ok(examService.saveExamConfig(eventId, dto));
+    }
+
+    /**
+     * Lấy cấu hình đề thi Online hiện tại của sự kiện (bao gồm đáp án)
+     */
+    @GetMapping("/events/{eventId}/exam-config")
+    public ResponseEntity<com.ielts.lms.booking.dto.EventExamConfigDto> getExamConfig(
+            @PathVariable Long eventId) {
+        return ResponseEntity.ok(examService.getExamConfigAdmin(eventId));
+    }
+
+    /**
+     * Lấy danh sách toàn bộ thí sinh và bảng điểm thi Online của sự kiện
+     */
+    @GetMapping("/events/{eventId}/registrations")
+    public ResponseEntity<List<TestEventRegistration>> getEventRegistrations(
+            @PathVariable Long eventId) {
+        return ResponseEntity.ok(examService.getEventRegistrationsAdmin(eventId));
+    }
+
+    /**
+     * Admin xem chi tiết bài làm của từng học viên (từng câu đúng/sai)
+     */
+    @GetMapping("/events/registrations/{regId}/detail")
+    public ResponseEntity<com.ielts.lms.booking.dto.ExamSubmissionResultDto> getRegistrationExamDetail(
+            @PathVariable Long regId) {
+        User currentUser = userService.getMyProfile();
+        return ResponseEntity.ok(examService.getMyExamResult(regId, currentUser));
     }
 }

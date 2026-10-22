@@ -41,9 +41,34 @@ public class TestEvent {
     @Column(nullable = false, length = 30)
     private String status; // OPEN, CLOSED, COMPLETED
 
+    @Column(name = "exam_format", length = 20)
+    private String examFormat = "OFFLINE"; // OFFLINE, ONLINE
+
+    @Column(name = "skill_type", length = 20)
+    private String skillType; // LISTENING, READING, BOTH
+
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes = 60;
+
+    @Column(name = "pdf_url", columnDefinition = "TEXT")
+    private String pdfUrl;
+
+    @Column(name = "audio_url", columnDefinition = "TEXT")
+    private String audioUrl;
+
+    @Column(name = "passage_text", columnDefinition = "LONGTEXT")
+    private String passageText;
+
+    @Column(name = "allow_review")
+    private Boolean allowReview = true;
+
     @OneToMany(mappedBy = "testEvent", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JsonManagedReference
     private List<TestEventShift> shifts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "testEvent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<TestEventQuestion> questions = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

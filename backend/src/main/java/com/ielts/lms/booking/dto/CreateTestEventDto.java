@@ -27,6 +27,14 @@ public class CreateTestEventDto {
 
     private String status; // OPEN, CLOSED, COMPLETED (optional for update)
 
+    private String examFormat; // OFFLINE, ONLINE
+    private String skillType;  // LISTENING, READING, BOTH
+    private Integer durationMinutes; // e.g. 60
+    private String pdfUrl;
+    private String audioUrl;
+    private String passageText;
+    private Boolean allowReview;
+
     @NotEmpty(message = "Phải có ít nhất 1 ca thi")
     private List<ShiftDto> shifts;
 

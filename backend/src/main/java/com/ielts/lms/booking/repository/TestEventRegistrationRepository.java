@@ -12,6 +12,8 @@ public interface TestEventRegistrationRepository extends JpaRepository<TestEvent
 
     List<TestEventRegistration> findByShiftId(Long shiftId);
 
+    List<TestEventRegistration> findByShiftIdOrderByRegisteredAtDesc(Long shiftId);
+
     List<TestEventRegistration> findByUserIdOrderByRegisteredAtDesc(Long userId);
 
     Optional<TestEventRegistration> findByShiftIdAndUserId(Long shiftId, Long userId);

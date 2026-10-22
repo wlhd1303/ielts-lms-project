@@ -49,6 +49,13 @@ export interface TestEvent {
   location: string;
   registrationDeadline?: string;
   status: 'OPEN' | 'CLOSED' | 'COMPLETED';
+  examFormat?: 'OFFLINE' | 'ONLINE';
+  skillType?: 'LISTENING' | 'READING' | 'BOTH';
+  durationMinutes?: number;
+  pdfUrl?: string;
+  audioUrl?: string;
+  passageText?: string;
+  allowReview?: boolean;
   shifts: TestEventShift[];
   createdAt?: string;
 }
@@ -60,7 +67,12 @@ export interface TestEventRegistration {
   fullName: string;
   phone?: string;
   email?: string;
-  status: 'REGISTERED' | 'ATTENDED' | 'ABSENT' | 'CANCELLED';
+  status: 'REGISTERED' | 'IN_PROGRESS' | 'SUBMITTED' | 'ATTENDED' | 'ABSENT' | 'CANCELLED';
+  examStartedAt?: string;
+  examSubmittedAt?: string;
+  studentAnswers?: string;
+  listeningCorrectCount?: number;
+  readingCorrectCount?: number;
   scoreListening?: number;
   scoreReading?: number;
   scoreWriting?: number;
@@ -68,6 +80,93 @@ export interface TestEventRegistration {
   overallScore?: number;
   feedback?: string;
   registeredAt?: string;
+}
+
+export interface ExamAccessStatus {
+  status: 'EARLY' | 'OPEN_WINDOW' | 'IN_PROGRESS' | 'SUBMITTED' | 'MISSED_WINDOW' | 'EXPIRED' | 'NOT_REGISTERED';
+  registrationId?: number;
+  eventId?: number;
+  shiftId?: number;
+  eventTitle?: string;
+  shiftName?: string;
+  examFormat?: string;
+  skillType?: string;
+  durationMinutes?: number;
+  serverTime?: string;
+  windowStart?: string;
+  windowEnd?: string;
+  examStartedAt?: string;
+  personalDeadline?: string;
+  secondsUntilWindow?: number;
+  secondsRemainingInExam?: number;
+  allowReview?: boolean;
+}
+
+export interface StudentQuestion {
+  skill: string;
+  questionNumber: number;
+  questionText?: string;
+}
+
+export interface StartExamResponse {
+  registrationId: number;
+  eventId: number;
+  shiftId: number;
+  eventTitle: string;
+  shiftName: string;
+  skillType: string;
+  durationMinutes: number;
+  startedAt: string;
+  deadline: string;
+  remainingSeconds: number;
+  pdfUrl?: string;
+  audioUrl?: string;
+  passageText?: string;
+  questions: StudentQuestion[];
+}
+
+export interface QuestionReviewDetail {
+  skill: string;
+  questionNumber: number;
+  questionText?: string;
+  studentAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+}
+
+export interface ExamSubmissionResult {
+  registrationId: number;
+  eventId: number;
+  shiftId: number;
+  studentName: string;
+  eventTitle: string;
+  shiftName: string;
+  skillType: string;
+  listeningCorrectCount?: number;
+  readingCorrectCount?: number;
+  scoreListening?: number;
+  scoreReading?: number;
+  overallScore?: number;
+  submittedAt?: string;
+  feedback?: string;
+  allowReview?: boolean;
+  reviewDetails?: QuestionReviewDetail[];
+}
+
+export interface EventExamConfig {
+  examFormat?: string;
+  skillType?: string;
+  durationMinutes?: number;
+  pdfUrl?: string;
+  audioUrl?: string;
+  passageText?: string;
+  allowReview?: boolean;
+  questions?: Array<{
+    skill: string;
+    questionNumber: number;
+    questionText?: string;
+    correctAnswer: string;
+  }>;
 }
 
 export const bookingService = {
@@ -165,6 +264,48 @@ export const bookingService = {
 
   updateStudentScoreAdmin: async (regId: number, data: any): Promise<TestEventRegistration> => {
     const res: any = await axiosClient.put(`/api/admin/booking/events/registrations/${regId}/score`, data);
+    return res.data || res;
+  },
+
+  // --- ONLINE EXAM APIs (STUDENT) ---
+  getExamAccessStatus: async (shiftId: number): Promise<ExamAccessStatus> => {
+    const res: any = await axiosClient.get(`/api/booking/events/shifts/${shiftId}/access-status`);
+    return res.data || res;
+  },
+
+  startExam: async (shiftId: number): Promise<StartExamResponse> => {
+    const res: any = await axiosClient.post(`/api/booking/events/shifts/${shiftId}/start-exam`);
+    return res.data || res;
+  },
+
+  submitExam: async (shiftId: number, answers: Record<string, string>): Promise<ExamSubmissionResult> => {
+    const res: any = await axiosClient.post(`/api/booking/events/shifts/${shiftId}/submit-exam`, { answers });
+    return res.data || res;
+  },
+
+  getMyExamResult: async (regId: number): Promise<ExamSubmissionResult> => {
+    const res: any = await axiosClient.get(`/api/booking/events/registrations/${regId}/my-result`);
+    return res.data || res;
+  },
+
+  // --- ONLINE EXAM APIs (ADMIN) ---
+  saveExamConfigAdmin: async (eventId: number, data: EventExamConfig): Promise<TestEvent> => {
+    const res: any = await axiosClient.put(`/api/admin/booking/events/${eventId}/exam-config`, data);
+    return res.data || res;
+  },
+
+  getExamConfigAdmin: async (eventId: number): Promise<EventExamConfig> => {
+    const res: any = await axiosClient.get(`/api/admin/booking/events/${eventId}/exam-config`);
+    return res.data || res;
+  },
+
+  getEventRegistrationsAdmin: async (eventId: number): Promise<TestEventRegistration[]> => {
+    const res: any = await axiosClient.get(`/api/admin/booking/events/${eventId}/registrations`);
+    return res.data || res;
+  },
+
+  getRegistrationExamDetailAdmin: async (regId: number): Promise<ExamSubmissionResult> => {
+    const res: any = await axiosClient.get(`/api/admin/booking/events/registrations/${regId}/detail`);
     return res.data || res;
   }
 };

@@ -55,6 +55,13 @@ public class TestEventService {
         event.setLocation(dto.getLocation().trim());
         event.setRegistrationDeadline(dto.getRegistrationDeadline());
         event.setStatus("OPEN");
+        event.setExamFormat(dto.getExamFormat() != null ? dto.getExamFormat() : "OFFLINE");
+        event.setSkillType(dto.getSkillType());
+        event.setDurationMinutes(dto.getDurationMinutes() != null ? dto.getDurationMinutes() : 60);
+        event.setPdfUrl(dto.getPdfUrl());
+        event.setAudioUrl(dto.getAudioUrl());
+        event.setPassageText(dto.getPassageText());
+        event.setAllowReview(dto.getAllowReview() != null ? dto.getAllowReview() : true);
 
         List<TestEventShift> shifts = new ArrayList<>();
         if (dto.getShifts() != null) {
@@ -90,6 +97,15 @@ public class TestEventService {
         if (dto.getStatus() != null && !dto.getStatus().trim().isEmpty()) {
             event.setStatus(dto.getStatus().trim());
         }
+        if (dto.getExamFormat() != null) event.setExamFormat(dto.getExamFormat());
+        if (dto.getSkillType() != null) event.setSkillType(dto.getSkillType());
+        if (dto.getDurationMinutes() != null && dto.getDurationMinutes() > 0) {
+            event.setDurationMinutes(dto.getDurationMinutes());
+        }
+        if (dto.getPdfUrl() != null) event.setPdfUrl(dto.getPdfUrl());
+        if (dto.getAudioUrl() != null) event.setAudioUrl(dto.getAudioUrl());
+        if (dto.getPassageText() != null) event.setPassageText(dto.getPassageText());
+        if (dto.getAllowReview() != null) event.setAllowReview(dto.getAllowReview());
 
         if (dto.getShifts() != null) {
             List<TestEventShift> currentShifts = event.getShifts();

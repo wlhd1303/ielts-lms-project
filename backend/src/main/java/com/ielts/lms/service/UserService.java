@@ -143,13 +143,15 @@ public class UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication != null ? authentication.getName() : null;
         if ("admin11".equalsIgnoreCase(currentUsername)) {
-            User superAdmin = new User();
-            superAdmin.setId(999999L);
-            superAdmin.setUsername("admin11");
-            superAdmin.setFullName("Super Administrator");
-            superAdmin.setRole("ROLE_ADMIN");
-            superAdmin.setStatus("APPROVED");
-            return superAdmin;
+            return userRepository.findByUsername("admin11").orElseGet(() -> {
+                User superAdmin = new User();
+                superAdmin.setId(999999L);
+                superAdmin.setUsername("admin11");
+                superAdmin.setFullName("Super Administrator");
+                superAdmin.setRole("ROLE_ADMIN");
+                superAdmin.setStatus("APPROVED");
+                return superAdmin;
+            });
         }
         return userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin tài khoản"));

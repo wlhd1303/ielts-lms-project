@@ -1,0 +1,1537 @@
+{
+  "readingTest": {
+    "id": 90009,
+    "title": "Reading Vol 3 Test 1",
+    "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+    "questions": [
+      {
+        "correctAnswer": "FALSE",
+        "id": 90106,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 1,
+        "questionText": "Fishbourne Palace was the first structure to be built on its site. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "TRUE",
+        "id": 90107,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 2,
+        "questionText": "Fishbourne Palace was renovated more than once. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "FALSE",
+        "id": 90108,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 3,
+        "questionText": "Fishbourne Palace was large in comparison with Roman palaces in Italy. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "TRUE",
+        "id": 90109,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 4,
+        "questionText": "Research is continuing in the area close to Fishbourne Palace. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "FALSE",
+        "id": 90110,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 5,
+        "questionText": "Researchers agree on the identity of the person for whom Fishbourne Palace was constructed. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "NOT GIVEN",
+        "id": 90111,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 6,
+        "questionText": "Fishbourne Palace was burnt down by local people. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "Roman army",
+        "id": 90112,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 7,
+        "questionText": "The first buildings on the site contained food for the [7].........."
+      },
+      {
+        "correctAnswer": "formal gardens",
+        "id": 90113,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 8,
+        "questionText": "The palace building surrounded [8].........."
+      },
+      {
+        "correctAnswer": "floors",
+        "id": 90114,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 9,
+        "questionText": "In the 2nd and 3rd centuries, color was added to the [9].......... of the palace."
+      },
+      {
+        "correctAnswer": "wall",
+        "id": 90115,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 10,
+        "questionText": "The first part of the palace to be found was part of a [10].........."
+      },
+      {
+        "correctAnswer": "93",
+        "id": 90116,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 11,
+        "questionText": "Sallustius Lucullus - he may have lived there until approximately [11].......... AD"
+      },
+      {
+        "correctAnswer": "gold ring",
+        "id": 90117,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 12,
+        "questionText": "Catuarus - his [12].......... was found there"
+      },
+      {
+        "correctAnswer": "museum",
+        "id": 90118,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 13,
+        "questionText": "A [13].......... has been built on the site to help protect it."
+      },
+      {
+        "correctAnswer": "vii",
+        "id": 90119,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 14,
+        "questionText": "Paragraph A heading (i-vii)"
+      },
+      {
+        "correctAnswer": "iii",
+        "id": 90120,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 15,
+        "questionText": "Paragraph B heading (i-vii)"
+      },
+      {
+        "correctAnswer": "vi",
+        "id": 90121,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 16,
+        "questionText": "Paragraph C heading (i-vii)"
+      },
+      {
+        "correctAnswer": "i",
+        "id": 90122,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 17,
+        "questionText": "Paragraph D heading (i-vii)"
+      },
+      {
+        "correctAnswer": "iv",
+        "id": 90123,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 18,
+        "questionText": "Paragraph E heading (i-vii)"
+      },
+      {
+        "correctAnswer": "ii",
+        "id": 90124,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 19,
+        "questionText": "Paragraph F heading (i-vii)"
+      },
+      {
+        "correctAnswer": "C",
+        "id": 90125,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 20,
+        "questionText": "Certain members can influence the rest of the group to alter a previous decision. (A-D)"
+      },
+      {
+        "correctAnswer": "B",
+        "id": 90126,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 21,
+        "questionText": "Individual verification of a proposed choice is important for a successful decision outcome. (A-D)"
+      },
+      {
+        "correctAnswer": "A",
+        "id": 90127,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 22,
+        "questionText": "The more individuals taking part in a decision, the better the decision will be. (A-D)"
+      },
+      {
+        "correctAnswer": "B",
+        "id": 90128,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 23,
+        "questionText": "The decision-making process of certain insects produces excellent results even when fine distinctions are required. (A-D)"
+      },
+      {
+        "correctAnswer": "threatened",
+        "id": 90129,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 24,
+        "questionText": "A Bristol University study looked at how insects make decisions when their home has been [24].........."
+      },
+      {
+        "correctAnswer": "scouts",
+        "id": 90130,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 25,
+        "questionText": "The ants in the experiment relied on the use of individuals called [25].......... to find new nests."
+      },
+      {
+        "correctAnswer": "leaders",
+        "id": 90131,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 26,
+        "questionText": "The study emphasized the necessity, for people as well as insects, of having active [26].......... in order to execute decisions successfully."
+      },
+      {
+        "correctAnswer": "F",
+        "id": 90132,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 27,
+        "questionText": "Which paragraph mentions: the methods some companies use to try to keep their most creative employees? (A-H)"
+      },
+      {
+        "correctAnswer": "A",
+        "id": 90133,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 28,
+        "questionText": "Which paragraph mentions: a new way of getting help with your personal difficulties? (A-H)"
+      },
+      {
+        "correctAnswer": "C",
+        "id": 90134,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 29,
+        "questionText": "Which paragraph mentions: how much investment goes into safeguarding the ideas of individuals? (A-H)"
+      },
+      {
+        "correctAnswer": "B",
+        "id": 90135,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 30,
+        "questionText": "Which paragraph mentions: two examples of companies which have succeeded through being innovative? (A-H)"
+      },
+      {
+        "correctAnswer": "E",
+        "id": 90136,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 31,
+        "questionText": "Which paragraph mentions: how some innovators manage to avoid spending large sums of money on testing out their ideas? (A-H)"
+      },
+      {
+        "correctAnswer": "G",
+        "id": 90137,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 32,
+        "questionText": "Which paragraph mentions: a commonly held opinion about product designers that needs to be proved wrong? (A-H)"
+      },
+      {
+        "correctAnswer": "F",
+        "id": 90138,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 33,
+        "questionText": "Which paragraph mentions: the target of one large company that has changed its business focus? (A-H)"
+      },
+      {
+        "correctAnswer": "TRUE",
+        "id": 90139,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 34,
+        "questionText": "Umagic Systems is an example of a new innovative company. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "NOT GIVEN",
+        "id": 90140,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 35,
+        "questionText": "Amazon and Wal-Mart have exchanged successful ideas on innovation. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "FALSE",
+        "id": 90141,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 36,
+        "questionText": "Using financial rewards to encourage innovation is an outdated practice. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "TRUE",
+        "id": 90142,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 37,
+        "questionText": "IBM failed to understand David Post's 'virtual experts' idea. (TRUE/FALSE/NOT GIVEN)"
+      },
+      {
+        "correctAnswer": "C",
+        "id": 90143,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 38,
+        "questionText": "What point does the writer make about intellectual property? (A/B/C/D)"
+      },
+      {
+        "correctAnswer": "A",
+        "id": 90144,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 39,
+        "questionText": "Peter Chemin is an example of someone who has realized that: (A/B/C/D)"
+      },
+      {
+        "correctAnswer": "D",
+        "id": 90145,
+        "mockTest": {
+          "audioUrl": null,
+          "hibernateLazyInitializer": {},
+          "id": 90009,
+          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 30003,
+            "name": "Lớp IELTS Luyện Đề"
+          },
+          "title": "Reading Vol 3 Test 1",
+          "type": "READING"
+        },
+        "questionNumber": 40,
+        "questionText": "In conclusion, the writer suggests that: (A/B/C/D)"
+      }
+    ]
+  },
+  "listeningTest": {
+    "id": 60003,
+    "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+    "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+    "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+    "questions": [
+      {
+        "correctAnswer": "94635550",
+        "id": 60005,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 1,
+        "questionText": "Phone Number:  1 ..................................."
+      },
+      {
+        "correctAnswer": "Clark House",
+        "id": 60006,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 2,
+        "questionText": "USA Address: 509 2 ..............................."
+      },
+      {
+        "correctAnswer": "University Drive",
+        "id": 60007,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 3,
+        "questionText": "3 ................................... in Seattle"
+      },
+      {
+        "correctAnswer": "Monday",
+        "id": 60008,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 4,
+        "questionText": "Packing Day: 4 ............................"
+      },
+      {
+        "correctAnswer": "Thursday",
+        "id": 60009,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 5,
+        "questionText": "Day:  5 ......................."
+      },
+      {
+        "correctAnswer": "a month",
+        "id": 60010,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 6,
+        "questionText": "Storage Time: 6 ........................."
+      },
+      {
+        "correctAnswer": "A",
+        "id": 60011,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 7,
+        "questionText": "7 cutlery and dishes ................."
+      },
+      {
+        "correctAnswer": "C",
+        "id": 60012,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 8,
+        "questionText": "8 kettle .................  "
+      },
+      {
+        "correctAnswer": "B",
+        "id": 60013,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 9,
+        "questionText": "9 alarm clock ................"
+      },
+      {
+        "correctAnswer": "C",
+        "id": 60014,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 10,
+        "questionText": "10 CD player ................"
+      },
+      {
+        "correctAnswer": "Computer as Teacher",
+        "id": 60015,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 11,
+        "questionText": "Title of the lecture: 11 ....................."
+      },
+      {
+        "correctAnswer": "University of Melbourne",
+        "id": 60016,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 12,
+        "questionText": "Lecturer: John Smith from the 12 ..................................."
+      },
+      {
+        "correctAnswer": "top floor",
+        "id": 60017,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 13,
+        "questionText": "Sea View Restaurant on the 13 ................................."
+      },
+      {
+        "correctAnswer": "ground floor/ground foyer",
+        "id": 60018,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 14,
+        "questionText": "The lift on the 14 ............................"
+      },
+      {
+        "correctAnswer": "3:10",
+        "id": 60019,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 15,
+        "questionText": "15 ................. p.m."
+      },
+      {
+        "correctAnswer": "Palm Lounge",
+        "id": 60020,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 16,
+        "questionText": "16 .................................."
+      },
+      {
+        "correctAnswer": "cb",
+        "id": 60021,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 17,
+        "questionText": "17 Tickets are available"
+      },
+      {
+        "correctAnswer": "",
+        "id": 60022,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 18,
+        "questionText": "18 The delegates will be charged _________ for lunch."
+      },
+      {
+        "correctAnswer": "b",
+        "id": 60023,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 19,
+        "questionText": "19 The restaurant is famous for"
+      },
+      {
+        "correctAnswer": "a",
+        "id": 60024,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 20,
+        "questionText": "20 The ticket including lunch and beer costs  "
+      },
+      {
+        "correctAnswer": "c",
+        "id": 60025,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 21,
+        "questionText": "21 What is the defining characteristic of a specialised course?"
+      },
+      {
+        "correctAnswer": "a",
+        "id": 60026,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 22,
+        "questionText": "22 The Microbiology courses are available for  "
+      },
+      {
+        "correctAnswer": "b",
+        "id": 60027,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 23,
+        "questionText": "23 The Biology courses are available for"
+      },
+      {
+        "correctAnswer": "b",
+        "id": 60028,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 24,
+        "questionText": "24 Who are interested in Microbiology courses?"
+      },
+      {
+        "correctAnswer": "a",
+        "id": 60029,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 25,
+        "questionText": "25 A Medical Science course will be opened next year because"
+      },
+      {
+        "correctAnswer": "c",
+        "id": 60030,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 26,
+        "questionText": "26 Which is the quickest increasing subject in enrolment?  "
+      },
+      {
+        "correctAnswer": "c/e/f",
+        "id": 60031,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 27,
+        "questionText": ""
+      },
+      {
+        "correctAnswer": "c/e/f",
+        "id": 60032,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 28,
+        "questionText": ""
+      },
+      {
+        "correctAnswer": "c/e/f",
+        "id": 60033,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 29,
+        "questionText": ""
+      },
+      {
+        "correctAnswer": "textbook allowance",
+        "id": 60034,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 30,
+        "questionText": "30 There are three full scholarships that cover tuition and provide $1,500 cash as a .............................."
+      },
+      {
+        "correctAnswer": "plastic",
+        "id": 60035,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 31,
+        "questionText": "31 There are some man-made materials like ............................"
+      },
+      {
+        "correctAnswer": "processing",
+        "id": 60036,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 32,
+        "questionText": "32 Before being used, material undergoes ........................."
+      },
+      {
+        "correctAnswer": "seasoned",
+        "id": 60037,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 33,
+        "questionText": "33 Wood should be cut and .........................."
+      },
+      {
+        "correctAnswer": "polished",
+        "id": 60038,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 34,
+        "questionText": "34 Stone should be cut and .............................."
+      },
+      {
+        "correctAnswer": "cost",
+        "id": 60039,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 35,
+        "questionText": "35 Aside from environmental factors, one should take ................................... into account during construction."
+      },
+      {
+        "correctAnswer": "grain patterns",
+        "id": 60040,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 36,
+        "questionText": "36 Some properties of materials affect mood, such as ..................................., texture, and colour."
+      },
+      {
+        "correctAnswer": "feelings",
+        "id": 60041,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 37,
+        "questionText": "37 Use a mathematical formula to choose the type of wood, because ................................... are subjective, which are ambiguous in verbal description."
+      },
+      {
+        "correctAnswer": "0.8",
+        "id": 60042,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 38,
+        "questionText": "Approximately 38 ........................"
+      },
+      {
+        "correctAnswer": "0.1",
+        "id": 60043,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 39,
+        "questionText": "Approximately 39 .............."
+      },
+      {
+        "correctAnswer": "Black velvet",
+        "id": 60044,
+        "mockTest": {
+          "audioUrl": "https://res.cloudinary.com/aopi1xiw/video/upload/v1787231585/Ielts_Listening_Recent_Actual_Tests_Vol_1_-_Test_1.mp3",
+          "hibernateLazyInitializer": {},
+          "id": 60003,
+          "pdfUrl": "https://drive.google.com/file/d/1iqUHpka-TQl9xLmC1VJvuVmKUNJZ21dB/preview",
+          "studentClass": {
+            "hibernateLazyInitializer": {},
+            "id": 2,
+            "name": "Lớp IELTS Nâng Cao"
+          },
+          "title": "Ielts Listening Recent Actual Tests Vol 1 - Test 1",
+          "type": "LISTENING"
+        },
+        "questionNumber": 40,
+        "questionText": "40 ..............................."
+      }
+    ]
+  }
+}

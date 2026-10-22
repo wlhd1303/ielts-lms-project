@@ -36,7 +36,22 @@ public class TestEventRegistration {
     private String email;
 
     @Column(nullable = false, length = 30)
-    private String status; // REGISTERED, ATTENDED, ABSENT, CANCELLED
+    private String status; // REGISTERED, IN_PROGRESS, SUBMITTED, ATTENDED, ABSENT, CANCELLED
+
+    @Column(name = "exam_started_at")
+    private Timestamp examStartedAt;
+
+    @Column(name = "exam_submitted_at")
+    private Timestamp examSubmittedAt;
+
+    @Column(name = "student_answers", columnDefinition = "LONGTEXT")
+    private String studentAnswers;
+
+    @Column(name = "listening_correct_count")
+    private Integer listeningCorrectCount = 0;
+
+    @Column(name = "reading_correct_count")
+    private Integer readingCorrectCount = 0;
 
     @Column(name = "score_listening")
     private Double scoreListening;
