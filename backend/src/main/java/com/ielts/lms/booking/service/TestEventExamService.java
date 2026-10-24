@@ -22,6 +22,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -29,11 +30,41 @@ import java.util.*;
 @Slf4j
 public class TestEventExamService {
 
+    public static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     private final TestEventRepository eventRepository;
     private final TestEventShiftRepository shiftRepository;
     private final TestEventRegistrationRepository registrationRepository;
     private final TestEventQuestionRepository questionRepository;
     private final ObjectMapper objectMapper;
+
+    /**
+     * Xác định thời điểm mở và kết thúc cửa sổ cho phép học viên truy cập vào ca thi.
+     * Cửa sổ mở từ startTime và kéo dài đến endTime của ca thi (hoặc tối thiểu 1 tiếng).
+     */
+    public LocalDateTime[] calculateExamWindow(TestEvent event, TestEventShift shift) {
+        LocalTime startTime = LocalTime.parse(shift.getStartTime().trim());
+        LocalDateTime windowStart = LocalDateTime.of(event.getEventDate(), startTime);
+
+        LocalDateTime windowEnd;
+        if (shift.getEndTime() != null && !shift.getEndTime().trim().isEmpty()) {
+            LocalTime endTime = LocalTime.parse(shift.getEndTime().trim());
+            windowEnd = LocalDateTime.of(event.getEventDate(), endTime);
+            if (endTime.isBefore(startTime)) {
+                // Ca thi xuyên đêm qua ngày hôm sau (ví dụ 23:00 -> 01:00)
+                windowEnd = windowEnd.plusDays(1);
+            }
+        } else {
+            windowEnd = windowStart.plusHours(1);
+        }
+
+        // Đảm bảo cửa sổ mở đề kéo dài ít nhất 1 tiếng tính từ giờ bắt đầu
+        if (windowEnd.isBefore(windowStart.plusHours(1))) {
+            windowEnd = windowStart.plusHours(1);
+        }
+
+        return new LocalDateTime[]{windowStart, windowEnd};
+    }
 
     /**
      * Admin cấu hình nội dung đề thi, tài liệu (PDF, Audio, Bài đọc) và bảng đáp án
@@ -128,10 +159,10 @@ public class TestEventExamService {
                     .build();
         }
 
-        LocalDateTime serverTime = LocalDateTime.now();
-        LocalTime startTime = LocalTime.parse(shift.getStartTime());
-        LocalDateTime windowStart = LocalDateTime.of(event.getEventDate(), startTime);
-        LocalDateTime windowEnd = windowStart.plusHours(1); // Cửa sổ mở đề 1 tiếng tính từ thời điểm setup
+        LocalDateTime serverTime = LocalDateTime.now(VN_ZONE);
+        LocalDateTime[] window = calculateExamWindow(event, shift);
+        LocalDateTime windowStart = window[0];
+        LocalDateTime windowEnd = window[1];
 
         Integer duration = event.getDurationMinutes() != null ? event.getDurationMinutes() : 60;
 
@@ -204,18 +235,18 @@ public class TestEventExamService {
             throw new RuntimeException("Bạn đã hoàn thành bài thi này trước đó!");
         }
 
-        LocalDateTime serverTime = LocalDateTime.now();
-        LocalTime startTime = LocalTime.parse(shift.getStartTime());
-        LocalDateTime windowStart = LocalDateTime.of(event.getEventDate(), startTime);
-        LocalDateTime windowEnd = windowStart.plusHours(1);
+        LocalDateTime serverTime = LocalDateTime.now(VN_ZONE);
+        LocalDateTime[] window = calculateExamWindow(event, shift);
+        LocalDateTime windowStart = window[0];
+        LocalDateTime windowEnd = window[1];
 
-        // Nếu chưa bắt đầu làm bài thì kiểm tra cửa sổ 1 tiếng
+        // Nếu chưa bắt đầu làm bài thì kiểm tra cửa sổ ca thi
         if (registration.getExamStartedAt() == null) {
             if (serverTime.isBefore(windowStart)) {
                 throw new RuntimeException("Chưa đến thời điểm mở đề thi! Vui lòng đợi đến " + shift.getStartTime());
             }
             if (serverTime.isAfter(windowEnd.plusMinutes(2))) {
-                throw new RuntimeException("Đã quá thời hạn 1 tiếng để mở đề thi! Cổng thi đã đóng.");
+                throw new RuntimeException("Đã quá thời hạn diễn ra ca thi! Cổng thi đã đóng.");
             }
 
             // Ghi nhận thời điểm bắt đầu
@@ -282,7 +313,7 @@ public class TestEventExamService {
             throw new RuntimeException("Bạn chưa bấm bắt đầu làm bài thi!");
         }
 
-        LocalDateTime serverTime = LocalDateTime.now();
+        LocalDateTime serverTime = LocalDateTime.now(VN_ZONE);
         Map<String, String> studentAnswers = dto != null && dto.getAnswers() != null ? dto.getAnswers() : Collections.emptyMap();
 
         // Lấy toàn bộ đáp án chuẩn của đề thi

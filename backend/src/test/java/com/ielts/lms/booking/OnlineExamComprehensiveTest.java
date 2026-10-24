@@ -299,12 +299,14 @@ class OnlineExamComprehensiveTest {
     }
 
     @Test
-    @DisplayName("TC-WINDOW-04: Quá hạn khung giờ 1 tiếng mà không vào thi -> MISSED_WINDOW, khóa quyền làm bài")
+    @DisplayName("TC-WINDOW-04: Quá hạn khung giờ ca thi mà không vào thi -> MISSED_WINDOW, khóa quyền làm bài")
     void testMissedWindowLock() {
-        // Given: Ca thi bắt đầu lúc 2 tiếng trước
-        LocalTime pastTime = LocalTime.now().minusHours(2);
-        testEvent.setEventDate(LocalDate.now());
+        // Given: Ca thi bắt đầu lúc 3 tiếng trước và kết thúc lúc 1 tiếng trước
+        LocalTime pastTime = LocalTime.now(TestEventExamService.VN_ZONE).minusHours(3);
+        LocalTime pastEndTime = pastTime.plusHours(2);
+        testEvent.setEventDate(LocalDate.now(TestEventExamService.VN_ZONE));
         testShift.setStartTime(pastTime.format(DateTimeFormatter.ofPattern("HH:mm")));
+        testShift.setEndTime(pastEndTime.format(DateTimeFormatter.ofPattern("HH:mm")));
 
         when(shiftRepository.findById(800L)).thenReturn(Optional.of(testShift));
         when(registrationRepository.findByShiftIdAndUserId(800L, student.getId()))
@@ -317,7 +319,7 @@ class OnlineExamComprehensiveTest {
         assertThat(status.getStatus()).isEqualTo("MISSED_WINDOW");
         assertThatThrownBy(() -> examService.startExam(800L, student))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Đã quá thời hạn 1 tiếng để mở đề thi");
+                .hasMessageContaining("Đã quá thời hạn diễn ra ca thi");
     }
 
     // =========================================================================
@@ -327,10 +329,12 @@ class OnlineExamComprehensiveTest {
     @Test
     @DisplayName("TC-EXAM-05: Thí sinh làm bài, nộp bài thành công và nhận điểm Band Score Cambridge IELTS chuẩn")
     void testStudentExamSubmissionAndAccurateGrading() {
-        // Given: Ca thi bắt đầu từ 5 phút trước -> đang trong khung giờ 1 tiếng mở đề
-        LocalTime activeStart = LocalTime.now().minusMinutes(5);
-        testEvent.setEventDate(LocalDate.now());
+        // Given: Ca thi bắt đầu từ 5 phút trước và kết thúc sau gần 2 tiếng -> đang trong ca thi
+        LocalTime activeStart = LocalTime.now(TestEventExamService.VN_ZONE).minusMinutes(5);
+        LocalTime activeEnd = activeStart.plusHours(2);
+        testEvent.setEventDate(LocalDate.now(TestEventExamService.VN_ZONE));
         testShift.setStartTime(activeStart.format(DateTimeFormatter.ofPattern("HH:mm")));
+        testShift.setEndTime(activeEnd.format(DateTimeFormatter.ofPattern("HH:mm")));
 
         testEvent.setPdfUrl(mockReadingTest.getPdfUrl());
         testEvent.setAudioUrl(mockListeningTest.getAudioUrl());

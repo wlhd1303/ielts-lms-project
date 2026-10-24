@@ -546,7 +546,7 @@ export default function EventExamRoom() {
             <p className="font-bold text-white flex items-center gap-1.5">
               <span>📋</span> Quy chế mở đề thi:
             </p>
-            <p>• Khung giờ mở đề kéo dài <strong>1 tiếng</strong> tính từ lúc bắt đầu.</p>
+            <p>• Khung giờ mở đề diễn ra trong suốt thời gian ca thi.</p>
             <p>• Thời gian làm bài <strong>({accessStatus.durationMinutes} phút)</strong> chỉ bắt đầu đếm ngược khi bạn bấm "Bắt đầu làm bài".</p>
             <p>• Hệ thống sẽ tự động chuyển sang trang mở đề ngay khi đồng hồ điểm 00:00:00.</p>
           </div>
@@ -585,7 +585,7 @@ export default function EventExamRoom() {
             <p className="font-bold flex items-center gap-1.5 text-blue-950">
               <span>💡</span> Lưu ý quan trọng trước khi làm bài:
             </p>
-            <p>• Cổng mở đề sẽ đóng sau 1 tiếng. Bạn đang nằm trong khung giờ hợp lệ để làm bài.</p>
+            <p>• Cổng mở đề sẽ mở trong suốt ca thi. Bạn đang nằm trong khung giờ hợp lệ để làm bài.</p>
             <p>• Đồng hồ làm bài <strong>{accessStatus.durationMinutes} phút</strong> của bạn sẽ bắt đầu đếm ngược ngay khi bạn bấm nút dưới đây.</p>
             <p>• Có thể sử dụng tính năng <strong>Highlight & Bỏ highlight</strong> trực tiếp trên bài đọc bằng chuột hoặc phím tắt <kbd className="bg-white px-1.5 py-0.5 rounded border shadow-sm">Ctrl+H</kbd>.</p>
             <p>• Hệ thống hỗ trợ Auto-save liên tục, không lo mất bài khi mất mạng.</p>

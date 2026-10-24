@@ -16,14 +16,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.time.ZoneId;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TestEventService {
+
+    public static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final TestEventRepository eventRepository;
     private final TestEventShiftRepository shiftRepository;
@@ -114,7 +115,9 @@ public class TestEventService {
                 event.setShifts(currentShifts);
             }
 
-            List<TestEventShift> updatedShifts = new ArrayList<>();
+            Set<Long> keptShiftIds = new HashSet<>();
+            List<TestEventShift> shiftsToAdd = new ArrayList<>();
+
             for (CreateTestEventDto.ShiftDto sDto : dto.getShifts()) {
                 TestEventShift shiftToUse = null;
                 if (sDto.getId() != null) {
@@ -134,31 +137,40 @@ public class TestEventService {
                     }
                 }
 
-                if (shiftToUse == null) {
-                    shiftToUse = new TestEventShift();
-                    shiftToUse.setTestEvent(event);
-                    shiftToUse.setCurrentRegistered(0);
+                if (shiftToUse != null) {
+                    shiftToUse.setShiftName(sDto.getShiftName().trim());
+                    shiftToUse.setStartTime(sDto.getStartTime().trim());
+                    shiftToUse.setEndTime(sDto.getEndTime().trim());
+                    shiftToUse.setMaxCapacity(sDto.getMaxCapacity());
+                    if (shiftToUse.getId() != null) {
+                        keptShiftIds.add(shiftToUse.getId());
+                    }
+                } else {
+                    TestEventShift newShift = new TestEventShift();
+                    newShift.setTestEvent(event);
+                    newShift.setCurrentRegistered(0);
+                    newShift.setShiftName(sDto.getShiftName().trim());
+                    newShift.setStartTime(sDto.getStartTime().trim());
+                    newShift.setEndTime(sDto.getEndTime().trim());
+                    newShift.setMaxCapacity(sDto.getMaxCapacity());
+                    shiftsToAdd.add(newShift);
                 }
-
-                shiftToUse.setShiftName(sDto.getShiftName().trim());
-                shiftToUse.setStartTime(sDto.getStartTime().trim());
-                shiftToUse.setEndTime(sDto.getEndTime().trim());
-                shiftToUse.setMaxCapacity(sDto.getMaxCapacity());
-                updatedShifts.add(shiftToUse);
             }
 
-            // Xóa các đăng ký thuộc các shift đã bị gỡ bỏ
-            for (TestEventShift existing : currentShifts) {
-                if (!updatedShifts.contains(existing)) {
-                    List<TestEventRegistration> regs = registrationRepository.findByShiftId(existing.getId());
+            // Xóa các ca thi cũ thực sự bị gỡ bỏ khỏi sự kiện (và xóa đăng ký kèm theo)
+            Iterator<TestEventShift> it = currentShifts.iterator();
+            while (it.hasNext()) {
+                TestEventShift cur = it.next();
+                if (cur.getId() != null && !keptShiftIds.contains(cur.getId())) {
+                    List<TestEventRegistration> regs = registrationRepository.findByShiftId(cur.getId());
                     if (!regs.isEmpty()) {
                         registrationRepository.deleteAll(regs);
                     }
+                    it.remove();
                 }
             }
 
-            currentShifts.clear();
-            currentShifts.addAll(updatedShifts);
+            currentShifts.addAll(shiftsToAdd);
         }
 
         return eventRepository.save(event);
@@ -200,7 +212,7 @@ public class TestEventService {
             throw new RuntimeException("Sự kiện thi này hiện không mở đăng ký!");
         }
 
-        if (event.getRegistrationDeadline() != null && LocalDateTime.now().isAfter(event.getRegistrationDeadline())) {
+        if (event.getRegistrationDeadline() != null && LocalDateTime.now(VN_ZONE).isAfter(event.getRegistrationDeadline())) {
             throw new RuntimeException("Đã hết hạn đăng ký cho kỳ thi này!");
         }
 

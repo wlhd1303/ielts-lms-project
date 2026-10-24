@@ -80,8 +80,9 @@ public class DataInitializer {
             com.ielts.lms.booking.repository.TestEventQuestionRepository eventQuestionRepository,
             com.ielts.lms.booking.repository.TestEventRegistrationRepository registrationRepository) {
         return args -> {
-            java.time.LocalDate today = java.time.LocalDate.now();
-            java.time.LocalTime now = java.time.LocalTime.now();
+            java.time.ZoneId vnZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+            java.time.LocalDate today = java.time.LocalDate.now(vnZone);
+            java.time.LocalTime now = java.time.LocalTime.now(vnZone);
 
             int currentHour = now.getHour();
             String activeStartTime = String.format("%02d:00", Math.max(0, currentHour));

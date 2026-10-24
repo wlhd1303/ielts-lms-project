@@ -62,7 +62,7 @@ class TestEventExamServiceTest {
         testEvent = new TestEvent();
         testEvent.setId(1L);
         testEvent.setTitle("Thi Thử IELTS Đợt 1");
-        testEvent.setEventDate(LocalDate.now());
+        testEvent.setEventDate(LocalDate.now(TestEventExamService.VN_ZONE));
         testEvent.setExamFormat("ONLINE");
         testEvent.setSkillType("READING");
         testEvent.setDurationMinutes(60);
@@ -127,12 +127,14 @@ class TestEventExamServiceTest {
     }
 
     @Test
-    @DisplayName("Kiểm tra trạng thái trong khung 1 tiếng mở đề -> OPEN_WINDOW")
+    @DisplayName("Kiểm tra trạng thái trong khung giờ mở đề của ca thi -> OPEN_WINDOW")
     void testGetExamAccessStatus_OpenWindow() {
-        // Đặt giờ bắt đầu lùi lại 10 phút trước
-        LocalTime now = LocalTime.now();
+        // Đặt giờ bắt đầu lùi lại 10 phút trước và kết thúc sau 2 tiếng
+        LocalTime now = LocalTime.now(TestEventExamService.VN_ZONE);
         String startTimeStr = String.format("%02d:%02d", now.getHour(), Math.max(0, now.getMinute() - 10));
+        String endTimeStr = String.format("%02d:%02d", Math.min(23, now.getHour() + 2), now.getMinute());
         testShift.setStartTime(startTimeStr);
+        testShift.setEndTime(endTimeStr);
 
         when(shiftRepository.findById(10L)).thenReturn(Optional.of(testShift));
         when(registrationRepository.findByShiftIdAndUserId(10L, 100L)).thenReturn(Optional.of(testRegistration));
@@ -143,11 +145,13 @@ class TestEventExamServiceTest {
     }
 
     @Test
-    @DisplayName("Bắt đầu làm bài trong khung 1 tiếng thành công và trả về đề không kèm đáp án")
+    @DisplayName("Bắt đầu làm bài trong ca thi thành công và trả về đề không kèm đáp án")
     void testStartExam_Success() {
-        LocalTime now = LocalTime.now();
+        LocalTime now = LocalTime.now(TestEventExamService.VN_ZONE);
         String startTimeStr = String.format("%02d:%02d", now.getHour(), Math.max(0, now.getMinute() - 10));
+        String endTimeStr = String.format("%02d:%02d", Math.min(23, now.getHour() + 2), now.getMinute());
         testShift.setStartTime(startTimeStr);
+        testShift.setEndTime(endTimeStr);
 
         TestEventQuestion q1 = new TestEventQuestion();
         q1.setSkill("READING");
@@ -203,5 +207,45 @@ class TestEventExamServiceTest {
         assertThat(result.getScoreReading()).isNotNull();
         assertThat(testRegistration.getStatus()).isEqualTo("ATTENDED");
         assertThat(testRegistration.getExamSubmittedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Kiểm tra calculateExamWindow tính đúng cửa sổ ca thi chiều 15:00 - 17:00 (3h - 5h chiều)")
+    void testCalculateExamWindow_AfternoonShift() {
+        TestEventShift afternoonShift = new TestEventShift();
+        afternoonShift.setStartTime("15:00");
+        afternoonShift.setEndTime("17:00");
+
+        LocalDateTime[] window = examService.calculateExamWindow(testEvent, afternoonShift);
+
+        assertThat(window[0]).isEqualTo(LocalDateTime.of(testEvent.getEventDate(), LocalTime.of(15, 0)));
+        assertThat(window[1]).isEqualTo(LocalDateTime.of(testEvent.getEventDate(), LocalTime.of(17, 0)));
+    }
+
+    @Test
+    @DisplayName("Kiểm tra calculateExamWindow cho ca thi qua đêm 23:00 - 01:00")
+    void testCalculateExamWindow_OvernightShift() {
+        TestEventShift overnightShift = new TestEventShift();
+        overnightShift.setStartTime("23:00");
+        overnightShift.setEndTime("01:00");
+
+        LocalDateTime[] window = examService.calculateExamWindow(testEvent, overnightShift);
+
+        assertThat(window[0]).isEqualTo(LocalDateTime.of(testEvent.getEventDate(), LocalTime.of(23, 0)));
+        assertThat(window[1]).isEqualTo(LocalDateTime.of(testEvent.getEventDate().plusDays(1), LocalTime.of(1, 0)));
+    }
+
+    @Test
+    @DisplayName("Kiểm tra calculateExamWindow tự động mở rộng tối thiểu 1 tiếng nếu endTime ngắn hơn")
+    void testCalculateExamWindow_MinimumOneHour() {
+        TestEventShift shortShift = new TestEventShift();
+        shortShift.setStartTime("15:00");
+        shortShift.setEndTime("15:30"); // Chỉ 30 phút
+
+        LocalDateTime[] window = examService.calculateExamWindow(testEvent, shortShift);
+
+        assertThat(window[0]).isEqualTo(LocalDateTime.of(testEvent.getEventDate(), LocalTime.of(15, 0)));
+        // Tối thiểu 1 tiếng -> 16:00
+        assertThat(window[1]).isEqualTo(LocalDateTime.of(testEvent.getEventDate(), LocalTime.of(16, 0)));
     }
 }

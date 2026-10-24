@@ -77,6 +77,41 @@ export default function BookingManagement() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // Helper mô tả giờ thân thiện (Sáng / Chiều / Tối) để tránh Admin nhầm lẫn 03:00 và 15:00
+  const getTimeDescription = (timeStr: string) => {
+    if (!timeStr) return '';
+    const [hStr, mStr] = timeStr.split(':');
+    const h = parseInt(hStr, 10);
+    if (isNaN(h)) return '';
+    if (h >= 12 && h < 18) {
+      return `${h > 12 ? h - 12 : 12}:${mStr} Chiều`;
+    } else if (h >= 18) {
+      return `${h - 12}:${mStr} Tối`;
+    } else if (h === 0) {
+      return `12:${mStr} Đêm`;
+    } else if (h < 6) {
+      return `${h}:${mStr} Sáng sớm`;
+    } else {
+      return `${h}:${mStr} Sáng`;
+    }
+  };
+
+  const isEarlyMorning = (timeStr: string) => {
+    if (!timeStr) return false;
+    const h = parseInt(timeStr.split(':')[0], 10);
+    return !isNaN(h) && h >= 1 && h <= 6;
+  };
+
+  const convertToPm = (timeStr: string) => {
+    if (!timeStr) return timeStr;
+    const [hStr, mStr] = timeStr.split(':');
+    const h = parseInt(hStr, 10);
+    if (!isNaN(h) && h < 12) {
+      return `${String(h + 12).padStart(2, '0')}:${mStr}`;
+    }
+    return timeStr;
+  };
+
   const fetchAdminData = async () => {
     setLoading(true);
     try {
@@ -1018,71 +1053,93 @@ export default function BookingManagement() {
 
                 <div className="space-y-2">
                   {shiftsInput.map((sh, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex-wrap sm:flex-nowrap">
-                      <input
-                        type="text"
-                        required
-                        value={sh.shiftName}
-                        onChange={(e) => {
-                          const updated = [...shiftsInput];
-                          updated[idx].shiftName = e.target.value;
-                          setShiftsInput(updated);
-                        }}
-                        placeholder="Tên ca"
-                        className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
-                      />
-                      <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 flex-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Từ:</span>
+                    <div key={idx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         <input
-                          type="time"
+                          type="text"
                           required
-                          value={sh.startTime}
+                          value={sh.shiftName}
                           onChange={(e) => {
                             const updated = [...shiftsInput];
-                            updated[idx].startTime = e.target.value;
+                            updated[idx].shiftName = e.target.value;
                             setShiftsInput(updated);
                           }}
-                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                          placeholder="Tên ca"
+                          className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
                         />
-                        <span className="text-slate-400">→</span>
-                        <span className="text-[10px] text-slate-500 font-bold">Đến:</span>
-                        <input
-                          type="time"
-                          required
-                          value={sh.endTime}
-                          onChange={(e) => {
-                            const updated = [...shiftsInput];
-                            updated[idx].endTime = e.target.value;
-                            setShiftsInput(updated);
-                          }}
-                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
-                        />
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 flex-1">
+                          <span className="text-[10px] text-slate-500 font-bold">Từ:</span>
+                          <input
+                            type="time"
+                            required
+                            value={sh.startTime}
+                            onChange={(e) => {
+                              const updated = [...shiftsInput];
+                              updated[idx].startTime = e.target.value;
+                              setShiftsInput(updated);
+                            }}
+                            className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                          />
+                          <span className="text-slate-400">→</span>
+                          <span className="text-[10px] text-slate-500 font-bold">Đến:</span>
+                          <input
+                            type="time"
+                            required
+                            value={sh.endTime}
+                            onChange={(e) => {
+                              const updated = [...shiftsInput];
+                              updated[idx].endTime = e.target.value;
+                              setShiftsInput(updated);
+                            }}
+                            className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-500 font-bold">Max:</span>
+                          <input
+                            type="number"
+                            required
+                            min={1}
+                            value={sh.maxCapacity}
+                            onChange={(e) => {
+                              const updated = [...shiftsInput];
+                              updated[idx].maxCapacity = parseInt(e.target.value) || 20;
+                              setShiftsInput(updated);
+                            }}
+                            placeholder="Sĩ số"
+                            className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
+                          />
+                        </div>
+                        {shiftsInput.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setShiftsInput(shiftsInput.filter((_, i) => i !== idx))}
+                            className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
+                            title="Xóa ca này"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Max:</span>
-                        <input
-                          type="number"
-                          required
-                          min={1}
-                          value={sh.maxCapacity}
-                          onChange={(e) => {
-                            const updated = [...shiftsInput];
-                            updated[idx].maxCapacity = parseInt(e.target.value) || 20;
-                            setShiftsInput(updated);
-                          }}
-                          placeholder="Sĩ số"
-                          className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
-                        />
+                      <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
+                        <span>🕒 Khung giờ: <strong>{getTimeDescription(sh.startTime)}</strong> đến <strong>{getTimeDescription(sh.endTime)}</strong></span>
                       </div>
-                      {shiftsInput.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setShiftsInput(shiftsInput.filter((_, i) => i !== idx))}
-                          className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
-                          title="Xóa ca này"
-                        >
-                          ✕
-                        </button>
+                      {isEarlyMorning(sh.startTime) && (
+                        <div className="flex items-center justify-between text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-1 rounded-lg">
+                          <span>⚠️ Bạn đang chọn <strong>{sh.startTime} ({getTimeDescription(sh.startTime)})</strong>. Bạn có muốn đổi sang buổi chiều?</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...shiftsInput];
+                              updated[idx].startTime = convertToPm(updated[idx].startTime);
+                              updated[idx].endTime = convertToPm(updated[idx].endTime);
+                              setShiftsInput(updated);
+                            }}
+                            className="ml-2 font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50 cursor-pointer"
+                          >
+                            Đổi sang {convertToPm(sh.startTime)} chiều ➔
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
@@ -1258,54 +1315,74 @@ export default function BookingManagement() {
 
                 <div className="space-y-2">
                   {editShifts.map((sh, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex-wrap sm:flex-nowrap">
-                      <input
-                        type="text"
-                        required
-                        value={sh.shiftName}
-                        onChange={(e) => handleUpdateEditShiftField(idx, 'shiftName', e.target.value)}
-                        placeholder="Tên ca"
-                        className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
-                      />
-                      <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 flex-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Từ:</span>
+                    <div key={idx} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                         <input
-                          type="time"
+                          type="text"
                           required
-                          value={sh.startTime}
-                          onChange={(e) => handleUpdateEditShiftField(idx, 'startTime', e.target.value)}
-                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                          value={sh.shiftName}
+                          onChange={(e) => handleUpdateEditShiftField(idx, 'shiftName', e.target.value)}
+                          placeholder="Tên ca"
+                          className="w-24 border rounded-lg p-1.5 text-xs font-bold bg-white"
                         />
-                        <span className="text-slate-400">→</span>
-                        <span className="text-[10px] text-slate-500 font-bold">Đến:</span>
-                        <input
-                          type="time"
-                          required
-                          value={sh.endTime}
-                          onChange={(e) => handleUpdateEditShiftField(idx, 'endTime', e.target.value)}
-                          className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
-                        />
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-slate-200 flex-1">
+                          <span className="text-[10px] text-slate-500 font-bold">Từ:</span>
+                          <input
+                            type="time"
+                            required
+                            value={sh.startTime}
+                            onChange={(e) => handleUpdateEditShiftField(idx, 'startTime', e.target.value)}
+                            className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                          />
+                          <span className="text-slate-400">→</span>
+                          <span className="text-[10px] text-slate-500 font-bold">Đến:</span>
+                          <input
+                            type="time"
+                            required
+                            value={sh.endTime}
+                            onChange={(e) => handleUpdateEditShiftField(idx, 'endTime', e.target.value)}
+                            className="border-none p-0 text-xs font-mono font-bold outline-none w-20 text-center"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-500 font-bold">Max:</span>
+                          <input
+                            type="number"
+                            required
+                            min={1}
+                            value={sh.maxCapacity}
+                            onChange={(e) => handleUpdateEditShiftField(idx, 'maxCapacity', parseInt(e.target.value) || 1)}
+                            className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
+                          />
+                        </div>
+                        {editShifts.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveEditShift(idx)}
+                            className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
+                            title="Xóa ca này"
+                          >
+                            ✕
+                          </button>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-500 font-bold">Max:</span>
-                        <input
-                          type="number"
-                          required
-                          min={1}
-                          value={sh.maxCapacity}
-                          onChange={(e) => handleUpdateEditShiftField(idx, 'maxCapacity', parseInt(e.target.value) || 1)}
-                          className="w-14 border rounded-lg p-1.5 text-xs font-bold bg-white text-center"
-                        />
+                      <div className="flex items-center justify-between px-1 text-[11px] text-slate-500">
+                        <span>🕒 Khung giờ: <strong>{getTimeDescription(sh.startTime)}</strong> đến <strong>{getTimeDescription(sh.endTime)}</strong></span>
                       </div>
-                      {editShifts.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveEditShift(idx)}
-                          className="text-slate-400 hover:text-rose-600 p-1 text-sm font-bold cursor-pointer"
-                          title="Xóa ca này"
-                        >
-                          ✕
-                        </button>
+                      {isEarlyMorning(sh.startTime) && (
+                        <div className="flex items-center justify-between text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-2.5 py-1 rounded-lg">
+                          <span>⚠️ Bạn đang chọn <strong>{sh.startTime} ({getTimeDescription(sh.startTime)})</strong>. Bạn có muốn đổi sang buổi chiều?</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleUpdateEditShiftField(idx, 'startTime', convertToPm(sh.startTime));
+                              handleUpdateEditShiftField(idx, 'endTime', convertToPm(sh.endTime));
+                            }}
+                            className="ml-2 font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200 hover:bg-blue-50 cursor-pointer"
+                          >
+                            Đổi sang {convertToPm(sh.startTime)} chiều ➔
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
