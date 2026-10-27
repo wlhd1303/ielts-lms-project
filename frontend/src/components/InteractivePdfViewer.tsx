@@ -15,6 +15,20 @@ interface FloatingMenuPosition {
   visible: boolean;
 }
 
+export interface PdfHighlightRect {
+  leftPercent: number;
+  topPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+}
+
+export interface PdfHighlightGroup {
+  id: string;
+  text: string;
+  pageNumber: number;
+  rects: PdfHighlightRect[];
+}
+
 // Lấy backend URL chuẩn theo môi trường
 const getBackendUrl = (): string => {
   const envUrl = (import.meta.env.VITE_API_URL || '').trim();
@@ -34,7 +48,7 @@ const getGoogleDriveEmbedUrl = (url: string) => {
   return url;
 };
 
-export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerProps) {
+export default function InteractivePdfViewer({ pdfUrl, storageKey }: InteractivePdfViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'interactive' | 'drive'>('interactive');
   const [loading, setLoading] = useState(true);
@@ -43,7 +57,21 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
   const [scale, setScale] = useState<number>(1.15); // Zoom scale
   const [renderedPages, setRenderedPages] = useState<number[]>([]);
   const [floatingMenu, setFloatingMenu] = useState<FloatingMenuPosition>({ x: 0, y: 0, visible: false });
-  const [highlightCount, setHighlightCount] = useState<number>(0);
+
+  // Quản lý danh sách các vệt highlight dưới dạng Bounding Box overlay
+  const [highlights, setHighlights] = useState<PdfHighlightGroup[]>(() => {
+    if (storageKey) {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Lỗi đọc highlight từ localStorage:', e);
+      }
+    }
+    return [];
+  });
+
+  const highlightCount = highlights.length;
 
   // Chuẩn hóa URL PDF (Nếu là URL ngoài hoặc Google Drive -> chuyển qua backend proxy có host rõ ràng)
   const getProxiedUrl = (url: string) => {
@@ -161,9 +189,15 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
       return;
     }
 
+    // Đảm bảo selection nằm trong container PDF
     const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
+    const startNode = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement;
+    if (!containerRef.current?.contains(startNode)) {
+      setFloatingMenu((prev) => ({ ...prev, visible: false }));
+      return;
+    }
 
+    const rect = range.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
       setFloatingMenu({
         x: rect.left + rect.width / 2,
@@ -173,7 +207,7 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
     }
   };
 
-  // Áp dụng Highlight vàng lên văn bản được chọn
+  // Áp dụng Highlight vàng chuẩn xác bằng Bounding Box Overlays
   const applyHighlight = useCallback(() => {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return;
@@ -182,46 +216,106 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
     const text = selection.toString().trim();
     if (!text) return;
 
-    try {
-      const mark = document.createElement('mark');
-      mark.className = 'ielts-pdf-highlight';
-      mark.title = 'Click để bỏ highlight';
-      mark.dataset.highlightId = 'hl_' + Date.now();
+    // Lấy toàn bộ bounding rects của các dòng văn bản được chọn
+    const clientRects = Array.from(range.getClientRects());
+    if (clientRects.length === 0) return;
 
-      try {
-        range.surroundContents(mark);
-      } catch {
-        const fragment = range.extractContents();
-        mark.appendChild(fragment);
-        range.insertNode(mark);
+    // Phân bổ từng rect vào đúng trang PDF tương ứng
+    const rectsByPage = new Map<number, { pageContainer: HTMLElement; rects: PdfHighlightRect[] }>();
+
+    for (const r of clientRects) {
+      if (r.width <= 1 || r.height <= 1) continue;
+
+      // Xác định phần tử trang PDF chứa rect này
+      const midX = r.left + r.width / 2;
+      const midY = r.top + r.height / 2;
+      const elementAtPoint = document.elementFromPoint(midX, midY);
+      const pageContainer = (elementAtPoint?.closest('.pdf-page-container') ||
+        (range.startContainer instanceof Element
+          ? range.startContainer
+          : range.startContainer.parentElement
+        )?.closest('.pdf-page-container')) as HTMLElement | null;
+
+      if (!pageContainer) continue;
+
+      const pageNum = parseInt(pageContainer.getAttribute('data-page-number') || '1', 10);
+      const pageRect = pageContainer.getBoundingClientRect();
+
+      // Tính phần trăm tọa độ tương đối (độc lập với độ phóng to zoom scale)
+      const leftPercent = ((r.left - pageRect.left) / pageRect.width) * 100;
+      const topPercent = ((r.top - pageRect.top) / pageRect.height) * 100;
+      const widthPercent = (r.width / pageRect.width) * 100;
+      const heightPercent = (r.height / pageRect.height) * 100;
+
+      if (!rectsByPage.has(pageNum)) {
+        rectsByPage.set(pageNum, { pageContainer, rects: [] });
       }
+      rectsByPage.get(pageNum)!.rects.push({
+        leftPercent,
+        topPercent,
+        widthPercent,
+        heightPercent,
+      });
+    }
 
-      setHighlightCount((c) => c + 1);
-    } catch (e) {
-      console.warn('Không thể bọc phần tử highlight:', e);
+    if (rectsByPage.size > 0) {
+      const newGroups: PdfHighlightGroup[] = [];
+      const groupIdPrefix = 'hl_' + Date.now() + '_';
+
+      rectsByPage.forEach((val, pNum) => {
+        if (val.rects.length > 0) {
+          newGroups.push({
+            id: groupIdPrefix + pNum + '_' + Math.random().toString(36).slice(2, 6),
+            text,
+            pageNumber: pNum,
+            rects: val.rects,
+          });
+        }
+      });
+
+      setHighlights((prev) => {
+        const updated = [...prev, ...newGroups];
+        if (storageKey) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(updated));
+          } catch (e) {
+            console.warn('Lỗi lưu highlight vào localStorage:', e);
+          }
+        }
+        return updated;
+      });
     }
 
     selection.removeAllRanges();
     setFloatingMenu((prev) => ({ ...prev, visible: false }));
-  }, []);
+  }, [storageKey]);
 
-  // Bỏ Highlight khi click trực tiếp vào đoạn văn bản đã highlight
+  // Bỏ Highlight khi nhấp trực tiếp vào đoạn văn bản đã highlight
   const handleContainerClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    const mark = target.closest('.ielts-pdf-highlight') as HTMLElement;
-    if (mark) {
-      const parent = mark.parentNode;
-      while (mark.firstChild) {
-        parent?.insertBefore(mark.firstChild, mark);
+    // Sử dụng elementsFromPoint để bắt được lớp highlight bên dưới text layer
+    const elements = document.elementsFromPoint(e.clientX, e.clientY);
+    const hlItem = elements.find((el) => el.classList.contains('pdf-highlight-item')) as HTMLElement | undefined;
+
+    if (hlItem) {
+      const hlId = hlItem.getAttribute('data-highlight-id');
+      if (hlId) {
+        setHighlights((prev) => {
+          const updated = prev.filter((h) => h.id !== hlId);
+          if (storageKey) {
+            try {
+              localStorage.setItem(storageKey, JSON.stringify(updated));
+            } catch (err) {
+              console.warn('Lỗi cập nhật highlight:', err);
+            }
+          }
+          return updated;
+        });
+        setFloatingMenu((prev) => ({ ...prev, visible: false }));
       }
-      parent?.removeChild(mark);
-      parent?.normalize();
-      setHighlightCount((c) => Math.max(0, c - 1));
-      setFloatingMenu((prev) => ({ ...prev, visible: false }));
     }
   };
 
-  // Phím tắt Ctrl + H để Highlight
+  // Phím tắt Ctrl + H để Highlight nhanh
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') {
@@ -238,24 +332,20 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
 
   // Xóa toàn bộ highlight trên tài liệu
   const clearAllHighlights = () => {
-    if (!containerRef.current) return;
+    if (highlights.length === 0) return;
     if (!window.confirm('Bạn có chắc chắn muốn xóa toàn bộ các đoạn highlight trên tài liệu PDF?')) return;
-    const marks = containerRef.current.querySelectorAll('.ielts-pdf-highlight');
-    marks.forEach((mark) => {
-      const parent = mark.parentNode;
-      while (mark.firstChild) {
-        parent?.insertBefore(mark.firstChild, mark);
-      }
-      parent?.removeChild(mark);
-      parent?.normalize();
-    });
-    setHighlightCount(0);
+    setHighlights([]);
+    if (storageKey) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch (err) {}
+    }
     setFloatingMenu((prev) => ({ ...prev, visible: false }));
   };
 
   return (
     <div className="relative w-full h-full flex flex-col bg-slate-800 select-none overflow-hidden">
-      {/* Styles cho PDF.js Text Layer & Lớp Highlight IELTS */}
+      {/* Styles cho PDF.js Text Layer & Lớp Highlight Bounding Box IELTS */}
       <style>{`
         .pdf-page-container {
           position: relative;
@@ -264,6 +354,29 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
           margin: 0 auto 16px auto;
           border-radius: 6px;
           overflow: hidden;
+        }
+        .pdf-highlight-layer {
+          position: absolute;
+          left: 0;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          pointer-events: none;
+          z-index: 10;
+        }
+        .pdf-highlight-item {
+          position: absolute;
+          background-color: rgba(253, 224, 71, 0.65) !important;
+          box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.5);
+          border-radius: 3px;
+          mix-blend-mode: multiply;
+          pointer-events: auto;
+          cursor: pointer;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .pdf-highlight-item:hover {
+          background-color: rgba(250, 204, 21, 0.9) !important;
+          box-shadow: 0 0 0 1.5px rgba(202, 138, 4, 0.9);
         }
         .pdf-text-layer {
           position: absolute;
@@ -276,6 +389,7 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
           line-height: 1;
           user-select: text;
           -webkit-user-select: text;
+          z-index: 20;
         }
         .pdf-text-layer span {
           color: transparent;
@@ -286,20 +400,6 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
         }
         .pdf-text-layer ::selection {
           background: rgba(250, 204, 21, 0.45);
-        }
-        .ielts-pdf-highlight {
-          background: rgba(253, 224, 71, 0.78) !important;
-          box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.6);
-          border-radius: 2px;
-          cursor: pointer;
-          color: transparent !important;
-          position: relative;
-          z-index: 2;
-          display: inline;
-        }
-        .ielts-pdf-highlight:hover {
-          background: rgba(250, 204, 21, 0.95) !important;
-          box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.9);
         }
       `}</style>
 
@@ -399,7 +499,7 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
                   onClick={clearAllHighlights}
                   className="px-2 py-1 text-[11px] font-bold text-rose-300 hover:text-white hover:bg-rose-900/40 border border-rose-800/60 rounded-lg transition-all cursor-pointer"
                 >
-                  🧹 Xóa Highlight
+                  🧹 Xóa Highlight ({highlightCount})
                 </button>
               )}
             </>
@@ -477,6 +577,7 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
                   pageNumber={pageNo}
                   scale={scale}
                   onRenderPage={renderPage}
+                  pageHighlights={highlights.filter((h) => h.pageNumber === pageNo)}
                 />
               ))}
             </div>
@@ -487,15 +588,17 @@ export default function InteractivePdfViewer({ pdfUrl }: InteractivePdfViewerPro
   );
 }
 
-// Subcomponent hiển thị từng trang PDF riêng lẻ
+// Subcomponent hiển thị từng trang PDF riêng lẻ kèm Lớp Highlight
 function PdfPageItem({
   pageNumber,
   scale,
   onRenderPage,
+  pageHighlights,
 }: {
   pageNumber: number;
   scale: number;
   onRenderPage: (pageNumber: number, canvas: HTMLCanvasElement, textLayer: HTMLDivElement) => void;
+  pageHighlights: PdfHighlightGroup[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
@@ -507,11 +610,35 @@ function PdfPageItem({
   }, [pageNumber, scale, onRenderPage]);
 
   return (
-    <div className="pdf-page-container relative group">
-      <div className="absolute top-2 right-2 z-10 px-2 py-0.5 bg-slate-900/60 backdrop-blur-sm text-slate-300 text-[10px] font-mono rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+    <div
+      className="pdf-page-container relative group"
+      data-page-number={pageNumber}
+    >
+      <div className="absolute top-2 right-2 z-30 px-2 py-0.5 bg-slate-900/60 backdrop-blur-sm text-slate-300 text-[10px] font-mono rounded font-bold opacity-0 group-hover:opacity-100 transition-opacity">
         Trang {pageNumber}
       </div>
       <canvas ref={canvasRef} className="block" />
+
+      {/* Lớp Highlight Bounding Box dạ quang chuẩn nét */}
+      <div className="pdf-highlight-layer">
+        {pageHighlights.map((group) =>
+          group.rects.map((rect, idx) => (
+            <div
+              key={`${group.id}_${idx}`}
+              data-highlight-id={group.id}
+              className="pdf-highlight-item"
+              title="Nhấp vào để xóa highlight đoạn này"
+              style={{
+                left: `${rect.leftPercent}%`,
+                top: `${rect.topPercent}%`,
+                width: `${rect.widthPercent}%`,
+                height: `${rect.heightPercent}%`,
+              }}
+            />
+          ))
+        )}
+      </div>
+
       <div ref={textLayerRef} className="pdf-textLayer pdf-text-layer" />
     </div>
   );
