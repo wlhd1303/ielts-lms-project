@@ -42,9 +42,23 @@ export default function EventExamRoom() {
   const [resultRecord, setResultRecord] = useState<ExamSubmissionResult | null>(null);
   const [showReview, setShowReview] = useState(false);
 
-  // Local storage auto-save keys
-  const storageKey = `event_exam_draft_${shiftIdNum}`;
-  const stageKey = `event_exam_stage_${shiftIdNum}`;
+  // Local storage auto-save keys (scop theo registrationId để tránh xung đột tài khoản)
+  const regId = accessStatus?.registrationId || examData?.registrationId;
+  const storageKey = regId ? `event_exam_draft_reg_${regId}` : `event_exam_draft_${shiftIdNum}`;
+  const stageKey = regId ? `event_exam_stage_reg_${regId}` : `event_exam_stage_${shiftIdNum}`;
+  const pdfHighlightKey = regId ? `event_pdf_hl_reg_${regId}` : `event_pdf_hl_${shiftIdNum}`;
+
+  const getSavedDraft = () => {
+    const primary = localStorage.getItem(storageKey);
+    if (primary) return primary;
+    return localStorage.getItem(`event_exam_draft_${shiftIdNum}`);
+  };
+
+  const getSavedStage = () => {
+    const primary = localStorage.getItem(stageKey);
+    if (primary) return primary;
+    return localStorage.getItem(`event_exam_stage_${shiftIdNum}`);
+  };
 
   // Tải trạng thái truy cập ban đầu
   const checkStatus = async () => {
@@ -107,7 +121,7 @@ export default function EventExamRoom() {
       setExamData(data);
       setTimeLeft(data.remainingSeconds || 3600);
 
-      const savedStage = localStorage.getItem(stageKey);
+      const savedStage = getSavedStage();
       if (data.skillType === 'BOTH') {
         if (savedStage === 'READING') {
           setCurrentStage('READING');
@@ -125,7 +139,7 @@ export default function EventExamRoom() {
       }
 
       // Khôi phục draft từ localStorage nếu có
-      const savedDraft = localStorage.getItem(storageKey);
+      const savedDraft = getSavedDraft();
       if (savedDraft) {
         try {
           setAnswers(JSON.parse(savedDraft));
@@ -149,7 +163,7 @@ export default function EventExamRoom() {
       setExamData(data);
       setTimeLeft(data.remainingSeconds || 0);
 
-      const savedStage = localStorage.getItem(stageKey);
+      const savedStage = getSavedStage();
       if (data.skillType === 'BOTH') {
         if (savedStage === 'READING') {
           setCurrentStage('READING');
@@ -166,7 +180,7 @@ export default function EventExamRoom() {
         if (data.passageText) setLeftTab('passage');
       }
 
-      const savedDraft = localStorage.getItem(storageKey);
+      const savedDraft = getSavedDraft();
       if (savedDraft) {
         try {
           setAnswers(JSON.parse(savedDraft));
@@ -250,7 +264,13 @@ export default function EventExamRoom() {
     try {
       const res = await bookingService.submitExam(shiftIdNum, answers);
       setResultRecord(res);
+      // Dọn dẹp toàn bộ dữ liệu tạm sau khi nộp bài thành công
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(stageKey);
+      localStorage.removeItem(pdfHighlightKey);
+      localStorage.removeItem(`event_exam_draft_${shiftIdNum}`);
+      localStorage.removeItem(`event_exam_stage_${shiftIdNum}`);
+      localStorage.removeItem(`event_pdf_hl_${shiftIdNum}`);
       setAccessStatus((prev) => (prev ? { ...prev, status: 'SUBMITTED' } : null));
     } catch (err: any) {
       alert(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi nộp bài.');
@@ -618,7 +638,7 @@ export default function EventExamRoom() {
           <span className="text-5xl">⏰</span>
           <h2 className="text-base font-black text-rose-700">Đã quá giờ mở đề thi</h2>
           <p className="text-xs text-slate-500 font-medium leading-relaxed">
-            Khung giờ mở đề thi đã khép lại sau 1 tiếng kể từ thời điểm bắt đầu ca thi. Bạn không thể mở bài thi mới được nữa.
+            Thời gian mở cổng của ca thi này đã kết thúc. Bạn không thể mở bài thi mới được nữa.
           </p>
           <button
             onClick={() => navigate('/booking')}
@@ -740,8 +760,8 @@ export default function EventExamRoom() {
             <span>{formatSeconds(timeLeft)}</span>
           </div>
 
-          {/* Nút hành động: Nếu đang thi Listening ở kỳ thi BOTH -> Nộp Listening & Sang Reading */}
-          {isBoth && currentStage === 'LISTENING' ? (
+          {/* Nút hành động: Nếu đang thi Listening ở kỳ thi BOTH -> Nộp Listening & Sang Reading (nếu còn giờ) */}
+          {isBoth && currentStage === 'LISTENING' && timeLeft > 0 ? (
             <button
               onClick={handleCompleteListeningAndSwitchToReading}
               className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md shadow-purple-600/20 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
@@ -754,16 +774,26 @@ export default function EventExamRoom() {
             <button
               onClick={() => handleSubmit(false)}
               disabled={submitting}
-              className="px-3 md:px-4 py-1.5 md:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              className={`px-3 md:px-4 py-1.5 md:py-2 text-white rounded-xl text-xs font-black shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 ${
+                timeLeft <= 0
+                  ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/30 animate-pulse'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+              }`}
             >
               <span>🎓</span>
               <span>
-                {submitting ? 'Đang nộp...' : isBoth ? (
-                  <>
-                    <span className="hidden sm:inline">Nộp Toàn Bộ Bài Thi</span>
-                    <span className="sm:hidden">Nộp Bài</span>
-                  </>
-                ) : 'Nộp Bài'}
+                {submitting
+                  ? 'Đang nộp...'
+                  : timeLeft <= 0
+                  ? 'Hết Giờ - Bấm Nộp Bài Ngay'
+                  : isBoth
+                  ? (
+                    <>
+                      <span className="hidden sm:inline">Nộp Toàn Bộ Bài Thi</span>
+                      <span className="sm:hidden">Nộp Bài</span>
+                    </>
+                  )
+                  : 'Nộp Bài'}
               </span>
             </button>
           )}
@@ -908,7 +938,7 @@ export default function EventExamRoom() {
                   <div className="w-full h-full bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col">
                     <InteractivePdfViewer
                       pdfUrl={examData.pdfUrl}
-                      storageKey={`event_pdf_hl_${shiftIdNum}`}
+                      storageKey={pdfHighlightKey}
                     />
                   </div>
                 ) : (

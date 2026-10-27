@@ -32,8 +32,8 @@ public class PdfProxyService {
         // 1. Kiểm tra nếu là link Google Drive
         String driveFileId = extractGoogleDriveFileId(clean);
         if (driveFileId != null) {
-            // Chuyển thành link export download trực tiếp
-            return "https://drive.google.com/uc?export=download&id=" + driveFileId;
+            // Chuyển thành link export download trực tiếp kèm tham số confirm=t để vượt cảnh báo dung lượng
+            return "https://drive.google.com/uc?export=download&confirm=t&id=" + driveFileId;
         }
 
         return clean;
@@ -61,7 +61,7 @@ public class PdfProxyService {
     }
 
     /**
-     * Tải và stream nội dung PDF với đầy đủ headers chuẩn CORS
+     * Tải và stream nội dung PDF với đầy đủ headers chuẩn CORS và xử lý đa chuyển hướng (multi-redirect)
      */
     public ResponseEntity<Resource> proxyPdfStream(String targetUrl) {
         try {
@@ -70,33 +70,75 @@ public class PdfProxyService {
                 return ResponseEntity.badRequest().build();
             }
 
-            URL url = URI.create(resolvedUrl).toURL();
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IELTS-LMS-Platform/1.0");
-            connection.setInstanceFollowRedirects(true);
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(30000);
+            String currentUrl = resolvedUrl;
+            HttpURLConnection connection = null;
+            int redirects = 0;
+            String cookies = "";
 
-            int status = connection.getResponseCode();
-            // Xử lý chuyển hướng nếu có (301, 302, 303, 307)
-            if (status == HttpURLConnection.HTTP_MOVED_TEMP 
-                    || status == HttpURLConnection.HTTP_MOVED_PERM 
-                    || status == HttpURLConnection.HTTP_SEE_OTHER
-                    || status == 307) {
-                String newUrl = connection.getHeaderField("Location");
-                if (newUrl != null) {
-                    connection = (HttpURLConnection) URI.create(newUrl).toURL().openConnection();
-                    connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IELTS-LMS-Platform/1.0");
-                    connection.setConnectTimeout(15000);
-                    connection.setReadTimeout(30000);
+            while (redirects < 5) {
+                URL url = URI.create(currentUrl).toURL();
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IELTS-LMS-Platform/1.0");
+                connection.setInstanceFollowRedirects(false); // Xử lý chuyển hướng thủ công để duy trì cookies
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(30000);
+                if (!cookies.isEmpty()) {
+                    connection.setRequestProperty("Cookie", cookies);
                 }
+
+                int status = connection.getResponseCode();
+
+                // Lưu cookies nếu server đích trả về Set-Cookie
+                String headerCookies = connection.getHeaderField("Set-Cookie");
+                if (headerCookies != null) {
+                    String cookieVal = headerCookies.split(";")[0];
+                    if (cookies.isEmpty()) {
+                        cookies = cookieVal;
+                    } else {
+                        cookies += "; " + cookieVal;
+                    }
+                }
+
+                // Xử lý chuyển hướng (301, 302, 303, 307, 308)
+                if (status == HttpURLConnection.HTTP_MOVED_TEMP 
+                        || status == HttpURLConnection.HTTP_MOVED_PERM 
+                        || status == HttpURLConnection.HTTP_SEE_OTHER
+                        || status == 307
+                        || status == 308) {
+                    String newUrl = connection.getHeaderField("Location");
+                    if (newUrl == null || newUrl.trim().isEmpty()) {
+                        break;
+                    }
+                    if (!newUrl.startsWith("http://") && !newUrl.startsWith("https://")) {
+                        newUrl = URI.create(currentUrl).resolve(newUrl).toString();
+                    }
+                    currentUrl = newUrl;
+                    redirects++;
+                    connection.disconnect();
+                } else {
+                    break;
+                }
+            }
+
+            if (connection == null) {
+                return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
             }
 
             InputStream inputStream = connection.getInputStream();
             InputStreamResource resource = new InputStreamResource(inputStream);
 
+            String remoteContentType = connection.getContentType();
+            MediaType mediaType = MediaType.APPLICATION_PDF;
+            if (remoteContentType != null && !remoteContentType.trim().isEmpty()) {
+                try {
+                    mediaType = MediaType.parseMediaType(remoteContentType.split(";")[0].trim());
+                } catch (Exception e) {
+                    mediaType = MediaType.APPLICATION_PDF;
+                }
+            }
+
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentType(mediaType);
             headers.setContentDisposition(ContentDisposition.inline().filename("exam-material.pdf").build());
             headers.setCacheControl(CacheControl.maxAge(3600, java.util.concurrent.TimeUnit.SECONDS).cachePublic());
 

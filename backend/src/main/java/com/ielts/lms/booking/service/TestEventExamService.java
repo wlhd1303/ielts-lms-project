@@ -39,16 +39,38 @@ public class TestEventExamService {
     private final ObjectMapper objectMapper;
 
     /**
+     * Parse thời gian linh hoạt (chấp nhận "8:00", "08:00", "08:00:00")
+     */
+    public LocalTime parseFlexibleTime(String timeStr) {
+        if (timeStr == null || timeStr.trim().isEmpty()) {
+            return LocalTime.of(0, 0);
+        }
+        String clean = timeStr.trim();
+        String[] parts = clean.split(":");
+        if (parts.length >= 2) {
+            try {
+                int h = Integer.parseInt(parts[0]);
+                int m = Integer.parseInt(parts[1]);
+                int s = parts.length > 2 ? Integer.parseInt(parts[2]) : 0;
+                return LocalTime.of(h, m, s);
+            } catch (NumberFormatException e) {
+                log.warn("Lỗi parse giờ từ chuỗi {}: {}", clean, e.getMessage());
+            }
+        }
+        return LocalTime.parse(clean);
+    }
+
+    /**
      * Xác định thời điểm mở và kết thúc cửa sổ cho phép học viên truy cập vào ca thi.
      * Cửa sổ mở từ startTime và kéo dài đến endTime của ca thi (hoặc tối thiểu 1 tiếng).
      */
     public LocalDateTime[] calculateExamWindow(TestEvent event, TestEventShift shift) {
-        LocalTime startTime = LocalTime.parse(shift.getStartTime().trim());
+        LocalTime startTime = parseFlexibleTime(shift.getStartTime());
         LocalDateTime windowStart = LocalDateTime.of(event.getEventDate(), startTime);
 
         LocalDateTime windowEnd;
         if (shift.getEndTime() != null && !shift.getEndTime().trim().isEmpty()) {
-            LocalTime endTime = LocalTime.parse(shift.getEndTime().trim());
+            LocalTime endTime = parseFlexibleTime(shift.getEndTime());
             windowEnd = LocalDateTime.of(event.getEventDate(), endTime);
             if (endTime.isBefore(startTime)) {
                 // Ca thi xuyên đêm qua ngày hôm sau (ví dụ 23:00 -> 01:00)
@@ -413,14 +435,15 @@ public class TestEventExamService {
     }
 
     /**
-     * Học viên tra cứu kết quả thi cá nhân
+     * Học viên tra cứu kết quả thi cá nhân (hoặc Admin xem kết quả của học viên)
      */
     public ExamSubmissionResultDto getMyExamResult(Long registrationId, User user) {
         TestEventRegistration reg = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin đăng ký ID " + registrationId));
 
-        // Kiểm tra quyền: chính chủ hoặc ADMIN
-        if (!Objects.equals(reg.getUser().getId(), user.getId()) && !"ADMIN".equalsIgnoreCase(user.getRole())) {
+        // Kiểm tra quyền: chính chủ hoặc ADMIN (ROLE_ADMIN hoặc ADMIN)
+        boolean isAdmin = user != null && ("ROLE_ADMIN".equalsIgnoreCase(user.getRole()) || "ADMIN".equalsIgnoreCase(user.getRole()));
+        if (!isAdmin && (reg.getUser() == null || !Objects.equals(reg.getUser().getId(), user.getId()))) {
             throw new RuntimeException("Bạn không có quyền xem kết quả của học viên này!");
         }
 
@@ -436,8 +459,9 @@ public class TestEventExamService {
             }
         }
 
+        // Admin luôn được xem chi tiết bài làm; học viên xem khi allowReview = true
         List<ExamSubmissionResultDto.QuestionReviewDetailDto> reviewList = null;
-        if (Boolean.TRUE.equals(event.getAllowReview())) {
+        if (isAdmin || Boolean.TRUE.equals(event.getAllowReview())) {
             List<TestEventQuestion> questions = questionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(event.getId());
             reviewList = new ArrayList<>();
             for (TestEventQuestion q : questions) {
@@ -496,23 +520,52 @@ public class TestEventExamService {
     }
 
     /**
-     * So khớp đáp án của học viên với đáp án đúng (hỗ trợ nhiều biến thể qua '/' hoặc '|')
+     * So khớp đáp án của học viên với đáp án đúng:
+     * - Hỗ trợ nhiều biến thể qua '/' hoặc '|'
+     * - Khử khoảng trắng thừa, viết hoa thường, dấu câu ở 2 đầu
+     * - Hỗ trợ từ tùy chọn trong dấu ngoặc đơn, ví dụ "(the) bank" khớp cả "bank" và "the bank"
      */
     private boolean isAnswerCorrect(String studentAns, String rawCorrectAnswer) {
         if (studentAns == null || rawCorrectAnswer == null) {
             return false;
         }
 
-        String cleanStudentAns = studentAns.trim().toLowerCase().replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        String cleanStudentAns = studentAns.trim().toLowerCase()
+                .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
+                .replaceAll("\\s+", " ");
         if (cleanStudentAns.isEmpty()) {
             return false;
         }
 
         String[] acceptableAnswers = rawCorrectAnswer.split("[/|]");
         for (String ans : acceptableAnswers) {
-            String cleanAns = ans.trim().toLowerCase().replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+            String trimmedAns = ans.trim().toLowerCase();
+
+            // 1. So khớp trực tiếp chuẩn hóa
+            String cleanAns = trimmedAns
+                    .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
+                    .replaceAll("\\s+", " ");
             if (cleanStudentAns.equalsIgnoreCase(cleanAns)) {
                 return true;
+            }
+
+            // 2. Hỗ trợ từ tùy chọn trong dấu ngoặc đơn: ví dụ "(the) bank", "bicycle(s)"
+            if (trimmedAns.contains("(") && trimmedAns.contains(")")) {
+                // Biến thể không lấy phần trong ngoặc: "(the) bank" -> "bank"
+                String withoutBracket = trimmedAns.replaceAll("\\([^)]*\\)", "").trim()
+                        .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
+                        .replaceAll("\\s+", " ");
+                if (!withoutBracket.isEmpty() && cleanStudentAns.equalsIgnoreCase(withoutBracket)) {
+                    return true;
+                }
+
+                // Biến thể lấy luôn phần trong ngoặc: "(the) bank" -> "the bank"
+                String withBracketContent = trimmedAns.replace("(", "").replace(")", "").trim()
+                        .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
+                        .replaceAll("\\s+", " ");
+                if (!withBracketContent.isEmpty() && cleanStudentAns.equalsIgnoreCase(withBracketContent)) {
+                    return true;
+                }
             }
         }
         return false;

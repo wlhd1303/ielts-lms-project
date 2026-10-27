@@ -46,6 +46,9 @@ class AdminBookingControllerTest {
     private TestEventService eventService;
 
     @Mock
+    private com.ielts.lms.booking.service.TestEventExamService examService;
+
+    @Mock
     private UserService userService;
 
     @InjectMocks
