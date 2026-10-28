@@ -213,8 +213,12 @@ public class TestEventExamService {
             LocalDateTime deadline = startedAt.plusMinutes(duration);
             long secondsRemaining = Duration.between(serverTime, deadline).getSeconds();
 
-            if (secondsRemaining <= -120) { // Hết giờ quá 2 phút buffer -> tự động coi như hết hạn
-                return builder.status("EXPIRED")
+            if (secondsRemaining <= -120) { // Hết giờ quá 2 phút buffer -> tự động thu bài và chuyển sang SUBMITTED
+                if (registration.getExamSubmittedAt() == null) {
+                    log.info("Tự động thu bài ca thi ID {} cho học viên ID {} do đã hết giờ làm bài", shiftId, registration.getUser().getId());
+                    autoFinalizeExpiredExam(registration, event, shift);
+                }
+                return builder.status("SUBMITTED")
                         .examStartedAt(startedAt)
                         .personalDeadline(deadline)
                         .secondsRemainingInExam(0L)
@@ -283,7 +287,10 @@ public class TestEventExamService {
         long remainingSeconds = Duration.between(serverTime, deadline).getSeconds();
 
         if (remainingSeconds <= -120) {
-            throw new RuntimeException("Đã hết thời gian làm bài thi của bạn!");
+            if (registration.getExamSubmittedAt() == null) {
+                autoFinalizeExpiredExam(registration, event, shift);
+            }
+            throw new RuntimeException("Phiên làm bài của bạn đã kết thúc và được nộp tự động. Vui lòng xem kết quả bài thi!");
         }
 
         // Lấy câu hỏi đề thi (KHÔNG kèm đáp án đúng)
@@ -337,6 +344,45 @@ public class TestEventExamService {
 
         LocalDateTime serverTime = LocalDateTime.now(VN_ZONE);
         Map<String, String> studentAnswers = dto != null && dto.getAnswers() != null ? dto.getAnswers() : Collections.emptyMap();
+
+        return gradeAndFinalizeRegistration(registration, event, shiftId, studentAnswers, serverTime);
+    }
+
+    /**
+     * Tự động hoàn tất và chấm điểm khi phiên thi của học viên bị quá hạn (EXPIRED)
+     */
+    @Transactional
+    public void autoFinalizeExpiredExam(TestEventRegistration registration, TestEvent event, TestEventShift shift) {
+        if (registration.getExamSubmittedAt() != null) return;
+
+        Map<String, String> studentAnswers = Collections.emptyMap();
+        if (registration.getStudentAnswers() != null && !registration.getStudentAnswers().trim().isEmpty()) {
+            try {
+                studentAnswers = objectMapper.readValue(registration.getStudentAnswers(), new TypeReference<Map<String, String>>() {});
+            } catch (Exception e) {
+                log.error("Lỗi parse studentAnswers khi tự động thu bài", e);
+            }
+        }
+
+        LocalDateTime startedAt = registration.getExamStartedAt() != null 
+                ? registration.getExamStartedAt().toLocalDateTime() 
+                : LocalDateTime.now(VN_ZONE);
+        Integer duration = event.getDurationMinutes() != null ? event.getDurationMinutes() : 60;
+        LocalDateTime deadline = startedAt.plusMinutes(duration);
+
+        gradeAndFinalizeRegistration(registration, event, shift.getId(), studentAnswers, deadline);
+    }
+
+    /**
+     * Chấm điểm và lưu kết quả bài thi cho bản ghi đăng ký
+     */
+    @Transactional
+    public ExamSubmissionResultDto gradeAndFinalizeRegistration(
+            TestEventRegistration registration,
+            TestEvent event,
+            Long shiftId,
+            Map<String, String> studentAnswers,
+            LocalDateTime submitTime) {
 
         // Lấy toàn bộ đáp án chuẩn của đề thi
         List<TestEventQuestion> questions = questionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(event.getId());
@@ -398,7 +444,7 @@ public class TestEventExamService {
         }
 
         // Lưu thông tin vào bản ghi đăng ký
-        registration.setExamSubmittedAt(Timestamp.valueOf(serverTime));
+        registration.setExamSubmittedAt(Timestamp.valueOf(submitTime));
         registration.setStatus("ATTENDED");
         registration.setListeningCorrectCount(correctListening);
         registration.setReadingCorrectCount(correctReading);
@@ -420,18 +466,84 @@ public class TestEventExamService {
                 .shiftId(shiftId)
                 .studentName(registration.getFullName())
                 .eventTitle(event.getTitle())
-                .shiftName(shift.getShiftName())
+                .shiftName(registration.getShift() != null ? registration.getShift().getShiftName() : "")
                 .skillType(skillType)
                 .listeningCorrectCount(correctListening)
                 .readingCorrectCount(correctReading)
                 .scoreListening(bandListening)
                 .scoreReading(bandReading)
                 .overallScore(overallBand)
-                .submittedAt(serverTime)
+                .submittedAt(submitTime)
                 .feedback(registration.getFeedback())
                 .allowReview(event.getAllowReview())
                 .reviewDetails(Boolean.TRUE.equals(event.getAllowReview()) ? reviewList : null)
                 .build();
+    }
+
+    /**
+     * Đặt lại lượt thi của học viên (cho phép thi lại từ đầu)
+     */
+    @Transactional
+    public void resetExamRegistration(Long registrationId, User currentUser) {
+        boolean isAdmin = currentUser != null && ("ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()) || "ADMIN".equalsIgnoreCase(currentUser.getRole()));
+        TestEventRegistration reg = registrationRepository.findById(registrationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông tin đăng ký ID " + registrationId));
+
+        if (!isAdmin && (reg.getUser() == null || !Objects.equals(reg.getUser().getId(), currentUser.getId()))) {
+            throw new RuntimeException("Bạn không có quyền đặt lại lượt thi này!");
+        }
+
+        reg.setExamStartedAt(null);
+        reg.setExamSubmittedAt(null);
+        reg.setStudentAnswers(null);
+        reg.setStatus("REGISTERED");
+        reg.setListeningCorrectCount(null);
+        reg.setReadingCorrectCount(null);
+        reg.setScoreListening(null);
+        reg.setScoreReading(null);
+        reg.setScoreWriting(null);
+        reg.setScoreSpeaking(null);
+        reg.setOverallScore(null);
+        registrationRepository.save(reg);
+        log.info("Đã reset lượt thi đăng ký ID {} của học viên {}", registrationId, reg.getFullName());
+    }
+
+    /**
+     * Người dùng tự reset lượt thi của mình trong ca thi (hỗ trợ Admin thi thử nhiều lần)
+     */
+    @Transactional
+    public void resetMyExamInShift(Long shiftId, User currentUser) {
+        TestEventRegistration reg = registrationRepository.findByShiftIdAndUserId(shiftId, currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Bạn chưa đăng ký ca thi này!"));
+        resetExamRegistration(reg.getId(), currentUser);
+    }
+
+    /**
+     * Đặt lại toàn bộ lượt thi trong ca thi (Admin)
+     */
+    @Transactional
+    public int resetAllRegistrationsInShift(Long shiftId, User currentUser) {
+        boolean isAdmin = currentUser != null && ("ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()) || "ADMIN".equalsIgnoreCase(currentUser.getRole()));
+        if (!isAdmin) {
+            throw new RuntimeException("Chỉ Quản Trị Viên mới có quyền đặt lại toàn bộ ca thi!");
+        }
+        List<TestEventRegistration> regs = registrationRepository.findByShiftId(shiftId);
+        for (TestEventRegistration reg : regs) {
+            reg.setExamStartedAt(null);
+            reg.setExamSubmittedAt(null);
+            reg.setStudentAnswers(null);
+            reg.setStatus("REGISTERED");
+            reg.setListeningCorrectCount(null);
+            reg.setReadingCorrectCount(null);
+            reg.setScoreListening(null);
+            reg.setScoreReading(null);
+            reg.setScoreWriting(null);
+            reg.setScoreSpeaking(null);
+            reg.setOverallScore(null);
+        }
+        registrationRepository.saveAll(regs);
+        log.info("Đã reset toàn bộ {} lượt thi trong ca thi ID {}", regs.size(), shiftId);
+        return regs.size();
     }
 
     /**

@@ -307,5 +307,20 @@ export const bookingService = {
   getRegistrationExamDetailAdmin: async (regId: number): Promise<ExamSubmissionResult> => {
     const res: any = await axiosClient.get(`/api/admin/booking/events/registrations/${regId}/detail`);
     return res.data || res;
+  },
+
+  resetMyExam: async (shiftId: number): Promise<{ message: string }> => {
+    const res: any = await axiosClient.post(`/api/booking/events/shifts/${shiftId}/reset-my-exam`);
+    return res.data || res;
+  },
+
+  resetRegistrationAdmin: async (regId: number): Promise<{ message: string }> => {
+    const res: any = await axiosClient.post(`/api/admin/booking/events/registrations/${regId}/reset`);
+    return res.data || res;
+  },
+
+  resetAllShiftRegistrationsAdmin: async (shiftId: number): Promise<{ message: string }> => {
+    const res: any = await axiosClient.post(`/api/admin/booking/events/shifts/${shiftId}/reset-all`);
+    return res.data || res;
   }
 };

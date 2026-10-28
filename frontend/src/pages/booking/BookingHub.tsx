@@ -140,6 +140,19 @@ export default function BookingHub() {
     }
   };
 
+  // Hành động Admin Reset bài thi của chính mình
+  const handleAdminResetMyExam = async (shiftId: number) => {
+    if (!window.confirm('Reset lượt thi của bạn trong ca này để làm bài lại từ đầu?')) return;
+    try {
+      await bookingService.resetMyExam(shiftId);
+      showToast('Đã reset lượt thi của bạn thành công! Bạn có thể vào phòng thi lại.', 'success');
+      fetchMyRegistrations();
+      fetchEvents();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể reset lượt thi.', 'error');
+    }
+  };
+
   // --- ACTIONS SUPPORT ---
   const calculateEndTime = (startTime: string) => {
     try {
@@ -702,9 +715,12 @@ export default function BookingHub() {
                                 100,
                                 Math.round((shift.currentRegistered / shift.maxCapacity) * 100)
                               );
-                              const isAlreadyRegistered = myRegistrations.some(
+                              const myReg = myRegistrations.find(
                                 (r) => r.shift?.id === shift.id && r.status !== 'CANCELLED'
                               );
+                              const isAlreadyRegistered = !!myReg;
+                              const isFinished = myReg?.status === 'ATTENDED' || myReg?.status === 'SUBMITTED';
+                              const isInProgress = myReg?.status === 'IN_PROGRESS';
 
                               return (
                                 <div
@@ -732,16 +748,41 @@ export default function BookingHub() {
 
                                   {isAlreadyRegistered ? (
                                     <div className="flex items-center gap-2 shrink-0">
-                                      <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
-                                        ✓ Đã đăng ký
-                                      </span>
+                                      {isFinished ? (
+                                        <span className="text-[11px] font-black text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-xl">
+                                          ✅ Đã có điểm {myReg?.overallScore !== null && myReg?.overallScore !== undefined ? `(${myReg.overallScore}⭐)` : ''}
+                                        </span>
+                                      ) : isInProgress ? (
+                                        <span className="text-[11px] font-black text-purple-700 bg-purple-50 border border-purple-200 px-2.5 py-1.5 rounded-xl">
+                                          ⏳ Đang làm dở
+                                        </span>
+                                      ) : (
+                                        <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
+                                          ✓ Đã đăng ký
+                                        </span>
+                                      )}
                                       {ev.examFormat === 'ONLINE' && (
                                         <button
                                           onClick={() => navigate(`/exam/${shift.id}`)}
-                                          className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm flex items-center gap-1.5 animate-pulse"
+                                          className={`px-3.5 py-1.5 text-white rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm flex items-center gap-1.5 ${
+                                            isFinished
+                                              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700'
+                                              : isInProgress
+                                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 animate-pulse'
+                                              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 animate-pulse'
+                                          }`}
                                         >
-                                          <span>Vào phòng thi</span>
+                                          <span>{isFinished ? '📊 Xem kết quả' : isInProgress ? '📝 Tiếp tục thi' : 'Vào phòng thi'}</span>
                                           <span>➔</span>
+                                        </button>
+                                      )}
+                                      {isAdmin && (
+                                        <button
+                                          onClick={() => handleAdminResetMyExam(shift.id)}
+                                          className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl border border-amber-200 transition-all cursor-pointer"
+                                          title="Admin: Reset lượt thi của tôi trong ca này"
+                                        >
+                                          🔄
                                         </button>
                                       )}
                                     </div>
@@ -874,13 +915,24 @@ export default function BookingHub() {
                         )}
 
                         {reg.shift?.id && (reg.status === 'ATTENDED' || reg.status === 'SUBMITTED') && (
-                          <button
-                            onClick={() => navigate(`/exam/${reg.shift.id}`)}
-                            className="w-full py-2.5 px-3 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-black rounded-xl border border-slate-200/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <span>📝</span>
-                            <span>Xem Chi Tiết Bài Làm & Đáp Án</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => navigate(`/exam/${reg.shift.id}`)}
+                              className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-black rounded-xl border border-slate-200/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>📝</span>
+                              <span>Xem Chi Tiết Bài Làm & Đáp Án</span>
+                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleAdminResetMyExam(reg.shift.id)}
+                                className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl border border-amber-200 transition-all cursor-pointer"
+                                title="Admin: Reset để thi lại từ đầu"
+                              >
+                                🔄 Reset
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

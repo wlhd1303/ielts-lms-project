@@ -100,4 +100,14 @@ public class TestEventController {
         User currentUser = userService.getMyProfile();
         return ResponseEntity.ok(examService.getMyExamResult(regId, currentUser));
     }
+
+    /**
+     * Người dùng tự reset lượt thi của mình (Admin khi kiểm thử hoặc được cấp quyền)
+     */
+    @PostMapping("/shifts/{shiftId}/reset-my-exam")
+    public ResponseEntity<?> resetMyExam(@PathVariable Long shiftId) {
+        User currentUser = userService.getMyProfile();
+        examService.resetMyExamInShift(shiftId, currentUser);
+        return ResponseEntity.ok(Map.of("message", "Đã đặt lại lượt thi của bạn thành công!"));
+    }
 }

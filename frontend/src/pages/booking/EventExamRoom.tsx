@@ -79,9 +79,13 @@ export default function EventExamRoom() {
         }
       }
 
-      if (res.status === 'SUBMITTED' && res.registrationId) {
-        const result = await bookingService.getMyExamResult(res.registrationId);
-        setResultRecord(result);
+      if ((res.status === 'SUBMITTED' || res.status === 'EXPIRED') && res.registrationId) {
+        try {
+          const result = await bookingService.getMyExamResult(res.registrationId);
+          setResultRecord(result);
+        } catch {
+          // Giữ nguyên accessStatus nếu chưa có kết quả
+        }
       }
     } catch (err: any) {
       console.error('Lỗi kiểm tra quyền vào thi:', err);
@@ -291,6 +295,34 @@ export default function EventExamRoom() {
       return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
     return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const userRole = localStorage.getItem('role') || '';
+  const isAdmin = userRole === 'ROLE_ADMIN' || userRole === 'ADMIN';
+
+  const handleResetMyExam = async () => {
+    if (!window.confirm('Đặt lại lượt thi này để làm lại từ đầu? Tất cả câu trả lời trước đó sẽ được xóa.')) {
+      return;
+    }
+    try {
+      setLoading(true);
+      await bookingService.resetMyExam(shiftIdNum);
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(stageKey);
+      localStorage.removeItem(pdfHighlightKey);
+      localStorage.removeItem(`event_exam_draft_${shiftIdNum}`);
+      localStorage.removeItem(`event_exam_stage_${shiftIdNum}`);
+      localStorage.removeItem(`event_pdf_hl_${shiftIdNum}`);
+      setResultRecord(null);
+      setExamData(null);
+      setAnswers({});
+      await checkStatus();
+      alert('Đã đặt lại lượt thi thành công! Bạn có thể bắt đầu làm bài lại.');
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Không thể đặt lại lượt thi.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // --- HIGHLIGHT CÂU HỎI & ĐỀ BÀI (QUESTION SHEET) ---
@@ -521,7 +553,16 @@ export default function EventExamRoom() {
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
+              {isAdmin && (
+                <button
+                  onClick={handleResetMyExam}
+                  className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black transition-all shadow-md shadow-amber-400/20 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>🔄</span>
+                  <span>Reset Lượt Thi Này Để Thi Thử Lại (Dành Cho Admin)</span>
+                </button>
+              )}
               <button
                 onClick={() => navigate('/booking')}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 cursor-pointer"
@@ -570,6 +611,20 @@ export default function EventExamRoom() {
             <p>• Thời gian làm bài <strong>({accessStatus.durationMinutes} phút)</strong> chỉ bắt đầu đếm ngược khi bạn bấm "Bắt đầu làm bài".</p>
             <p>• Hệ thống sẽ tự động chuyển sang trang mở đề ngay khi đồng hồ điểm 00:00:00.</p>
           </div>
+
+          {isAdmin && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 text-left">
+              <span className="text-[11px] font-bold text-amber-300 block">
+                👑 Bạn là Admin: Có thể mở đề kiểm thử ngay mà không cần đợi đếm ngược
+              </span>
+              <button
+                onClick={handleStartExam}
+                className="w-full py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black transition-all cursor-pointer shadow-md"
+              >
+                🚀 Bỏ Qua Chờ & Mở Đề Thi Ngay (Admin Mode)
+              </button>
+            </div>
+          )}
 
           <button
             onClick={() => navigate('/booking')}
@@ -655,16 +710,46 @@ export default function EventExamRoom() {
   if (accessStatus?.status === 'EXPIRED') {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white rounded-3xl border border-amber-200 p-8 text-center space-y-4 shadow-sm">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-amber-200 p-8 text-center space-y-4 shadow-sm animate-scaleUp">
           <span className="text-5xl">⌛</span>
           <h2 className="text-base font-black text-amber-800">Thời gian làm bài đã kết thúc</h2>
           <p className="text-xs text-slate-500 font-medium leading-relaxed">
             Phiên làm bài của ca thi này đã kết thúc do đã vượt quá thời gian quy định ({accessStatus.durationMinutes || 120} phút).
           </p>
-          <div className="pt-2">
+          <div className="space-y-2 pt-2">
+            {accessStatus.registrationId && (
+              <button
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const res = await bookingService.getMyExamResult(accessStatus.registrationId!);
+                    setResultRecord(res);
+                  } catch (e: any) {
+                    alert('Chưa có bảng điểm hoặc bài thi chưa được lưu.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>🎓</span>
+                <span>Xem Kết Quả & Điểm Thi Đã Thu</span>
+              </button>
+            )}
+
+            {isAdmin && (
+              <button
+                onClick={handleResetMyExam}
+                className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-xl text-xs font-black transition-all shadow-md shadow-amber-400/20 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>🔄</span>
+                <span>Reset Lượt Thi (Chế Độ Admin)</span>
+              </button>
+            )}
+
             <button
               onClick={() => navigate('/booking')}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all cursor-pointer shadow-sm"
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
             >
               Quay lại Lịch Thi & Đặt Chỗ
             </button>
@@ -708,6 +793,29 @@ export default function EventExamRoom() {
 
   return (
     <div className="h-screen flex flex-col font-sans overflow-hidden bg-slate-100 text-slate-800">
+      {/* THANH ĐIỀU KHIỂN DÀNH CHO ADMIN */}
+      {isAdmin && (
+        <div className="bg-slate-900 text-white px-3 md:px-6 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 z-30">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-900 font-black text-[10px] tracking-wider uppercase">
+              Admin Mode
+            </span>
+            <span className="text-slate-300 font-medium text-[11px] hidden sm:inline">
+              Bạn đang kiểm thử phòng thi dưới quyền Quản Trị Viên
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleResetMyExam}
+              className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-900 rounded-lg text-[11px] font-black cursor-pointer shadow-sm transition-all flex items-center gap-1"
+            >
+              <span>🔄</span>
+              <span>Reset Lượt Thi (Làm Lại)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER PHÒNG THI TRỰC TUYẾN - TỐI ƯU RESPONSIVE MOBILE & DESKTOP */}
       <header className="h-16 bg-white shadow-xs flex items-center justify-between px-3 md:px-6 z-20 shrink-0 border-b border-slate-200/80">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">

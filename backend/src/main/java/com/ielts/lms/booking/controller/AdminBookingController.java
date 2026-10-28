@@ -139,4 +139,24 @@ public class AdminBookingController {
         User currentUser = userService.getMyProfile();
         return ResponseEntity.ok(examService.getMyExamResult(regId, currentUser));
     }
+
+    /**
+     * Admin đặt lại (reset) lượt thi của một học viên để cho phép thi lại
+     */
+    @PostMapping("/events/registrations/{regId}/reset")
+    public ResponseEntity<?> resetRegistration(@PathVariable Long regId) {
+        User currentUser = userService.getMyProfile();
+        examService.resetExamRegistration(regId, currentUser);
+        return ResponseEntity.ok(java.util.Map.of("message", "Đã đặt lại lượt thi thành công!"));
+    }
+
+    /**
+     * Admin đặt lại (reset) toàn bộ lượt thi trong một ca thi (khi đổi lịch thi)
+     */
+    @PostMapping("/events/shifts/{shiftId}/reset-all")
+    public ResponseEntity<?> resetAllInShift(@PathVariable Long shiftId) {
+        User currentUser = userService.getMyProfile();
+        int count = examService.resetAllRegistrationsInShift(shiftId, currentUser);
+        return ResponseEntity.ok(java.util.Map.of("message", "Đã đặt lại thành công " + count + " lượt thi trong ca!"));
+    }
 }

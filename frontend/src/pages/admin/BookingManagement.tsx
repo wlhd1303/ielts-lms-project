@@ -354,6 +354,42 @@ export default function BookingManagement() {
     }
   };
 
+  const handleResetStudentRegistration = async (regId: number, fullName: string) => {
+    if (!window.confirm(`Bạn có chắc muốn cho thí sinh "${fullName}" thi lại? Dữ liệu bài làm dở dang hoặc đã hết giờ của ca này sẽ được xóa để bạn ấy làm lại.`)) {
+      return;
+    }
+    try {
+      await bookingService.resetRegistrationAdmin(regId);
+      showToast(`Đã reset thành công lượt thi cho "${fullName}"! Thí sinh có thể vào thi lại.`, 'success');
+      if (selectedShiftForStudents) {
+        handleViewShiftStudents(selectedShiftForStudents);
+      }
+      if (selectedExamEventId) {
+        fetchOnlineRegistrations(Number(selectedExamEventId));
+      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể reset lượt thi.', 'error');
+    }
+  };
+
+  const handleResetAllInShift = async (shiftId: number, shiftName: string) => {
+    if (!window.confirm(`⚠️ CẢNH BÁO: Bạn có chắc chắn muốn RESET toàn bộ lượt thi cho tất cả thí sinh trong ca "${shiftName}"?\nTất cả thí sinh trong ca này sẽ được làm lại từ đầu.`)) {
+      return;
+    }
+    try {
+      await bookingService.resetAllShiftRegistrationsAdmin(shiftId);
+      showToast(`Đã reset toàn bộ thí sinh trong ca "${shiftName}" thành công!`, 'success');
+      if (selectedShiftForStudents) {
+        handleViewShiftStudents(selectedShiftForStudents);
+      }
+      if (selectedExamEventId) {
+        fetchOnlineRegistrations(Number(selectedExamEventId));
+      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể reset ca thi.', 'error');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast */}
@@ -823,6 +859,13 @@ export default function BookingManagement() {
                                       👁️ Xem bài làm
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => handleResetStudentRegistration(reg.id, reg.fullName)}
+                                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg transition-colors cursor-pointer text-[11px]"
+                                    title="Cho phép thí sinh làm lại bài thi từ đầu (xóa bài dở dang/hết giờ)"
+                                  >
+                                    🔄 Cho thi lại
+                                  </button>
                                   <button
                                     onClick={() => handleOpenScoreStudent(reg)}
                                     className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg transition-colors cursor-pointer text-[11px]"
@@ -1423,12 +1466,23 @@ export default function BookingManagement() {
                   Thời gian: {selectedShiftForStudents.startTime} - {selectedShiftForStudents.endTime} | Sĩ số: {shiftStudents.length}/{selectedShiftForStudents.maxCapacity}
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedShiftForStudents(null)}
-                className="text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                {shiftStudents.length > 0 && (
+                  <button
+                    onClick={() => handleResetAllInShift(selectedShiftForStudents.id, selectedShiftForStudents.shiftName)}
+                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1"
+                    title="Reset lượt thi cho toàn bộ thí sinh trong ca này để làm lại"
+                  >
+                    <span>🔄</span> Reset cả ca thi
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedShiftForStudents(null)}
+                  className="text-slate-400 hover:text-slate-600 font-bold p-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {loadingShiftStudents ? (
@@ -1465,12 +1519,21 @@ export default function BookingManagement() {
                           {st.overallScore !== null && st.overallScore !== undefined ? `⭐ ${st.overallScore}` : '-'}
                         </td>
                         <td className="p-2.5 text-right">
-                          <button
-                            onClick={() => handleOpenScoreStudent(st)}
-                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg cursor-pointer"
-                          >
-                            Chấm điểm
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleResetStudentRegistration(st.id, st.fullName)}
+                              className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg cursor-pointer text-[11px]"
+                              title="Cho phép thí sinh làm lại từ đầu (xóa bài dở dang/hết giờ)"
+                            >
+                              🔄 Thi lại
+                            </button>
+                            <button
+                              onClick={() => handleOpenScoreStudent(st)}
+                              className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg cursor-pointer text-[11px]"
+                            >
+                              Chấm điểm
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

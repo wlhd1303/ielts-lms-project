@@ -138,12 +138,34 @@ public class TestEventService {
                 }
 
                 if (shiftToUse != null) {
+                    boolean timeOrDateChanged = (shiftToUse.getStartTime() != null && !shiftToUse.getStartTime().trim().equals(sDto.getStartTime().trim()))
+                            || (shiftToUse.getEndTime() != null && !shiftToUse.getEndTime().trim().equals(sDto.getEndTime().trim()))
+                            || (dto.getEventDate() != null && !dto.getEventDate().equals(event.getEventDate()));
+
                     shiftToUse.setShiftName(sDto.getShiftName().trim());
                     shiftToUse.setStartTime(sDto.getStartTime().trim());
                     shiftToUse.setEndTime(sDto.getEndTime().trim());
                     shiftToUse.setMaxCapacity(sDto.getMaxCapacity());
                     if (shiftToUse.getId() != null) {
                         keptShiftIds.add(shiftToUse.getId());
+                    }
+
+                    // Nếu giờ thi hoặc ngày thi được thay đổi, tự động reset các lượt thi dở dang chưa nộp bài để có thể thi theo khung giờ mới
+                    if (timeOrDateChanged && shiftToUse.getId() != null) {
+                        List<TestEventRegistration> regs = registrationRepository.findByShiftId(shiftToUse.getId());
+                        boolean hasChanges = false;
+                        for (TestEventRegistration r : regs) {
+                            if (r.getExamSubmittedAt() == null && r.getExamStartedAt() != null) {
+                                r.setExamStartedAt(null);
+                                r.setStatus("REGISTERED");
+                                r.setStudentAnswers(null);
+                                hasChanges = true;
+                            }
+                        }
+                        if (hasChanges) {
+                            registrationRepository.saveAll(regs);
+                            log.info("Đã tự động reset các lượt thi dở dang của ca ID {} do thay đổi thời gian thi", shiftToUse.getId());
+                        }
                     }
                 } else {
                     TestEventShift newShift = new TestEventShift();

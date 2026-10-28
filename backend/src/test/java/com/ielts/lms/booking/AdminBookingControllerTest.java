@@ -232,4 +232,30 @@ class AdminBookingControllerTest {
                 .andExpect(jsonPath("$.overallScore").value(7.5))
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
+
+    @Test
+    @DisplayName("TC-ADMIN-08: POST /api/admin/booking/events/registrations/{regId}/reset reset lượt thi cho học viên")
+    void testResetExamRegistration() throws Exception {
+        when(userService.getMyProfile()).thenReturn(adminUser);
+        doNothing().when(examService).resetExamRegistration(eq(5L), eq(adminUser));
+
+        mockMvc.perform(post("/api/admin/booking/events/registrations/5/reset"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đã đặt lại lượt thi thành công!"));
+
+        verify(examService).resetExamRegistration(eq(5L), eq(adminUser));
+    }
+
+    @Test
+    @DisplayName("TC-ADMIN-09: POST /api/admin/booking/events/shifts/{shiftId}/reset-all reset toàn bộ thí sinh trong ca")
+    void testResetAllRegistrationsInShift() throws Exception {
+        when(userService.getMyProfile()).thenReturn(adminUser);
+        when(examService.resetAllRegistrationsInShift(eq(15L), eq(adminUser))).thenReturn(3);
+
+        mockMvc.perform(post("/api/admin/booking/events/shifts/15/reset-all"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đã đặt lại thành công 3 lượt thi trong ca!"));
+
+        verify(examService).resetAllRegistrationsInShift(eq(15L), eq(adminUser));
+    }
 }
