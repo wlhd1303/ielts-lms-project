@@ -61,8 +61,8 @@ const MockTestSplitScreen = () => {
         setTestDetails({
           title: data.title, 
           type: data.type, 
-          pdf_url: data.pdfUrl || "", 
-          audio_url: data.audioUrl || ""
+          pdf_url: data.pdfUrl || data.pdf_url || "", 
+          audio_url: data.audioUrl || data.audio_url || ""
         });
 
         const qRes: any = await service.getQuestionsForStudent(testId);
@@ -370,7 +370,7 @@ const MockTestSplitScreen = () => {
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
-          <span>{testDetails.type === 'LISTENING' ? '🎧 Bài Nghe (Audio)' : '📄 Đề Thi (PDF)'}</span>
+          <span>{testDetails.type === 'LISTENING' ? '🎧 Đề Nghe & PDF' : '📄 Đề Thi (PDF)'}</span>
         </button>
         <button
           onClick={() => setMobileTab('questions')}
@@ -392,94 +392,57 @@ const MockTestSplitScreen = () => {
       {/* VÙNG CHIA ĐÔI MÀN HÌNH WORKSPACE (SPLIT SCREEN) */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative p-2 md:p-4 gap-2 md:gap-4">
         
-        {/* CỘT TRÁI: ĐỀ THI PDF HOẶC AUDIO PLAYER CHO LISTENING */}
+        {/* CỘT TRÁI: ĐỀ THI PDF (VÀ AUDIO PLAYER NẾU LÀ ĐỀ LISTENING) */}
         <div className={`w-full md:w-1/2 h-full flex flex-col overflow-hidden relative ${
           mobileTab === 'content' ? 'flex' : 'hidden md:flex'
         }`}>
-          {testDetails.type === 'LISTENING' ? (
-            /* GIAO DIỆN CHUYÊN NGHIỆP BÀI THI LISTENING */
-            <div className="w-full h-full bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 p-4 md:p-6 flex flex-col justify-between shadow-xs overflow-y-auto custom-scrollbar">
-              <div className="space-y-4 md:space-y-5">
-                <div className="flex items-center justify-between pb-3 md:pb-4 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <span className="p-2.5 md:p-3 bg-purple-100 text-purple-700 rounded-2xl text-xl md:text-2xl font-black">🎧</span>
-                    <div>
-                      <h3 className="text-sm md:text-base font-black text-slate-900">IELTS Academic Listening</h3>
-                      <p className="text-[11px] md:text-xs text-slate-400 font-medium">Phần thi Nghe: 40 câu hỏi</p>
-                    </div>
+          {/* NẾU LÀ ĐỀ LISTENING: HIỂN THỊ THANH AUDIO CHUYÊN NGHIỆP TRÊN ĐẦU */}
+          {testDetails.type === 'LISTENING' && (
+            <div className="mb-2 p-3 bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-2xl border border-purple-800/60 shadow-xs shrink-0 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 bg-purple-500/20 text-purple-300 rounded-lg text-sm">🎧</span>
+                  <div>
+                    <h4 className="text-xs font-black tracking-wide flex items-center gap-1.5">
+                      <span>Bản Ghi Âm IELTS Listening</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    </h4>
+                    <p className="text-[10px] text-purple-200 font-medium hidden sm:block">
+                      Đeo tai nghe và vừa nghe vừa theo dõi đề thi PDF bên dưới
+                    </p>
                   </div>
-                  <span className="text-[10px] md:text-xs font-black px-2.5 md:px-3 py-1 rounded-full bg-purple-100 text-purple-800">
-                    Đang làm bài
-                  </span>
                 </div>
-
-                {/* Khung Audio Player chuyên nghiệp */}
-                <div className="p-4 md:p-6 bg-gradient-to-br from-purple-50/80 via-indigo-50/60 to-blue-50/80 rounded-2xl border border-purple-200/70 space-y-3 md:space-y-4 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
-                      <span className="animate-pulse">🔊</span> Bản Ghi Âm Bài Thi (Official Audio)
-                    </span>
-                    <span className="text-[10px] font-bold bg-purple-200/70 text-purple-800 px-2 py-0.5 rounded-full">
-                      IELTS Audio
-                    </span>
-                  </div>
-
-                  <audio
-                    controls
-                    autoPlay
-                    className="w-full h-11 md:h-12 rounded-xl outline-none"
-                    src={testDetails.audio_url || '/sample-ielts-listening.wav'}
-                  >
-                    Trình duyệt của bạn không hỗ trợ phát âm thanh.
-                  </audio>
-
-                  <p className="text-[11px] text-purple-700 font-medium leading-relaxed">
-                    💡 Hãy đeo tai nghe và điều chỉnh âm lượng vừa nghe. Thí sinh có thể nghe và điền đáp án trực tiếp vào phiếu câu hỏi bên cạnh.
-                  </p>
-                </div>
-
-                {/* Hướng dẫn làm bài */}
-                <div className="bg-slate-50 p-4 md:p-5 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
-                  <h4 className="font-black text-slate-800 flex items-center gap-1.5">
-                    <span>📋</span> Hướng Dẫn Thí Sinh:
-                  </h4>
-                  <ul className="space-y-1.5 list-disc pl-4 text-slate-600 leading-relaxed font-medium text-[11px] md:text-xs">
-                    <li>Bài thi gồm 40 câu hỏi được đánh số tương ứng ở phiếu làm bài.</li>
-                    <li>Lắng nghe đoạn ghi âm và nhập đáp án trực tiếp vào ô trả lời.</li>
-                    <li>Bạn có thể xem lại và thay đổi đáp án bất kỳ lúc nào trước khi bấm <strong>"Nộp Bài Lấy Điểm"</strong>.</li>
-                    <li>Toàn bộ tiến trình làm bài được tự động lưu liên tục (Auto-Save).</li>
-                  </ul>
-                </div>
+                <span className="text-[10px] font-bold bg-purple-700/60 text-purple-200 px-2 py-0.5 rounded-full border border-purple-500/30">
+                  Official Audio
+                </span>
               </div>
 
-              {/* Nút Chuyển sang Điền đáp án trên Mobile */}
-              <div className="md:hidden pt-3 border-t border-slate-100">
-                <button
-                  onClick={() => setMobileTab('questions')}
-                  className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-xs font-black shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>📝 Chuyển sang Phiếu Trả Lời ({answeredCount}/40 câu)</span>
-                  <span>➔</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* GIAO DIỆN BÀI THI READING VỚI INTERACTIVE PDF VIEWER & HIGHLIGHT */
-            <div className="w-full h-full bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col">
-              {testDetails.pdf_url ? (
-                <InteractivePdfViewer
-                  pdfUrl={testDetails.pdf_url}
-                  storageKey={pdfHighlightKey}
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-white space-y-2">
-                  <span className="text-4xl opacity-50">📄</span>
-                  <h2 className="text-sm font-bold text-slate-800">Chưa có File PDF Đề thi</h2>
-                  <p className="text-xs text-slate-400 max-w-xs">Giáo viên chưa đính kèm link PDF xem đề bài cho bài thi này.</p>
-                </div>
-              )}
+              <audio
+                controls
+                autoPlay
+                className="w-full h-8 md:h-9 rounded-lg outline-none"
+                src={testDetails.audio_url || '/sample-ielts-listening.wav'}
+              >
+                Trình duyệt của bạn không hỗ trợ phát âm thanh.
+              </audio>
             </div>
           )}
+
+          {/* BỘ ĐỌC PDF ĐỀ THI CHO CẢ READING LẪN LISTENING */}
+          <div className="flex-1 w-full bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs flex flex-col min-h-0">
+            {testDetails.pdf_url ? (
+              <InteractivePdfViewer
+                pdfUrl={testDetails.pdf_url}
+                storageKey={pdfHighlightKey}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-white space-y-2">
+                <span className="text-4xl opacity-50">📄</span>
+                <h2 className="text-sm font-bold text-slate-800">Chưa có File PDF Đề thi</h2>
+                <p className="text-xs text-slate-400 max-w-xs">Giáo viên chưa đính kèm link PDF xem đề bài cho bài thi này.</p>
+              </div>
+            )}
+          </div>
 
           {/* Nút Floating trên Mobile để nhanh chóng chuyển sang điền đáp án */}
           <div className="md:hidden pt-2 shrink-0">
@@ -666,7 +629,7 @@ const MockTestSplitScreen = () => {
                    className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                  >
                    <span>←</span>
-                   <span>Quay lại xem {testDetails.type === 'LISTENING' ? 'Audio Bài Nghe' : 'Đề Bài & PDF'}</span>
+                   <span>Quay lại xem {testDetails.type === 'LISTENING' ? 'Audio & Đề PDF' : 'Đề Bài & PDF'}</span>
                  </button>
                </div>
              </>
