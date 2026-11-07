@@ -66,6 +66,16 @@ public class BookingController {
     }
 
     /**
+     * Xóa ca hỗ trợ
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteBooking(@PathVariable Long id) {
+        User currentUser = userService.getMyProfile();
+        bookingService.deleteBooking(id, currentUser);
+        return ResponseEntity.ok(Map.of("message", "Đã xóa ca hỗ trợ thành công!"));
+    }
+
+    /**
      * Lấy danh sách Trợ giảng từ hệ thống
      */
     @GetMapping("/teaching-assistants")

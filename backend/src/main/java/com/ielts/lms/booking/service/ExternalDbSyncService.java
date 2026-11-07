@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Adapter Service đọc dữ liệu từ Database bên kia (DB 2 - Supabase PostgreSQL) theo cơ chế Read-Only.
@@ -44,6 +45,7 @@ public class ExternalDbSyncService {
 
     @Data
     public static class ExternalBusySlotDto {
+        private String id;
         private String taId;
         private LocalDate date;
         private String startTime;
@@ -167,7 +169,7 @@ public class ExternalDbSyncService {
             return result;
         }
 
-        String sql = "SELECT teaching_assistant_id, session_date, start_time, end_time " +
+        String sql = "SELECT id, teaching_assistant_id, session_date, start_time, end_time " +
                      "FROM public.support_sessions WHERE session_date = ? AND status != 'CANCELLED'::support_sessions_status_enum";
         try (Connection conn = createConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -176,6 +178,7 @@ public class ExternalDbSyncService {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     ExternalBusySlotDto slot = new ExternalBusySlotDto();
+                    slot.setId(rs.getString("id"));
                     slot.setTaId(rs.getString("teaching_assistant_id"));
                     slot.setDate(rs.getDate("session_date").toLocalDate());
                     slot.setStartTime(rs.getString("start_time"));
@@ -331,7 +334,7 @@ public class ExternalDbSyncService {
     }
 
     /**
-     * Đồng bộ hủy lịch sang bảng public.support_sessions của DB 2
+     * Đồng bộ hủy lịch sang bảng public.support_sessions của DB 2 theo mã UUID
      */
     public boolean cancelExternalSupportSession(String externalSessionId) {
         if (!isExternalDbConfigured() || externalSessionId == null || externalSessionId.trim().isEmpty()) {
@@ -348,6 +351,84 @@ public class ExternalDbSyncService {
             return rows > 0;
         } catch (Exception e) {
             log.warn("Không thể hủy lịch trên DB 2 cho session {}: {}", externalSessionId, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Đồng bộ hủy lịch thông minh kèm cơ chế dự phòng (Fallback):
+     * 1. Hủy theo externalSessionId nếu có.
+     * 2. Nếu externalSessionId rỗng hoặc chưa khớp, tìm và hủy theo ngày, giờ bắt đầu và giờ kết thúc.
+     */
+    public boolean cancelExternalSupportSession(com.ielts.lms.booking.entity.SupportBooking booking) {
+        if (!isExternalDbConfigured() || booking == null) {
+            return false;
+        }
+
+        // 1. Thử hủy theo externalSessionId
+        if (booking.getExternalSessionId() != null && !booking.getExternalSessionId().trim().isEmpty()) {
+            boolean success = cancelExternalSupportSession(booking.getExternalSessionId());
+            if (success) {
+                return true;
+            }
+        }
+
+        // 2. Cơ chế dự phòng (Fallback): Tìm theo ngày và khung giờ trên DB 2
+        String sql = "UPDATE public.support_sessions SET status = 'CANCELLED'::support_sessions_status_enum, updated_at = NOW() " +
+                     "WHERE session_date = ? AND start_time = ? AND end_time = ? " +
+                     "AND status != 'CANCELLED'::support_sessions_status_enum";
+        try (Connection conn = createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, java.sql.Date.valueOf(booking.getBookingDate()));
+            stmt.setString(2, booking.getStartTime());
+            stmt.setString(3, booking.getEndTime());
+            int rows = stmt.executeUpdate();
+            log.info("Đã cập nhật hủy lịch dự phòng trên DB 2 cho ngày {} {}-{}: {} dòng ảnh hưởng",
+                    booking.getBookingDate(), booking.getStartTime(), booking.getEndTime(), rows);
+            return rows > 0;
+        } catch (Exception e) {
+            log.warn("Không thể hủy lịch dự phòng trên DB 2: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Đồng bộ xóa cứng (Hard Delete) ca hỗ trợ trên DB 2:
+     * Dùng khi Admin hoặc người dùng muốn xóa hoàn toàn dữ liệu ca hỗ trợ khỏi hệ thống web bên kia.
+     */
+    public boolean deleteExternalSupportSession(com.ielts.lms.booking.entity.SupportBooking booking) {
+        if (!isExternalDbConfigured() || booking == null) {
+            return false;
+        }
+
+        // 1. Xóa theo externalSessionId nếu có
+        if (booking.getExternalSessionId() != null && !booking.getExternalSessionId().trim().isEmpty()) {
+            String sql = "DELETE FROM public.support_sessions WHERE id = ?::uuid";
+            try (Connection conn = createConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, booking.getExternalSessionId());
+                int rows = stmt.executeUpdate();
+                log.info("Đã xóa cứng session {} trên DB 2: {} dòng", booking.getExternalSessionId(), rows);
+                if (rows > 0) return true;
+            } catch (Exception e) {
+                log.warn("Không thể xóa session trên DB 2 theo ID {}: {}", booking.getExternalSessionId(), e.getMessage());
+            }
+        }
+
+        // 2. Dự phòng: Xóa theo ngày và khung giờ
+        String fallbackSql = "DELETE FROM public.support_sessions WHERE session_date = ? AND start_time = ? AND end_time = ?";
+        try (Connection conn = createConnection();
+             PreparedStatement stmt = conn.prepareStatement(fallbackSql)) {
+            stmt.setDate(1, java.sql.Date.valueOf(booking.getBookingDate()));
+            stmt.setString(2, booking.getStartTime());
+            stmt.setString(3, booking.getEndTime());
+            int rows = stmt.executeUpdate();
+            log.info("Đã xóa cứng session dự phòng trên DB 2 cho ngày {} {}-{}: {} dòng",
+                    booking.getBookingDate(), booking.getStartTime(), booking.getEndTime(), rows);
+            return rows > 0;
+        } catch (Exception e) {
+            log.warn("Không thể xóa session dự phòng trên DB 2: {}", e.getMessage());
             return false;
         }
     }
@@ -399,11 +480,13 @@ public class ExternalDbSyncService {
     }
 
     /**
-     * Kéo cập nhật điểm / đánh giá / điểm danh từ DB 2 về LMS
+     * Kéo cập nhật điểm / đánh giá / điểm danh và trạng thái từ DB 2 về LMS.
+     * Tự động phát hiện ca đã bị XÓA CỨNG hoặc HỦY trên DB 2 để cập nhật vào LMS.
+     * Trả về true nếu có bất kỳ thay đổi nào để phía gọi có thể lưu lại vào MySQL.
      */
-    public void pullExternalSessionUpdates(List<com.ielts.lms.booking.entity.SupportBooking> bookings) {
+    public boolean pullExternalSessionUpdates(List<com.ielts.lms.booking.entity.SupportBooking> bookings) {
         if (!isExternalDbConfigured() || bookings == null || bookings.isEmpty()) {
-            return;
+            return false;
         }
 
         List<com.ielts.lms.booking.entity.SupportBooking> linkedBookings = bookings.stream()
@@ -411,8 +494,10 @@ public class ExternalDbSyncService {
                 .toList();
 
         if (linkedBookings.isEmpty()) {
-            return;
+            return false;
         }
+
+        boolean hasAnyChanges = false;
 
         try (Connection conn = createConnection()) {
             String sql = "SELECT id, status, is_present, score, ta_comment, absence_reason, evaluated_at " +
@@ -424,30 +509,43 @@ public class ExternalDbSyncService {
                     try (ResultSet rs = stmt.executeQuery()) {
                         if (rs.next()) {
                             String extStatus = rs.getString("status");
-                            if ("COMPLETED".equalsIgnoreCase(extStatus)) {
+                            if ("COMPLETED".equalsIgnoreCase(extStatus) && !"COMPLETED".equals(b.getStatus())) {
                                 b.setStatus("COMPLETED");
-                            } else if ("CANCELLED".equalsIgnoreCase(extStatus)) {
+                                hasAnyChanges = true;
+                            } else if ("CANCELLED".equalsIgnoreCase(extStatus) && !"CANCELLED".equals(b.getStatus())) {
                                 b.setStatus("CANCELLED");
+                                hasAnyChanges = true;
                             }
 
                             boolean isPresent = rs.getBoolean("is_present");
-                            if (!rs.wasNull()) {
+                            if (!rs.wasNull() && !Objects.equals(b.getIsPresent(), isPresent)) {
                                 b.setIsPresent(isPresent);
+                                hasAnyChanges = true;
                             }
 
                             double score = rs.getDouble("score");
-                            if (!rs.wasNull()) {
+                            if (!rs.wasNull() && !Objects.equals(b.getScore(), score)) {
                                 b.setScore(score);
+                                hasAnyChanges = true;
                             }
 
                             String comment = rs.getString("ta_comment");
-                            if (comment != null) {
+                            if (comment != null && !comment.equals(b.getTaComment())) {
                                 b.setTaComment(comment);
+                                hasAnyChanges = true;
                             }
 
                             String reason = rs.getString("absence_reason");
-                            if (reason != null) {
+                            if (reason != null && !reason.equals(b.getAbsenceReason())) {
                                 b.setAbsenceReason(reason);
+                                hasAnyChanges = true;
+                            }
+                        } else {
+                            // Không tìm thấy trên DB 2 -> Đã bị xóa trên DB 2!
+                            if (!"CANCELLED".equals(b.getStatus())) {
+                                b.setStatus("CANCELLED");
+                                hasAnyChanges = true;
+                                log.info("Session {} không còn trên DB 2 -> tự động đồng bộ CANCELLED vào LMS", b.getExternalSessionId());
                             }
                         }
                     }
@@ -456,5 +554,7 @@ public class ExternalDbSyncService {
         } catch (Exception e) {
             log.warn("Lỗi khi kéo cập nhật từ DB 2: {}", e.getMessage());
         }
+
+        return hasAnyChanges;
     }
 }

@@ -197,6 +197,10 @@ export const bookingService = {
     return await axiosClient.delete(`/api/booking/support/${id}/cancel`);
   },
 
+  deleteBooking: async (id: number): Promise<any> => {
+    return await axiosClient.delete(`/api/booking/support/${id}`);
+  },
+
   getTeachingAssistants: async (): Promise<any[]> => {
     const res: any = await axiosClient.get('/api/booking/support/teaching-assistants');
     return res.data || res;
@@ -231,6 +235,14 @@ export const bookingService = {
   getAllSupportBookingsAdmin: async (): Promise<SupportBooking[]> => {
     const res: any = await axiosClient.get('/api/admin/booking/support');
     return res.data || res;
+  },
+
+  cancelSupportBookingAdmin: async (id: number): Promise<any> => {
+    return await axiosClient.delete(`/api/admin/booking/support/${id}/cancel`);
+  },
+
+  deleteSupportBookingAdmin: async (id: number): Promise<any> => {
+    return await axiosClient.delete(`/api/admin/booking/support/${id}`);
   },
 
   evaluateSupportBookingAdmin: async (id: number, data: any): Promise<SupportBooking> => {

@@ -87,7 +87,9 @@ class ExternalDbSyncServiceTest {
     void testNullAndEmptyArgumentSafety() {
         ReflectionTestUtils.setField(service, "externalDbUrl", "postgresql://user:pass@host:5432/db");
 
-        assertThatCode(() -> service.cancelExternalSupportSession(null)).doesNotThrowAnyException();
+        assertThatCode(() -> service.cancelExternalSupportSession((String) null)).doesNotThrowAnyException();
+        assertThatCode(() -> service.cancelExternalSupportSession((com.ielts.lms.booking.entity.SupportBooking) null)).doesNotThrowAnyException();
+        assertThatCode(() -> service.deleteExternalSupportSession((com.ielts.lms.booking.entity.SupportBooking) null)).doesNotThrowAnyException();
         assertThatCode(() -> service.cancelExternalSupportSession("   ")).doesNotThrowAnyException();
         assertThatCode(() -> service.syncEvaluationToExternalDb(null)).doesNotThrowAnyException();
         assertThatCode(() -> service.pullExternalSessionUpdates(null)).doesNotThrowAnyException();

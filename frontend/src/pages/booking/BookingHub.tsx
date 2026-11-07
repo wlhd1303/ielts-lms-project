@@ -226,6 +226,18 @@ export default function BookingHub() {
     }
   };
 
+  const handleDeleteBooking = async (id: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa ca này khỏi lịch sử không?')) return;
+    try {
+      await bookingService.deleteBooking(id);
+      showToast('Đã xóa ca hỗ trợ thành công', 'success');
+      await Promise.all([fetchSlots(), fetchMyBookings()]);
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể xóa ca hỗ trợ. Vui lòng thử lại!';
+      showToast(errorMsg, 'error');
+    }
+  };
+
   // --- ACTIONS EVENTS ---
   const handleOpenRegisterShift = (shift: any) => {
     setRegisteringShift(shift);
@@ -607,6 +619,14 @@ export default function BookingHub() {
                           className="w-full py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer border border-rose-200"
                         >
                           Hủy ca này
+                        </button>
+                      )}
+                      {b.status === 'CANCELLED' && (
+                        <button
+                          onClick={() => handleDeleteBooking(b.id)}
+                          className="w-full py-1.5 text-[11px] font-bold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer border border-dashed border-slate-200 hover:border-rose-200"
+                        >
+                          🗑️ Xóa khỏi lịch sử
                         </button>
                       )}
                     </div>

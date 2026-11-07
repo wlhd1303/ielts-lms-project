@@ -15,6 +15,8 @@ public interface SupportBookingRepository extends JpaRepository<SupportBooking, 
 
     List<SupportBooking> findByBookingDateAndStatusNot(LocalDate bookingDate, String status);
 
+    List<SupportBooking> findByBookingDateAndStatus(LocalDate bookingDate, String status);
+
     List<SupportBooking> findByUserIdOrderByBookingDateDescStartTimeDesc(Long userId);
 
     List<SupportBooking> findAllByOrderByBookingDateDescStartTimeDesc();

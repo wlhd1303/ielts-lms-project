@@ -411,4 +411,88 @@ class BookingServiceTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Khung giờ đặt lịch chỉ mở từ 17:00 đến 21:30");
     }
+
+    @Test
+    @DisplayName("TC16: Học viên sở hữu ca hỗ trợ có thể xóa ca hoàn toàn và đồng bộ xóa sang DB 2")
+    void testDeleteBooking_Success_ByOwner() {
+        SupportBooking booking = new SupportBooking();
+        booking.setId(77L);
+        booking.setUser(testStudent);
+        booking.setStatus("CANCELLED");
+        booking.setExternalSessionId("ext-uuid-123");
+
+        when(bookingRepository.findById(77L)).thenReturn(Optional.of(booking));
+
+        bookingService.deleteBooking(77L, testStudent);
+
+        verify(externalDbSyncService).deleteExternalSupportSession(booking);
+        verify(bookingRepository).delete(booking);
+    }
+
+    @Test
+    @DisplayName("TC17: Học viên khác không được xóa ca của học viên khác")
+    void testDeleteBooking_Forbidden_OtherUser() {
+        User otherStudent = new User();
+        otherStudent.setId(999L);
+        otherStudent.setRole("ROLE_USER");
+
+        SupportBooking booking = new SupportBooking();
+        booking.setId(77L);
+        booking.setUser(testStudent);
+
+        when(bookingRepository.findById(77L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.deleteBooking(77L, otherStudent))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Bạn không có quyền xóa");
+    }
+
+    @Test
+    @DisplayName("TC18: getMyBookings tự động lưu vào MySQL khi phát hiện thay đổi từ DB 2")
+    void testGetMyBookings_PersistsWhenChanged() {
+        SupportBooking booking = new SupportBooking();
+        booking.setId(101L);
+        booking.setUser(testStudent);
+        booking.setStatus("CONFIRMED");
+
+        List<SupportBooking> list = new ArrayList<>(List.of(booking));
+        when(bookingRepository.findByUserIdOrderByBookingDateDescStartTimeDesc(testStudent.getId())).thenReturn(list);
+        when(externalDbSyncService.pullExternalSessionUpdates(list)).thenReturn(true);
+
+        List<SupportBooking> result = bookingService.getMyBookings(testStudent);
+
+        assertThat(result).hasSize(1);
+        verify(bookingRepository).saveAll(list);
+    }
+
+    @Test
+    @DisplayName("TC19: getAvailableSlots tự động mở lại slot nếu phát hiện slot đó đã bị hủy trên LMS (Self-healing)")
+    void testGetAvailableSlots_SelfHealingCancelledSlot() {
+        LocalDate date = LocalDate.now().plusDays(1);
+
+        SupportBooking cancelledBooking = new SupportBooking();
+        cancelledBooking.setId(88L);
+        cancelledBooking.setBookingDate(date);
+        cancelledBooking.setStartTime("17:00");
+        cancelledBooking.setEndTime("17:30");
+        cancelledBooking.setStatus("CANCELLED");
+        cancelledBooking.setExternalSessionId("ext-88");
+
+        ExternalDbSyncService.ExternalBusySlotDto busyDto = new ExternalDbSyncService.ExternalBusySlotDto();
+        busyDto.setId("ext-88");
+        busyDto.setDate(date);
+        busyDto.setStartTime("17:00");
+        busyDto.setEndTime("17:30");
+
+        when(bookingRepository.findByBookingDateAndStatusNot(date, "CANCELLED")).thenReturn(Collections.emptyList());
+        when(bookingRepository.findByBookingDateAndStatus(date, "CANCELLED")).thenReturn(List.of(cancelledBooking));
+        when(externalDbSyncService.getBusySlotsForDate(date)).thenReturn(List.of(busyDto));
+
+        List<AvailableSlotDto> slots = bookingService.getAvailableSlots(date, testStudent);
+
+        AvailableSlotDto slot17 = slots.stream().filter(s -> s.getStartTime().equals("17:00")).findFirst().orElseThrow();
+        // Phải được tự động giải phóng (isAvailable = true) vì slot này đã bị hủy trên LMS
+        assertThat(slot17.isAvailable()).isTrue();
+        verify(externalDbSyncService).cancelExternalSupportSession("ext-88");
+    }
 }

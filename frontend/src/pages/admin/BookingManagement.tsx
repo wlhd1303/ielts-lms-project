@@ -161,6 +161,30 @@ export default function BookingManagement() {
     }
   };
 
+  const handleCancelSupportBooking = async (b: SupportBooking) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy ca hỗ trợ này (${b.bookingDate} ${b.startTime}-${b.endTime})? Hành động này sẽ tự động cập nhật và đồng bộ sang hệ thống bên kia.`)) return;
+    try {
+      await bookingService.cancelSupportBookingAdmin(b.id);
+      showToast('Đã hủy ca hỗ trợ và đồng bộ sang hệ thống quản lý thành công!', 'success');
+      fetchAdminData();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể hủy ca hỗ trợ.';
+      showToast(errorMsg, 'error');
+    }
+  };
+
+  const handleDeleteSupportBooking = async (b: SupportBooking) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN ca hỗ trợ này (${b.bookingDate} ${b.startTime}-${b.endTime})? Dữ liệu trên cả hai hệ thống sẽ bị xóa hoàn toàn.`)) return;
+    try {
+      await bookingService.deleteSupportBookingAdmin(b.id);
+      showToast('Đã xóa vĩnh viễn ca hỗ trợ và đồng bộ sang hệ thống quản lý thành công!', 'success');
+      fetchAdminData();
+    } catch (err: any) {
+      const errorMsg = err?.response?.data?.message || err?.message || 'Không thể xóa ca hỗ trợ.';
+      showToast(errorMsg, 'error');
+    }
+  };
+
   const fetchOnlineRegistrations = async (eventId: number) => {
     setLoadingOnlineRegistrations(true);
     try {
@@ -534,12 +558,31 @@ export default function BookingManagement() {
                       </span>
                     </td>
                     <td className="p-3 text-right">
-                      <button
-                        onClick={() => handleOpenEvaluate(b)}
-                        className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg cursor-pointer transition-colors"
-                      >
-                        Chấm điểm & Nhận xét
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenEvaluate(b)}
+                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                          title="Chấm điểm & Nhận xét"
+                        >
+                          Chấm điểm
+                        </button>
+                        {b.status !== 'CANCELLED' && (
+                          <button
+                            onClick={() => handleCancelSupportBooking(b)}
+                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                            title="Hủy ca (đồng bộ hệ thống liên kết)"
+                          >
+                            Hủy
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteSupportBooking(b)}
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                          title="Xóa vĩnh viễn (xóa ở cả 2 bên)"
+                        >
+                          Xóa
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

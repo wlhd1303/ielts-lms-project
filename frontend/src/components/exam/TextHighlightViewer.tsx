@@ -3,9 +3,18 @@ import React, { useState, useRef, useEffect } from 'react';
 interface TextHighlightViewerProps {
   content: string;
   title?: string;
+  instruction?: string;
+  imageUrl?: string;
+  onImageClick?: (url: string) => void;
 }
 
-export default function TextHighlightViewer({ content, title = 'Reading Passage' }: TextHighlightViewerProps) {
+export default function TextHighlightViewer({
+  content,
+  title = 'Reading Passage',
+  instruction,
+  imageUrl,
+  onImageClick,
+}: TextHighlightViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
   const [selectedRange, setSelectedRange] = useState<Range | null>(null);
@@ -180,6 +189,38 @@ export default function TextHighlightViewer({ content, title = 'Reading Passage'
             >
               <span>🧹</span>
               <span>Xóa</span>
+            </button>
+          </div>
+        )}
+
+        {/* Hướng dẫn, tiêu đề & Hình ảnh minh họa (Map / Diagram) */}
+        {instruction && (
+          <div className="text-xs md:text-sm text-slate-500 font-sans font-medium italic pb-2 mb-3 border-b border-slate-100">
+            {instruction}
+          </div>
+        )}
+
+        {title && (
+          <h2 className="text-base md:text-xl font-bold font-sans text-slate-900 tracking-tight mb-4">
+            {title}
+          </h2>
+        )}
+
+        {imageUrl && (
+          <div className="my-4 p-3 bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center">
+            <img
+              src={imageUrl}
+              alt="Passage Diagram / Map"
+              className="max-h-80 w-auto rounded-xl object-contain shadow-xs cursor-zoom-in hover:opacity-95 transition-opacity"
+              onClick={() => onImageClick?.(imageUrl)}
+            />
+            <button
+              type="button"
+              onClick={() => onImageClick?.(imageUrl)}
+              className="mt-2 text-[11px] font-sans font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+            >
+              <span>🔍</span>
+              <span>Nhấp để phóng to bản đồ / hình ảnh</span>
             </button>
           </div>
         )}

@@ -63,6 +63,7 @@ public class BookingService {
      */
     public List<AvailableSlotDto> getAvailableSlots(LocalDate date, User currentUser) {
         List<SupportBooking> existingBookings = bookingRepository.findByBookingDateAndStatusNot(date, "CANCELLED");
+        List<SupportBooking> cancelledBookings = bookingRepository.findByBookingDateAndStatus(date, "CANCELLED");
         List<ExternalDbSyncService.ExternalBusySlotDto> externalBusySlots = externalDbSyncService.getBusySlotsForDate(date);
 
         List<AvailableSlotDto> slots = new ArrayList<>();
@@ -91,6 +92,20 @@ public class BookingService {
             boolean isExternalBusy = false;
             for (ExternalDbSyncService.ExternalBusySlotDto extSlot : externalBusySlots) {
                 if (checkTimeOverlap(start, end, extSlot.getStartTime(), extSlot.getEndTime())) {
+                    // Kiểm tra xem slot này trên DB 2 có phải chính là slot đã bị HỦY trong LMS không
+                    boolean isAlreadyCancelledLocally = cancelledBookings != null && cancelledBookings.stream().anyMatch(cb ->
+                        (cb.getExternalSessionId() != null && cb.getExternalSessionId().equalsIgnoreCase(extSlot.getId())) ||
+                        (cb.getStartTime().equals(extSlot.getStartTime()) && cb.getEndTime().equals(extSlot.getEndTime()))
+                    );
+                    if (isAlreadyCancelledLocally) {
+                        // Tự sửa lỗi (self-healing): Slot này đã bị hủy trên LMS nhưng DB 2 chưa cập nhật, cập nhật ngay!
+                        try {
+                            if (extSlot.getId() != null) {
+                                externalDbSyncService.cancelExternalSupportSession(extSlot.getId());
+                            }
+                        } catch (Exception ignored) {}
+                        continue;
+                    }
                     isExternalBusy = true;
                     break;
                 }
@@ -260,14 +275,38 @@ public class BookingService {
         booking.setStatus("CANCELLED");
         bookingRepository.save(booking);
 
-        // Đồng bộ trạng thái hủy sang DB 2
-        if (booking.getExternalSessionId() != null) {
-            try {
-                externalDbSyncService.cancelExternalSupportSession(booking.getExternalSessionId());
-            } catch (Exception e) {
-                log.warn("Không thể hủy ca hỗ trợ trên DB 2: {}", e.getMessage());
-            }
+        // Đồng bộ trạng thái hủy sang DB 2 (hỗ trợ cả UUID và Fallback theo ngày/giờ)
+        try {
+            externalDbSyncService.cancelExternalSupportSession(booking);
+        } catch (Exception e) {
+            log.warn("Không thể hủy ca hỗ trợ trên DB 2: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Xóa hoàn toàn ca hỗ trợ (dành cho Admin hoặc chủ ca)
+     * Đồng bộ xóa cứng trên DB 2
+     */
+    @Transactional
+    public void deleteBooking(Long bookingId, User currentUser) {
+        SupportBooking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ca hỗ trợ!"));
+
+        boolean isAdmin = currentUser != null && ("ROLE_ADMIN".equals(currentUser.getRole()) || "ADMIN".equals(currentUser.getRole()));
+        boolean isOwner = currentUser != null && booking.getUser() != null && Objects.equals(booking.getUser().getId(), currentUser.getId());
+
+        if (!isAdmin && !isOwner) {
+            throw new RuntimeException("Bạn không có quyền xóa ca hỗ trợ này!");
+        }
+
+        // Đồng bộ xóa cứng sang DB 2 (hỗ trợ cả UUID và Fallback theo ngày/giờ)
+        try {
+            externalDbSyncService.deleteExternalSupportSession(booking);
+        } catch (Exception e) {
+            log.warn("Không thể xóa ca hỗ trợ trên DB 2: {}", e.getMessage());
+        }
+
+        bookingRepository.delete(booking);
     }
 
     /**
@@ -279,7 +318,10 @@ public class BookingService {
         }
         List<SupportBooking> bookings = bookingRepository.findByUserIdOrderByBookingDateDescStartTimeDesc(currentUser.getId());
         try {
-            externalDbSyncService.pullExternalSessionUpdates(bookings);
+            boolean changed = externalDbSyncService.pullExternalSessionUpdates(bookings);
+            if (changed) {
+                bookingRepository.saveAll(bookings);
+            }
         } catch (Exception ignored) {}
         return bookings;
     }
@@ -290,7 +332,10 @@ public class BookingService {
     public List<SupportBooking> getAllBookingsAdmin() {
         List<SupportBooking> bookings = bookingRepository.findAllByOrderByBookingDateDescStartTimeDesc();
         try {
-            externalDbSyncService.pullExternalSessionUpdates(bookings);
+            boolean changed = externalDbSyncService.pullExternalSessionUpdates(bookings);
+            if (changed) {
+                bookingRepository.saveAll(bookings);
+            }
         } catch (Exception ignored) {}
         return bookings;
     }

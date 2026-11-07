@@ -38,6 +38,26 @@ public class AdminBookingController {
     }
 
     /**
+     * Admin hủy ca hỗ trợ
+     */
+    @DeleteMapping("/support/{id}/cancel")
+    public ResponseEntity<java.util.Map<String, String>> cancelSupportBookingAdmin(@PathVariable Long id) {
+        User currentUser = userService.getMyProfile();
+        bookingService.cancelBooking(id, currentUser);
+        return ResponseEntity.ok(java.util.Map.of("message", "Đã hủy ca hỗ trợ thành công!"));
+    }
+
+    /**
+     * Admin xóa vĩnh viễn ca hỗ trợ
+     */
+    @DeleteMapping("/support/{id}")
+    public ResponseEntity<java.util.Map<String, String>> deleteSupportBookingAdmin(@PathVariable Long id) {
+        User currentUser = userService.getMyProfile();
+        bookingService.deleteBooking(id, currentUser);
+        return ResponseEntity.ok(java.util.Map.of("message", "Đã xóa ca hỗ trợ thành công!"));
+    }
+
+    /**
      * Đánh giá / Chấm điểm ca hỗ trợ
      */
     @PutMapping("/support/{id}/evaluate")
