@@ -133,21 +133,26 @@ export default function EventExamRoom() {
       setExamData(data);
       setTimeLeft(data.remainingSeconds || 3600);
 
+      const hasPassages = !!data.passageText && data.passageText.trim().length > 0;
+      const defaultToPdf = !!data.pdfUrl && !hasPassages;
+
       const savedStage = getSavedStage();
       if (data.skillType === 'BOTH') {
         if (savedStage === 'READING') {
           setCurrentStage('READING');
           setCompletedListening(true);
-          setLeftTab('passage');
+          setLeftTab(defaultToPdf ? 'pdf' : 'passage');
         } else {
           setCurrentStage('LISTENING');
           setCompletedListening(false);
+          setLeftTab(defaultToPdf ? 'pdf' : 'passage');
         }
       } else if (data.skillType === 'LISTENING') {
         setCurrentStage('LISTENING');
+        setLeftTab(defaultToPdf ? 'pdf' : 'passage');
       } else {
         setCurrentStage('READING');
-        if (data.passageText) setLeftTab('passage');
+        setLeftTab(defaultToPdf ? 'pdf' : 'passage');
       }
 
       const savedDraft = getSavedDraft();
@@ -174,21 +179,26 @@ export default function EventExamRoom() {
       setExamData(data);
       setTimeLeft(data.remainingSeconds || 0);
 
+      const hasPassages = !!data.passageText && data.passageText.trim().length > 0;
+      const defaultToPdf = !!data.pdfUrl && !hasPassages;
+
       const savedStage = getSavedStage();
       if (data.skillType === 'BOTH') {
         if (savedStage === 'READING') {
           setCurrentStage('READING');
           setCompletedListening(true);
-          setLeftTab('passage');
+          setLeftTab(defaultToPdf ? 'pdf' : 'passage');
         } else {
           setCurrentStage('LISTENING');
           setCompletedListening(false);
+          setLeftTab(defaultToPdf ? 'pdf' : 'passage');
         }
       } else if (data.skillType === 'LISTENING') {
         setCurrentStage('LISTENING');
+        setLeftTab(defaultToPdf ? 'pdf' : 'passage');
       } else {
         setCurrentStage('READING');
-        if (data.passageText) setLeftTab('passage');
+        setLeftTab(defaultToPdf ? 'pdf' : 'passage');
       }
 
       const savedDraft = getSavedDraft();
@@ -789,11 +799,16 @@ export default function EventExamRoom() {
   const handleSelectQuestion = (num: number) => {
     setActiveQuestionNum(num);
 
-    // Tự động chuyển Passage ở cột trái nếu là bài Reading
+    // Tự động chuyển Passage ở cột trái nếu là bài Reading hoặc Listening
     if (activeSkill === 'READING') {
       if (num <= 13) setActivePassageId(1);
       else if (num <= 26) setActivePassageId(2);
       else setActivePassageId(3);
+    } else if (activeSkill === 'LISTENING') {
+      if (num <= 10) setActivePassageId(1);
+      else if (num <= 20) setActivePassageId(2);
+      else if (num <= 30) setActivePassageId(3);
+      else setActivePassageId(4);
     }
 
     const el = document.getElementById(`q_box_${activeSkill}_${num}`);
@@ -948,144 +963,145 @@ export default function EventExamRoom() {
 
       {/* WORKSPACE 3 CỘT CHUẨN THI MÁY (DESKTOP: 3 PANES; MOBILE: SEGMENTED SWITCHER) */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative p-2 md:p-3 gap-2 md:gap-3">
-        {/* CỘT 1 (TRÁI): BÀI ĐỌC (PASSAGE 1, 2, 3 + HIGHLIGHT + ẢNH MAP) HOẶC AUDIO LISTENING */}
+        {/* CỘT 1 (TRÁI): ĐỀ THI (PDF / BÀI ĐỌC / BÀI NGHE / MAP / DIAGRAM) + AUDIO STICKY NẾU LISTENING */}
         <div className={`w-full lg:w-[44%] xl:w-[46%] h-full flex flex-col overflow-hidden relative bg-white rounded-2xl md:rounded-3xl border border-slate-200/80 shadow-xs ${
           mobileTab === 'content' ? 'flex' : 'hidden lg:flex'
         }`}>
-          {activeSkill === 'LISTENING' ? (
-            /* GIAO DIỆN PHẦN THI LISTENING */
-            <div className="w-full h-full p-4 md:p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div className="flex items-center gap-3">
-                    <span className="p-2.5 bg-purple-100 text-purple-700 rounded-2xl text-xl font-black">🎧</span>
-                    <div>
-                      <h3 className="text-sm md:text-base font-black text-slate-900">IELTS Academic Listening</h3>
-                      <p className="text-[11px] text-slate-400 font-medium">Bản ghi âm chính thức • 40 câu hỏi</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                    Đang thi
+          {/* THANH PHÁT AUDIO CHUYÊN NGHIỆP STICKY DÀNH CHO LISTENING */}
+          {activeSkill === 'LISTENING' && (
+            <div className="p-3 bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 text-white flex flex-col gap-2 shrink-0 border-b border-purple-800 shadow-sm z-10">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 bg-purple-500/20 text-purple-300 rounded-md text-xs">🎧</span>
+                  <span className="text-xs font-black uppercase tracking-wider text-purple-200">
+                    Official Audio Track
                   </span>
                 </div>
-
-                {/* Audio Player chuyên nghiệp */}
-                <div className="p-4 md:p-5 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 rounded-2xl border border-purple-200/80 space-y-3 shadow-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-purple-900 uppercase tracking-wider flex items-center gap-2">
-                      <span className="animate-pulse">🔊</span> Official Audio Track
-                    </span>
-                    <span className="text-[10px] font-bold bg-purple-200/70 text-purple-800 px-2 py-0.5 rounded-full">
-                      IELTS Listening
-                    </span>
-                  </div>
-
-                  <audio
-                    controls
-                    autoPlay
-                    className="w-full h-11 rounded-xl outline-none"
-                    src={examData.audioUrl || '/sample-ielts-listening.wav'}
-                  >
-                    Trình duyệt của bạn không hỗ trợ phát âm thanh.
-                  </audio>
-
-                  <p className="text-[11px] text-purple-700 font-medium leading-relaxed">
-                    💡 Hãy đeo tai nghe và điều chỉnh âm lượng vừa nghe. Bạn có thể vừa nghe vừa chọn/điền đáp án ở cột bên cạnh.
-                  </p>
-                </div>
-
-                {/* Hướng dẫn làm bài */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
-                  <h4 className="font-black text-slate-800 flex items-center gap-1.5">
-                    <span>📋</span> Hướng Dẫn Thí Sinh:
-                  </h4>
-                  <ul className="space-y-1.5 list-disc pl-4 text-slate-600 leading-relaxed font-medium text-[11px]">
-                    <li>Bạn có 40 câu hỏi ở cột câu hỏi.</li>
-                    <li>Lắng nghe đoạn ghi âm và chọn hoặc điền đáp án trực tiếp vào ô câu trả lời tương ứng.</li>
-                    <li>Sau khi hoàn thành phần Listening, bấm nút <strong className="text-purple-700">"Nộp Listening & Sang Reading ➔"</strong> để bước vào phần thi Đọc.</li>
-                    <li><strong className="text-rose-600">Lưu ý:</strong> Sau khi chuyển sang Reading, bạn sẽ không thể quay lại sửa bài Listening.</li>
-                  </ul>
-                </div>
-              </div>
-
-              {isBoth && (
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                  <span className="text-[11px]">Giai đoạn 1 (Listening) → Giai đoạn 2 (Reading)</span>
-                  <button
-                    onClick={handleCompleteListeningAndSwitchToReading}
-                    className="font-bold text-purple-600 hover:text-purple-700 hover:underline cursor-pointer text-xs"
-                  >
-                    Bỏ qua sang Reading ➔
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* GIAO DIỆN PHẦN THI READING (3 PASSAGES + HIGHLIGHT + ẢNH MAP) */
-            <div className="w-full h-full flex flex-col overflow-hidden">
-              {/* Header Tab chọn Passage 1, 2, 3 */}
-              <div className="p-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between gap-2 shrink-0">
-                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
-                  {[1, 2, 3].map((num) => (
+                <div className="flex items-center gap-2">
+                  {isBoth && (
                     <button
-                      key={num}
-                      type="button"
-                      onClick={() => {
-                        setActivePassageId(num);
-                        setLeftTab('passage');
-                      }}
-                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
-                        activePassageId === num && leftTab === 'passage'
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 hover:bg-slate-100'
-                      }`}
+                      onClick={handleCompleteListeningAndSwitchToReading}
+                      className="px-2 py-0.5 bg-purple-500/30 hover:bg-purple-500/50 text-purple-200 hover:text-white rounded-lg text-[10px] font-bold transition-all border border-purple-400/30 cursor-pointer"
                     >
-                      Passage {num}
+                      Sang Reading ➔
                     </button>
-                  ))}
+                  )}
+                  <span className="text-[10px] font-bold bg-purple-500/30 text-purple-300 px-2 py-0.5 rounded-full border border-purple-400/30">
+                    IELTS Listening
+                  </span>
                 </div>
-
-                {examData.pdfUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setLeftTab(leftTab === 'pdf' ? 'passage' : 'pdf')}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                      leftTab === 'pdf'
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                    }`}
-                  >
-                    {leftTab === 'pdf' ? '← Xem Text' : '📄 Xem PDF'}
-                  </button>
-                )}
               </div>
 
-              {/* Nội dung bài đọc hoặc PDF */}
-              <div className="flex-1 overflow-hidden relative">
-                {leftTab === 'passage' ? (
-                  <TextHighlightViewer
-                    content={currentPassage.content}
-                    title={currentPassage.title}
-                    instruction={currentPassage.instruction}
-                    imageUrl={currentPassage.imageUrl}
-                    onImageClick={(url) => setPreviewImageUrl(url)}
-                  />
-                ) : examData.pdfUrl ? (
-                  <div className="w-full h-full overflow-hidden">
-                    <InteractivePdfViewer
-                      pdfUrl={examData.pdfUrl}
-                      storageKey={pdfHighlightKey}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                    <span className="text-4xl mb-2">📄</span>
-                    <p className="text-xs font-bold text-slate-600">Chưa có nội dung văn bản cho phần đọc này.</p>
-                  </div>
-                )}
-              </div>
+              <audio
+                controls
+                autoPlay
+                className="w-full h-9 rounded-lg outline-none"
+                src={examData.audioUrl || '/sample-ielts-listening.wav'}
+              >
+                Trình duyệt của bạn không hỗ trợ phát âm thanh.
+              </audio>
             </div>
           )}
+
+          {/* THANH HEADER ĐIỀU KHIỂN ĐỀ THI: CHỌN PART / PASSAGE HOẶC CHUYỂN ĐỔI PDF */}
+          <div className="p-2.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between gap-2 shrink-0 flex-wrap">
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-2xs">
+              {(activeSkill === 'LISTENING'
+                ? (parsedPassages.length >= 4 ? [1, 2, 3, 4] : [1, 2, 3])
+                : [1, 2, 3]
+              ).map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => {
+                    setActivePassageId(num);
+                    setLeftTab('passage');
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                    activePassageId === num && leftTab === 'passage'
+                      ? activeSkill === 'LISTENING'
+                        ? 'bg-purple-600 text-white shadow-xs'
+                        : 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {activeSkill === 'LISTENING' ? `Part ${num}` : `Passage ${num}`}
+                </button>
+              ))}
+            </div>
+
+            {examData.pdfUrl && (
+              <button
+                type="button"
+                onClick={() => setLeftTab(leftTab === 'pdf' ? 'passage' : 'pdf')}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${
+                  leftTab === 'pdf'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                    : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50 font-black'
+                }`}
+              >
+                <span>{leftTab === 'pdf' ? '📝 Xem Đề Văn Bản' : '📄 Xem PDF Đề Thi'}</span>
+              </button>
+            )}
+          </div>
+
+          {/* VÙNG HIỂN THỊ NỘI DUNG ĐỀ THI: PDF HOẶC VĂN BẢN / HÌNH ẢNH MAP */}
+          <div className="flex-1 overflow-hidden relative">
+            {leftTab === 'pdf' && examData.pdfUrl ? (
+              <div className="w-full h-full overflow-hidden">
+                <InteractivePdfViewer
+                  pdfUrl={examData.pdfUrl}
+                  storageKey={pdfHighlightKey}
+                />
+              </div>
+            ) : (currentPassage && (currentPassage.content || currentPassage.imageUrl || currentPassage.title || currentPassage.instruction)) ? (
+              <TextHighlightViewer
+                content={currentPassage.content}
+                title={currentPassage.title}
+                instruction={currentPassage.instruction}
+                imageUrl={currentPassage.imageUrl}
+                onImageClick={(url) => setPreviewImageUrl(url)}
+              />
+            ) : examData.pdfUrl ? (
+              // Nếu chưa có text của passage nhưng có PDF URL -> tự động hiển thị PDF đề thi luôn!
+              <div className="w-full h-full overflow-hidden">
+                <InteractivePdfViewer
+                  pdfUrl={examData.pdfUrl}
+                  storageKey={pdfHighlightKey}
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full p-6 flex flex-col justify-between overflow-y-auto custom-scrollbar">
+                <div className="space-y-4">
+                  <div className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/80 space-y-2 text-center">
+                    <span className="text-3xl">🎧</span>
+                    <h4 className="font-black text-slate-800 text-sm">
+                      {activeSkill === 'LISTENING' ? 'IELTS Academic Listening' : 'IELTS Academic Reading'}
+                    </h4>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {activeSkill === 'LISTENING'
+                        ? 'Đề thi đã sẵn sàng. Bạn hãy lắng nghe đoạn ghi âm và trả lời 40 câu hỏi ở cột bên phải.'
+                        : 'Chưa có nội dung văn bản cho phần đọc này.'}
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-xs text-slate-600">
+                    <h4 className="font-black text-slate-800 flex items-center gap-1.5">
+                      <span>📋</span> Hướng Dẫn Thí Sinh:
+                    </h4>
+                    <ul className="space-y-1.5 list-disc pl-4 text-slate-600 leading-relaxed font-medium text-[11px]">
+                      <li>Bạn có 40 câu hỏi ở cột câu hỏi bên phải.</li>
+                      <li>Chọn hoặc điền đáp án trực tiếp vào ô tương ứng cho từng câu.</li>
+                      {activeSkill === 'LISTENING' && isBoth && (
+                        <li>Sau khi hoàn thành phần Listening, bấm <strong className="text-purple-700">"Sang Reading ➔"</strong> để làm tiếp phần Đọc.</li>
+                      )}
+                      <li>Có thể click vào số thứ tự câu hỏi ở bảng bên phải để di chuyển nhanh.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* CỘT 2 (GIỮA): PHIẾU CÂU HỎI (QUESTION SHEET CUỘN DỌC, CÓ XUỐNG DÒNG, BADGE TRÒN & ẢNH MAP) */}
@@ -1331,13 +1347,21 @@ export default function EventExamRoom() {
             </div>
           </div>
 
-          {/* BẢNG ĐIỀU HƯỚNG 40 CÂU HỎI THEO PASSAGE */}
+          {/* BẢNG ĐIỀU HƯỚNG 40 CÂU HỎI THEO PASSAGE / PART */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pt-3 space-y-3.5">
-            {[
-              { passageNum: 1, label: 'Passage 1', range: [1, 13] as const },
-              { passageNum: 2, label: 'Passage 2', range: [14, 26] as const },
-              { passageNum: 3, label: 'Passage 3', range: [27, 40] as const },
-            ].map((grp) => {
+            {(activeSkill === 'LISTENING'
+              ? [
+                  { passageNum: 1, label: 'Part 1', range: [1, 10] as const },
+                  { passageNum: 2, label: 'Part 2', range: [11, 20] as const },
+                  { passageNum: 3, label: 'Part 3', range: [21, 30] as const },
+                  { passageNum: 4, label: 'Part 4', range: [31, 40] as const },
+                ]
+              : [
+                  { passageNum: 1, label: 'Passage 1', range: [1, 13] as const },
+                  { passageNum: 2, label: 'Passage 2', range: [14, 26] as const },
+                  { passageNum: 3, label: 'Passage 3', range: [27, 40] as const },
+                ]
+            ).map((grp) => {
               const grpQuestions = currentSkillQuestions.filter(
                 (q) => q.questionNumber >= grp.range[0] && q.questionNumber <= grp.range[1]
               );

@@ -27,22 +27,29 @@ export interface StructuredQuestionPayload {
 export const DEFAULT_PASSAGES: PassageData[] = [
   {
     id: 1,
-    title: 'Reading Passage 1',
-    instruction: 'You should spend about 20 minutes on Questions 1-13, which are based on Reading Passage 1.',
+    title: 'Passage 1',
+    instruction: 'You should spend about 20 minutes on Questions 1-13, which are based on Passage 1.',
     imageUrl: '',
     content: '',
   },
   {
     id: 2,
-    title: 'Reading Passage 2',
-    instruction: 'You should spend about 20 minutes on Questions 14-26, which are based on Reading Passage 2.',
+    title: 'Passage 2',
+    instruction: 'You should spend about 20 minutes on Questions 14-26, which are based on Passage 2.',
     imageUrl: '',
     content: '',
   },
   {
     id: 3,
-    title: 'Reading Passage 3',
-    instruction: 'You should spend about 20 minutes on Questions 27-40, which are based on Reading Passage 3.',
+    title: 'Passage 3',
+    instruction: 'You should spend about 20 minutes on Questions 27-40, which are based on Passage 3.',
+    imageUrl: '',
+    content: '',
+  },
+  {
+    id: 4,
+    title: 'Part 4',
+    instruction: 'Questions 31-40.',
     imageUrl: '',
     content: '',
   },
@@ -57,15 +64,21 @@ export const parsePassageData = (rawText?: string): PassageData[] => {
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       const parsed = JSON.parse(trimmed);
       if (Array.isArray(parsed.passages) && parsed.passages.length > 0) {
-        return [1, 2, 3].map((num) => {
-          const found = parsed.passages.find((p: any) => p && Number(p.id) === num);
-          const def = DEFAULT_PASSAGES[num - 1];
+        return parsed.passages.map((p: any, idx: number) => {
+          const num = Number(p.id) || idx + 1;
+          const def = DEFAULT_PASSAGES[num - 1] || {
+            id: num,
+            title: `Part / Passage ${num}`,
+            instruction: '',
+            imageUrl: '',
+            content: '',
+          };
           return {
             id: num,
-            title: found?.title || def.title,
-            instruction: found?.instruction || def.instruction,
-            content: found?.content || '',
-            imageUrl: found?.imageUrl || '',
+            title: p.title || def.title,
+            instruction: p.instruction !== undefined ? p.instruction : def.instruction,
+            content: p.content || '',
+            imageUrl: p.imageUrl || '',
           };
         });
       }
@@ -77,13 +90,14 @@ export const parsePassageData = (rawText?: string): PassageData[] => {
   return [
     {
       id: 1,
-      title: 'Reading Passage 1',
+      title: 'Passage 1',
       instruction: DEFAULT_PASSAGES[0].instruction,
       content: rawText,
       imageUrl: '',
     },
     DEFAULT_PASSAGES[1],
     DEFAULT_PASSAGES[2],
+    DEFAULT_PASSAGES[3],
   ];
 };
 

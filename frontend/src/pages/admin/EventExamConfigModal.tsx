@@ -142,9 +142,24 @@ export default function EventExamConfigModal({
 
   // Cập nhật thông tin Passage
   const handlePassageChange = (id: number, field: keyof PassageData, value: string) => {
-    setPassages((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
-    );
+    setPassages((prev) => {
+      const exists = prev.some((p) => p.id === id);
+      if (exists) {
+        return prev.map((p) => (p.id === id ? { ...p, [field]: value } : p));
+      } else {
+        return [
+          ...prev,
+          {
+            id,
+            title: `Part / Passage ${id}`,
+            instruction: '',
+            imageUrl: '',
+            content: '',
+            [field]: value,
+          },
+        ];
+      }
+    });
   };
 
   // Cập nhật câu hỏi
@@ -379,7 +394,13 @@ export default function EventExamConfigModal({
     return true;
   });
 
-  const activePassage = passages.find((p) => p.id === editingPassageTab) || passages[0];
+  const activePassage = passages.find((p) => p.id === editingPassageTab) || {
+    id: editingPassageTab,
+    title: `Part / Passage ${editingPassageTab}`,
+    instruction: '',
+    imageUrl: '',
+    content: ''
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 font-sans animate-[fadeIn_0.15s_ease-out]">
@@ -521,121 +542,130 @@ export default function EventExamConfigModal({
                   )}
                 </div>
 
-                {/* KHU VỰC NHẬP 3 PASSAGES */}
-                {(skillType === 'READING' || skillType === 'BOTH') && (
-                  <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-4">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                        <span>📚</span>
-                        <span>Soạn thảo 3 Passages Reading:</span>
+                {/* KHU VỰC NHẬP PASSAGES / NỘI DUNG ĐỀ THI & BẢN ĐỒ */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <span>📚</span>
+                      <span>
+                        {skillType === 'LISTENING'
+                          ? 'Soạn thảo Nội dung Đề Nghe (Part 1 - 4 hoặc Form / Map / Diagram):'
+                          : 'Soạn thảo 3 Passages Bài Đọc (Kèm ảnh Map / Diagram nếu có):'}
                       </span>
+                    </span>
 
-                      {/* Tab chọn Passage để soạn */}
-                      <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-                        {[1, 2, 3].map((num) => (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => setEditingPassageTab(num)}
-                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                              editingPassageTab === num
-                                ? 'bg-blue-600 text-white shadow-xs'
-                                : 'text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            Passage {num} {num === 1 ? '(Q1-13)' : num === 2 ? '(Q14-26)' : '(Q27-40)'}
-                          </button>
-                        ))}
-                      </div>
+                    {/* Tab chọn Passage / Part để soạn */}
+                    <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl flex-wrap">
+                      {(skillType === 'LISTENING' ? [1, 2, 3, 4] : [1, 2, 3]).map((num) => (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setEditingPassageTab(num)}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            editingPassageTab === num
+                              ? 'bg-blue-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {skillType === 'LISTENING' ? `Part ${num}` : `Passage ${num}`}{' '}
+                          {skillType === 'LISTENING'
+                            ? `(Q${(num - 1) * 10 + 1}-${num * 10})`
+                            : num === 1
+                            ? '(Q1-13)'
+                            : num === 2
+                            ? '(Q14-26)'
+                            : '(Q27-40)'}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
-                    {/* Form chi tiết cho Passage đang chọn */}
-                    <div className="space-y-3 pt-1">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block mb-1 text-[11px] font-bold text-slate-600">
-                            Tiêu đề Passage {editingPassageTab}:
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="VD: Bovids, Roman Shipwrecks, Climate Change..."
-                            value={activePassage.title}
-                            onChange={(e) => handlePassageChange(editingPassageTab, 'title', e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-600"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block mb-1 text-[11px] font-bold text-slate-600">
-                            Hướng dẫn làm bài (Instruction):
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="VD: You should spend about 20 minutes on Questions 1-13..."
-                            value={activePassage.instruction || ''}
-                            onChange={(e) => handlePassageChange(editingPassageTab, 'instruction', e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:bg-white focus:border-blue-600"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Đính kèm hình ảnh Map / Diagram cho Passage */}
-                      <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                            <span>🗺️</span>
-                            <span>Link Hình ảnh Bản đồ / Sơ đồ cho Passage {editingPassageTab} (Tùy chọn cho bài dạng Map/Diagram):</span>
-                          </label>
-                          {activePassage.imageUrl && (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewImageUrl(activePassage.imageUrl || null)}
-                              className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
-                            >
-                              🔍 Xem ảnh đầy đủ
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="https://res.cloudinary.com/.../passage_map.png hoặc link hình ảnh trực tiếp"
-                            value={activePassage.imageUrl || ''}
-                            onChange={(e) => handlePassageChange(editingPassageTab, 'imageUrl', e.target.value)}
-                            className="flex-1 p-2 bg-white border border-blue-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-600"
-                          />
-                        </div>
-                        {activePassage.imageUrl && (
-                          <div className="pt-1 flex items-center gap-3">
-                            <img
-                              src={activePassage.imageUrl}
-                              alt="Passage Preview"
-                              className="h-16 w-28 object-cover rounded-lg border border-blue-200 cursor-pointer"
-                              onClick={() => setPreviewImageUrl(activePassage.imageUrl || null)}
-                            />
-                            <span className="text-[10px] text-slate-500">
-                              Hình ảnh này sẽ được hiển thị ngay bên trên hoặc bên cạnh văn bản bài đọc, học viên có thể phóng to khi làm bài.
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Văn bản nội dung bài đọc */}
+                  {/* Form chi tiết cho Passage / Part đang chọn */}
+                  <div className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block mb-1 text-[11px] font-bold text-slate-700">
-                          Nội dung văn bản Passage {editingPassageTab} (Hỗ trợ học viên bôi đen để Highlight trực tiếp):
+                        <label className="block mb-1 text-[11px] font-bold text-slate-600">
+                          Tiêu đề {skillType === 'LISTENING' ? `Part ${editingPassageTab}` : `Passage ${editingPassageTab}`}:
                         </label>
-                        <textarea
-                          rows={7}
-                          placeholder={`Dán nội dung bài đọc Passage ${editingPassageTab} vào đây...`}
-                          value={activePassage.content}
-                          onChange={(e) => handlePassageChange(editingPassageTab, 'content', e.target.value)}
-                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-serif leading-relaxed outline-none focus:bg-white focus:border-blue-600 custom-scrollbar"
+                        <input
+                          type="text"
+                          placeholder={skillType === 'LISTENING' ? "VD: Customer Enquiry Form, Campus Map, Seminar Discussion..." : "VD: Bovids, Roman Shipwrecks, Climate Change..."}
+                          value={activePassage.title}
+                          onChange={(e) => handlePassageChange(editingPassageTab, 'title', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:bg-white focus:border-blue-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1 text-[11px] font-bold text-slate-600">
+                          Hướng dẫn làm bài (Instruction):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={skillType === 'LISTENING' ? "VD: Questions 1-10: Complete the notes below..." : "VD: You should spend about 20 minutes on Questions 1-13..."}
+                          value={activePassage.instruction || ''}
+                          onChange={(e) => handlePassageChange(editingPassageTab, 'instruction', e.target.value)}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:bg-white focus:border-blue-600"
                         />
                       </div>
                     </div>
+
+                    {/* Đính kèm hình ảnh Map / Diagram cho Passage */}
+                    <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                          <span>🗺️</span>
+                          <span>Link Hình ảnh Bản đồ / Sơ đồ (Tùy chọn cho bài dạng Map / Diagram / Labelling):</span>
+                        </label>
+                        {activePassage.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImageUrl(activePassage.imageUrl || null)}
+                            className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
+                          >
+                            🔍 Xem ảnh đầy đủ
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="https://res.cloudinary.com/.../passage_map.png hoặc link hình ảnh trực tiếp"
+                          value={activePassage.imageUrl || ''}
+                          onChange={(e) => handlePassageChange(editingPassageTab, 'imageUrl', e.target.value)}
+                          className="flex-1 p-2 bg-white border border-blue-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-600"
+                        />
+                      </div>
+                      {activePassage.imageUrl && (
+                        <div className="pt-1 flex items-center gap-3">
+                          <img
+                            src={activePassage.imageUrl}
+                            alt="Passage Preview"
+                            className="h-16 w-28 object-cover rounded-lg border border-blue-200 cursor-pointer"
+                            onClick={() => setPreviewImageUrl(activePassage.imageUrl || null)}
+                          />
+                          <span className="text-[10px] text-slate-500">
+                            Hình ảnh này sẽ được hiển thị ngay bên trên hoặc bên cạnh văn bản bài đọc/nghe, học viên có thể phóng to khi làm bài.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Văn bản nội dung bài đọc */}
+                    <div>
+                      <label className="block mb-1 text-[11px] font-bold text-slate-700">
+                        Nội dung văn bản / Biểu mẫu {skillType === 'LISTENING' ? `Part ${editingPassageTab}` : `Passage ${editingPassageTab}`} (Hỗ trợ học viên bôi đen để Highlight trực tiếp):
+                      </label>
+                      <textarea
+                        rows={7}
+                        placeholder={skillType === 'LISTENING' ? `Dán thông tin, biểu mẫu hoặc văn bản ngữ cảnh Part ${editingPassageTab} vào đây...` : `Dán nội dung bài đọc Passage ${editingPassageTab} vào đây...`}
+                        value={activePassage.content}
+                        onChange={(e) => handlePassageChange(editingPassageTab, 'content', e.target.value)}
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-serif leading-relaxed outline-none focus:bg-white focus:border-blue-600 custom-scrollbar"
+                      />
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* PHẦN 3: BẢNG KHAI BÁO 40 CÂU HỎI VÀ DẠNG CÂU HỎI */}
