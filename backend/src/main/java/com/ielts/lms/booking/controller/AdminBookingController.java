@@ -179,4 +179,44 @@ public class AdminBookingController {
         int count = examService.resetAllRegistrationsInShift(shiftId, currentUser);
         return ResponseEntity.ok(java.util.Map.of("message", "Đã đặt lại thành công " + count + " lượt thi trong ca!"));
     }
+
+    /**
+     * Admin bật / tắt công bố Bảng Xếp Hạng của sự kiện
+     */
+    @PutMapping("/events/{eventId}/leaderboard-toggle")
+    public ResponseEntity<?> toggleLeaderboard(
+            @PathVariable Long eventId,
+            @RequestBody java.util.Map<String, Boolean> body) {
+        Boolean isPublic = body != null ? body.get("isPublic") : true;
+        TestEvent event = examService.toggleLeaderboardVisibility(eventId, isPublic);
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Đã cập nhật trạng thái bảng xếp hạng thành công!",
+                "isPublic", event.getIsLeaderboardPublic()
+        ));
+    }
+
+    /**
+     * Admin chấm lại toàn bộ thí sinh trong sự kiện
+     */
+    @PostMapping("/events/{eventId}/regrade-all")
+    public ResponseEntity<?> regradeAll(@PathVariable Long eventId) {
+        int count = examService.regradeAllRegistrations(eventId);
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Đã chấm lại thành công " + count + " bài thi!",
+                "count", count
+        ));
+    }
+
+    /**
+     * Admin xuất Bảng Xếp Hạng đợt thi ra file CSV
+     */
+    @GetMapping(value = "/events/{eventId}/leaderboard/export-csv", produces = "text/csv; charset=utf-8")
+    public ResponseEntity<byte[]> exportLeaderboardCsv(
+            @PathVariable Long eventId,
+            @RequestParam(required = false) Long shiftId) {
+        byte[] csvData = examService.exportLeaderboardCsv(eventId, shiftId);
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentDispositionFormData("attachment", "leaderboard_event_" + eventId + ".csv");
+        return ResponseEntity.ok().headers(headers).body(csvData);
+    }
 }

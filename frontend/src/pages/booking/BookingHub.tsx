@@ -8,6 +8,7 @@ import {
   type TestEventRegistration
 } from '../../services/bookingService';
 import { authService } from '../../services/authService';
+import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
 
 const SKILLS = [
   { key: 'SPEAKING', label: 'Speaking (Nói)', emoji: '🗣️' },
@@ -50,6 +51,10 @@ export default function BookingHub() {
   const [submittingReg, setSubmittingReg] = useState(false);
   const [regFullName, setRegFullName] = useState('');
   const [regPhone, setRegPhone] = useState('');
+
+  // --- STATE BẢNG XẾP HẠNG ĐỢT THI ---
+  const [selectedLeaderboardEvent, setSelectedLeaderboardEvent] = useState<TestEvent | null>(null);
+  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
 
   // Thông báo Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -715,10 +720,21 @@ export default function BookingHub() {
                           </p>
                         )}
 
-                        <div className="flex items-center gap-4 text-xs font-bold text-slate-600 pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between gap-4 text-xs font-bold text-slate-600 pt-2 border-t border-slate-100 flex-wrap">
                           <span className="flex items-center gap-1.5">
                             <span>📍</span> {ev.location}
                           </span>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLeaderboardEvent(ev);
+                              setShowLeaderboardModal(true);
+                            }}
+                            className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/90 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs"
+                          >
+                            <span>🏆 Bảng Xếp Hạng</span>
+                          </button>
                         </div>
                       </div>
 
@@ -1183,6 +1199,20 @@ export default function BookingHub() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Bảng Xếp Hạng Đợt Thi */}
+      {selectedLeaderboardEvent && (
+        <EventLeaderboardModal
+          isOpen={showLeaderboardModal}
+          onClose={() => {
+            setShowLeaderboardModal(false);
+            setSelectedLeaderboardEvent(null);
+          }}
+          eventId={selectedLeaderboardEvent.id}
+          isAdmin={isAdmin}
+          shifts={selectedLeaderboardEvent.shifts}
+        />
       )}
 
     </div>

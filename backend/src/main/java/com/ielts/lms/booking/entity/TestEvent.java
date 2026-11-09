@@ -62,6 +62,12 @@ public class TestEvent {
     @Column(name = "allow_review")
     private Boolean allowReview = true;
 
+    @Column(name = "is_leaderboard_public")
+    private Boolean isLeaderboardPublic = true;
+
+    @Column(name = "leaderboard_published_at")
+    private Timestamp leaderboardPublishedAt;
+
     @OneToMany(mappedBy = "testEvent", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JsonManagedReference
     private List<TestEventShift> shifts = new ArrayList<>();

@@ -63,6 +63,7 @@ public class TestEventService {
         event.setAudioUrl(dto.getAudioUrl());
         event.setPassageText(dto.getPassageText());
         event.setAllowReview(dto.getAllowReview() != null ? dto.getAllowReview() : true);
+        event.setIsLeaderboardPublic(dto.getIsLeaderboardPublic() != null ? dto.getIsLeaderboardPublic() : true);
 
         List<TestEventShift> shifts = new ArrayList<>();
         if (dto.getShifts() != null) {
@@ -107,6 +108,7 @@ public class TestEventService {
         if (dto.getAudioUrl() != null) event.setAudioUrl(dto.getAudioUrl());
         if (dto.getPassageText() != null) event.setPassageText(dto.getPassageText());
         if (dto.getAllowReview() != null) event.setAllowReview(dto.getAllowReview());
+        if (dto.getIsLeaderboardPublic() != null) event.setIsLeaderboardPublic(dto.getIsLeaderboardPublic());
 
         if (dto.getShifts() != null) {
             List<TestEventShift> currentShifts = event.getShifts();

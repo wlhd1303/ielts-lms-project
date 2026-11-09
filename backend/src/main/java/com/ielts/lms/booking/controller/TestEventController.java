@@ -32,6 +32,24 @@ public class TestEventController {
     }
 
     /**
+     * Bảng xếp hạng đợt thi thử dành cho học viên
+     */
+    @GetMapping("/{eventId}/leaderboard")
+    public ResponseEntity<com.ielts.lms.booking.dto.EventLeaderboardDto> getEventLeaderboard(
+            @PathVariable Long eventId,
+            @RequestParam(required = false) Long shiftId,
+            @RequestParam(required = false) String skill) {
+        User currentUser = null;
+        try {
+            currentUser = userService.getMyProfile();
+        } catch (Exception e) {
+            // Unauthenticated or guest view
+        }
+        boolean isAdmin = currentUser != null && ("ROLE_ADMIN".equalsIgnoreCase(currentUser.getRole()) || "ADMIN".equalsIgnoreCase(currentUser.getRole()));
+        return ResponseEntity.ok(examService.getEventLeaderboard(eventId, shiftId, skill, currentUser, isAdmin));
+    }
+
+    /**
      * Học viên đăng ký tham gia ca thi
      */
     @PostMapping("/register")

@@ -34,6 +34,7 @@ public class CreateTestEventDto {
     private String audioUrl;
     private String passageText;
     private Boolean allowReview;
+    private Boolean isLeaderboardPublic;
 
     @NotEmpty(message = "Phải có ít nhất 1 ca thi")
     private List<ShiftDto> shifts;

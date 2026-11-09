@@ -18,12 +18,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -681,5 +683,294 @@ public class TestEventExamService {
             }
         }
         return false;
+    }
+
+    /**
+     * BẢNG XẾP HẠNG ĐỢT THI THỬ (EVENT LEADERBOARD)
+     */
+    public EventLeaderboardDto getEventLeaderboard(Long eventId, Long shiftId, String skillFilter, User currentUser, boolean isAdmin) {
+        TestEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện ID " + eventId));
+
+        boolean isPublic = event.getIsLeaderboardPublic() != null ? event.getIsLeaderboardPublic() : true;
+        String skill = skillFilter != null && !skillFilter.trim().isEmpty() ? skillFilter.toUpperCase().trim() : "OVERALL";
+
+        if (!isPublic && !isAdmin) {
+            EventLeaderboardItemDto myRankItem = null;
+            if (currentUser != null) {
+                List<TestEventRegistration> myRegs = registrationRepository.findByShiftTestEventId(eventId);
+                for (TestEventRegistration reg : myRegs) {
+                    if (reg.getUser() != null && Objects.equals(reg.getUser().getId(), currentUser.getId())) {
+                        if (reg.getExamSubmittedAt() != null || "SUBMITTED".equals(reg.getStatus()) || "ATTENDED".equals(reg.getStatus())) {
+                            myRankItem = mapToLeaderboardItem(reg, 0, currentUser, isAdmin);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return EventLeaderboardDto.builder()
+                    .eventId(event.getId())
+                    .eventTitle(event.getTitle())
+                    .skillType(event.getSkillType())
+                    .isPublic(false)
+                    .totalParticipants(0)
+                    .averageScore(0.0)
+                    .highestScore(0.0)
+                    .myRank(myRankItem)
+                    .build();
+        }
+
+        List<TestEventRegistration> allRegistrations = registrationRepository.findByShiftTestEventId(eventId);
+
+        List<TestEventRegistration> submittedList = allRegistrations.stream()
+                .filter(reg -> reg.getExamSubmittedAt() != null || "SUBMITTED".equals(reg.getStatus()) || "ATTENDED".equals(reg.getStatus()))
+                .filter(reg -> shiftId == null || (reg.getShift() != null && Objects.equals(reg.getShift().getId(), shiftId)))
+                .collect(Collectors.toList());
+
+        List<TestEventQuestion> eventQuestions = questionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(eventId);
+        Map<String, int[]> questionStats = new HashMap<>();
+        for (TestEventQuestion q : eventQuestions) {
+            questionStats.put(q.getSkill().toUpperCase() + "_" + q.getQuestionNumber(), new int[]{0, 0});
+        }
+
+        for (TestEventRegistration reg : submittedList) {
+            if (reg.getStudentAnswers() != null && !reg.getStudentAnswers().trim().isEmpty()) {
+                try {
+                    Map<String, String> ansMap = objectMapper.readValue(reg.getStudentAnswers(), new TypeReference<Map<String, String>>() {});
+                    for (TestEventQuestion q : eventQuestions) {
+                        String key = q.getSkill().toUpperCase() + "_" + q.getQuestionNumber();
+                        int[] st = questionStats.get(key);
+                        if (st != null) {
+                            st[1]++;
+                            String stdAns = ansMap.get(key);
+                            if (stdAns == null) stdAns = ansMap.get(String.valueOf(q.getQuestionNumber()));
+                            if (!isAnswerCorrect(stdAns, q.getCorrectAnswer())) {
+                                st[0]++;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignore parsing errors for stats
+                }
+            }
+        }
+
+        List<QuestionStatDto> topHardest = new ArrayList<>();
+        for (TestEventQuestion q : eventQuestions) {
+            String key = q.getSkill().toUpperCase() + "_" + q.getQuestionNumber();
+            int[] st = questionStats.get(key);
+            if (st != null && st[1] > 0) {
+                double rate = (st[0] * 100.0) / st[1];
+                topHardest.add(QuestionStatDto.builder()
+                        .questionNumber(q.getQuestionNumber())
+                        .skill(q.getSkill())
+                        .wrongCount(st[0])
+                        .totalAttempts(st[1])
+                        .wrongRate(Math.round(rate * 10.0) / 10.0)
+                        .build());
+            }
+        }
+        topHardest.sort((a, b) -> Double.compare(b.getWrongRate(), a.getWrongRate()));
+        if (topHardest.size() > 5) {
+            topHardest = topHardest.subList(0, 5);
+        }
+
+        submittedList.sort((r1, r2) -> {
+            double s1 = getScoreBySkill(r1, skill);
+            double s2 = getScoreBySkill(r2, skill);
+            if (Double.compare(s2, s1) != 0) {
+                return Double.compare(s2, s1);
+            }
+            int c1 = getCorrectCountBySkill(r1, skill);
+            int c2 = getCorrectCountBySkill(r2, skill);
+            if (c2 != c1) {
+                return Integer.compare(c2, c1);
+            }
+            int d1 = getDurationMinutes(r1, event.getDurationMinutes());
+            int d2 = getDurationMinutes(r2, event.getDurationMinutes());
+            if (d1 != d2) {
+                return Integer.compare(d1, d2);
+            }
+            Timestamp t1 = r1.getExamSubmittedAt() != null ? r1.getExamSubmittedAt() : r1.getRegisteredAt();
+            Timestamp t2 = r2.getExamSubmittedAt() != null ? r2.getExamSubmittedAt() : r2.getRegisteredAt();
+            if (t1 != null && t2 != null) {
+                return t1.compareTo(t2);
+            }
+            return 0;
+        });
+
+        List<EventLeaderboardItemDto> rankedItems = new ArrayList<>();
+        EventLeaderboardItemDto myRankItem = null;
+        double totalScoreSum = 0;
+        double maxScore = 0;
+
+        int currentRank = 1;
+        for (int i = 0; i < submittedList.size(); i++) {
+            TestEventRegistration reg = submittedList.get(i);
+            double score = getScoreBySkill(reg, skill);
+            totalScoreSum += score;
+            if (score > maxScore) maxScore = score;
+
+            EventLeaderboardItemDto item = mapToLeaderboardItem(reg, currentRank++, currentUser, isAdmin);
+            rankedItems.add(item);
+
+            if (currentUser != null && reg.getUser() != null && Objects.equals(reg.getUser().getId(), currentUser.getId())) {
+                myRankItem = item;
+            }
+        }
+
+        List<EventLeaderboardItemDto> topThree = rankedItems.stream().limit(3).collect(Collectors.toList());
+        double avgScore = submittedList.isEmpty() ? 0.0 : Math.round((totalScoreSum / submittedList.size()) * 10.0) / 10.0;
+
+        return EventLeaderboardDto.builder()
+                .eventId(event.getId())
+                .eventTitle(event.getTitle())
+                .skillType(event.getSkillType())
+                .isPublic(isPublic)
+                .totalParticipants(submittedList.size())
+                .averageScore(avgScore)
+                .highestScore(maxScore)
+                .topHardestQuestions(topHardest)
+                .myRank(myRankItem)
+                .topThree(topThree)
+                .rankings(rankedItems)
+                .build();
+    }
+
+    private double getScoreBySkill(TestEventRegistration reg, String skill) {
+        if ("READING".equalsIgnoreCase(skill)) {
+            return reg.getScoreReading() != null ? reg.getScoreReading() : 0.0;
+        } else if ("LISTENING".equalsIgnoreCase(skill)) {
+            return reg.getScoreListening() != null ? reg.getScoreListening() : 0.0;
+        } else {
+            if (reg.getOverallScore() != null) return reg.getOverallScore();
+            if (reg.getScoreReading() != null && reg.getScoreListening() != null) {
+                return (reg.getScoreReading() + reg.getScoreListening()) / 2.0;
+            }
+            if (reg.getScoreReading() != null) return reg.getScoreReading();
+            if (reg.getScoreListening() != null) return reg.getScoreListening();
+            return 0.0;
+        }
+    }
+
+    private int getCorrectCountBySkill(TestEventRegistration reg, String skill) {
+        int r = reg.getReadingCorrectCount() != null ? reg.getReadingCorrectCount() : 0;
+        int l = reg.getListeningCorrectCount() != null ? reg.getListeningCorrectCount() : 0;
+        if ("READING".equalsIgnoreCase(skill)) return r;
+        if ("LISTENING".equalsIgnoreCase(skill)) return l;
+        return r + l;
+    }
+
+    private int getDurationMinutes(TestEventRegistration reg, Integer fallbackDuration) {
+        if (reg.getExamStartedAt() != null && reg.getExamSubmittedAt() != null) {
+            long minutes = Duration.between(reg.getExamStartedAt().toLocalDateTime(), reg.getExamSubmittedAt().toLocalDateTime()).toMinutes();
+            return (int) Math.max(1, minutes);
+        }
+        return fallbackDuration != null ? fallbackDuration : 60;
+    }
+
+    private EventLeaderboardItemDto mapToLeaderboardItem(TestEventRegistration reg, int rank, User currentUser, boolean isAdmin) {
+        int rCount = reg.getReadingCorrectCount() != null ? reg.getReadingCorrectCount() : 0;
+        int lCount = reg.getListeningCorrectCount() != null ? reg.getListeningCorrectCount() : 0;
+        boolean isCurrent = currentUser != null && reg.getUser() != null && Objects.equals(reg.getUser().getId(), currentUser.getId());
+
+        String name = reg.getFullName();
+        if (name == null || name.trim().isEmpty()) {
+            name = reg.getUser() != null ? reg.getUser().getFullName() : "Thí sinh";
+        }
+
+        return EventLeaderboardItemDto.builder()
+                .rank(rank)
+                .registrationId(reg.getId())
+                .userId(reg.getUser() != null ? reg.getUser().getId() : null)
+                .fullName(name)
+                .username(reg.getUser() != null ? reg.getUser().getUsername() : "")
+                .avatarUrl(null)
+                .shiftId(reg.getShift() != null ? reg.getShift().getId() : null)
+                .shiftName(reg.getShift() != null ? reg.getShift().getShiftName() : "")
+                .scoreListening(reg.getScoreListening())
+                .scoreReading(reg.getScoreReading())
+                .scoreWriting(reg.getScoreWriting())
+                .scoreSpeaking(reg.getScoreSpeaking())
+                .overallScore(reg.getOverallScore())
+                .correctCount(rCount + lCount)
+                .totalQuestions(40)
+                .durationMinutes(getDurationMinutes(reg, 60))
+                .submittedAt(reg.getExamSubmittedAt())
+                .phone(isAdmin ? reg.getPhone() : null)
+                .email(isAdmin ? reg.getEmail() : null)
+                .isCurrentUser(isCurrent)
+                .build();
+    }
+
+    /**
+     * Bật / Tắt công bố Bảng Xếp Hạng đợt thi
+     */
+    @Transactional
+    public TestEvent toggleLeaderboardVisibility(Long eventId, Boolean isPublic) {
+        TestEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện ID " + eventId));
+        event.setIsLeaderboardPublic(isPublic != null ? isPublic : true);
+        if (Boolean.TRUE.equals(event.getIsLeaderboardPublic())) {
+            event.setLeaderboardPublishedAt(Timestamp.valueOf(LocalDateTime.now(VN_ZONE)));
+        }
+        return eventRepository.save(event);
+    }
+
+    /**
+     * Chấm lại toàn bộ thí sinh trong sự kiện (khi cập nhật lại đề thi hoặc đáp án)
+     */
+    @Transactional
+    public int regradeAllRegistrations(Long eventId) {
+        TestEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sự kiện ID " + eventId));
+        List<TestEventRegistration> allRegistrations = registrationRepository.findByShiftTestEventId(eventId);
+
+        int count = 0;
+        for (TestEventRegistration reg : allRegistrations) {
+            if (reg.getStudentAnswers() != null && !reg.getStudentAnswers().trim().isEmpty()) {
+                try {
+                    Map<String, String> answers = objectMapper.readValue(reg.getStudentAnswers(), new TypeReference<Map<String, String>>() {});
+                    LocalDateTime submitTime = reg.getExamSubmittedAt() != null 
+                            ? reg.getExamSubmittedAt().toLocalDateTime() 
+                            : LocalDateTime.now(VN_ZONE);
+                    gradeAndFinalizeRegistration(reg, event, reg.getShift() != null ? reg.getShift().getId() : null, answers, submitTime);
+                    count++;
+                } catch (Exception e) {
+                    log.error("Lỗi khi chấm lại bài thi cho thí sinh ID " + reg.getId(), e);
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Xuất danh sách bảng xếp hạng sang định dạng CSV (hỗ trợ tiếng Việt UTF-8 BOM cho Excel)
+     */
+    public byte[] exportLeaderboardCsv(Long eventId, Long shiftId) {
+        EventLeaderboardDto leaderboard = getEventLeaderboard(eventId, shiftId, "OVERALL", null, true);
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uFEFF");
+        sb.append("Thứ hạng,Họ và tên,Tên tài khoản,Số điện thoại,Email,Ca thi,Số câu đúng,Thời gian làm bài (phút),Listening,Reading,Writing,Speaking,Overall Band,Thời điểm nộp bài\n");
+
+        for (EventLeaderboardItemDto item : leaderboard.getRankings()) {
+            sb.append(item.getRank()).append(",");
+            sb.append("\"").append(item.getFullName() != null ? item.getFullName().replace("\"", "\"\"") : "").append("\",");
+            sb.append("\"").append(item.getUsername() != null ? item.getUsername() : "").append("\",");
+            sb.append("\"").append(item.getPhone() != null ? item.getPhone() : "").append("\",");
+            sb.append("\"").append(item.getEmail() != null ? item.getEmail() : "").append("\",");
+            sb.append("\"").append(item.getShiftName() != null ? item.getShiftName().replace("\"", "\"\"") : "").append("\",");
+            sb.append(item.getCorrectCount() != null ? item.getCorrectCount() : 0).append(",");
+            sb.append(item.getDurationMinutes() != null ? item.getDurationMinutes() : 0).append(",");
+            sb.append(item.getScoreListening() != null ? item.getScoreListening() : "").append(",");
+            sb.append(item.getScoreReading() != null ? item.getScoreReading() : "").append(",");
+            sb.append(item.getScoreWriting() != null ? item.getScoreWriting() : "").append(",");
+            sb.append(item.getScoreSpeaking() != null ? item.getScoreSpeaking() : "").append(",");
+            sb.append(item.getOverallScore() != null ? item.getOverallScore() : "").append(",");
+            sb.append(item.getSubmittedAt() != null ? item.getSubmittedAt().toString() : "").append("\n");
+        }
+
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 }

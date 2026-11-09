@@ -170,7 +170,7 @@ public class DataInitializer {
             com.ielts.lms.booking.entity.TestEvent targetEvent = null;
 
             for (com.ielts.lms.booking.entity.TestEvent ev : existingEvents) {
-                if ("ONLINE".equalsIgnoreCase(ev.getExamFormat())) {
+                if ("ONLINE".equalsIgnoreCase(ev.getExamFormat()) && !"dữ liệu test".equals(ev.getTitle())) {
                     targetEvent = ev;
                     break;
                 }

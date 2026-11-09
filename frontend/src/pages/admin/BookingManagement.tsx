@@ -7,6 +7,7 @@ import {
 } from '../../services/bookingService';
 import EventExamConfigModal from './EventExamConfigModal';
 import StudentExamDetailModal from './StudentExamDetailModal';
+import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
 
 export default function BookingManagement() {
   const [activeSection, setActiveSection] = useState<'support' | 'events' | 'online_exam'>('support');
@@ -52,6 +53,8 @@ export default function BookingManagement() {
 
   // State Quản lý Đề Thi & Bảng Điểm Online
   const [configExamEvent, setConfigExamEvent] = useState<TestEvent | null>(null);
+  const [selectedLeaderboardEvent, setSelectedLeaderboardEvent] = useState<TestEvent | null>(null);
+  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [selectedExamEventId, setSelectedExamEventId] = useState<number | ''>('');
   const [viewingRegistrationId, setViewingRegistrationId] = useState<number | null>(null);
   const [onlineRegistrations, setOnlineRegistrations] = useState<TestEventRegistration[]>([]);
@@ -632,13 +635,25 @@ export default function BookingManagement() {
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {ev.examFormat === 'ONLINE' && (
-                      <button
-                        onClick={() => setConfigExamEvent(ev)}
-                        className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-lg transition-colors cursor-pointer"
-                        title="Upload đề thi & bảng đáp án"
-                      >
-                        📝 Soạn Đề
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedLeaderboardEvent(ev);
+                            setShowLeaderboardModal(true);
+                          }}
+                          className="px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Xem & điều hành Bảng Xếp Hạng đợt thi"
+                        >
+                          🏆 BXH
+                        </button>
+                        <button
+                          onClick={() => setConfigExamEvent(ev)}
+                          className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-lg transition-colors cursor-pointer"
+                          title="Upload đề thi & bảng đáp án"
+                        >
+                          📝 Soạn Đề
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => handleOpenEditEvent(ev)}
@@ -733,6 +748,17 @@ export default function BookingManagement() {
                       >
                         <span>📅</span>
                         <span>Đổi Ngày & Giờ Thi</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedLeaderboardEvent(currentEv);
+                          setShowLeaderboardModal(true);
+                        }}
+                        className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-black shadow-md shadow-amber-500/20 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>🏆</span>
+                        <span>Điều Hành Bảng Xếp Hạng</span>
                       </button>
 
                       <button
@@ -1701,6 +1727,20 @@ export default function BookingManagement() {
         <StudentExamDetailModal
           registrationId={viewingRegistrationId}
           onClose={() => setViewingRegistrationId(null)}
+        />
+      )}
+
+      {/* MODAL ĐIỀU HÀNH BẢNG XẾP HẠNG ĐỢT THI (ADMIN) */}
+      {selectedLeaderboardEvent && (
+        <EventLeaderboardModal
+          isOpen={showLeaderboardModal}
+          onClose={() => {
+            setShowLeaderboardModal(false);
+            setSelectedLeaderboardEvent(null);
+          }}
+          eventId={selectedLeaderboardEvent.id}
+          isAdmin={true}
+          shifts={selectedLeaderboardEvent.shifts}
         />
       )}
     </div>

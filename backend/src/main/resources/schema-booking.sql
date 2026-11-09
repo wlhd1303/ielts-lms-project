@@ -114,3 +114,11 @@ ALTER TABLE test_event_registrations
     ADD COLUMN IF NOT EXISTS listening_correct_count INT DEFAULT 0,
     ADD COLUMN IF NOT EXISTS reading_correct_count INT DEFAULT 0;
 
+-- ==============================================================================
+-- 6. MIGRATION BỔ SUNG: BẢNG XẾP HẠNG ĐỢT THI THỬ (EVENT LEADERBOARD)
+-- ==============================================================================
+ALTER TABLE test_events
+    ADD COLUMN IF NOT EXISTS is_leaderboard_public BOOLEAN DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS leaderboard_published_at TIMESTAMP NULL;
+
+
