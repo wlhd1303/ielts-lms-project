@@ -23,14 +23,21 @@ interface QuestionConfigItem {
   prompt: string;
   type: ExamQuestionType;
   imageUrl?: string;
-  options: {
-    A: string;
-    B: string;
-    C: string;
-    D: string;
-  };
+  options: Record<string, string>;
+  optionLetters?: string[];
+  groupId?: string;
+  groupStart?: number;
+  groupEnd?: number;
   answer: string;
 }
+
+const DEFAULT_MULTI_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+const LETTER_PRESETS: Record<string, string[]> = {
+  'A-E': ['A', 'B', 'C', 'D', 'E'],
+  'A-F': ['A', 'B', 'C', 'D', 'E', 'F'],
+  'A-G': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+  'A-H': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+};
 
 export default function EventExamConfigModal({
   event,
@@ -103,8 +110,13 @@ export default function EventExamConfigModal({
                 A: parsed.options?.A || '',
                 B: parsed.options?.B || '',
                 C: parsed.options?.C || '',
-                D: parsed.options?.D || ''
+                D: parsed.options?.D || '',
+                ...(parsed.options || {})
               },
+              optionLetters: parsed.optionLetters,
+              groupId: parsed.groupId,
+              groupStart: parsed.groupStart,
+              groupEnd: parsed.groupEnd,
               answer: q.correctAnswer || ''
             };
           });
@@ -166,7 +178,7 @@ export default function EventExamConfigModal({
   const handleQuestionFieldChange = (
     skill: string,
     num: number,
-    field: 'prompt' | 'type' | 'imageUrl' | 'answer',
+    field: 'prompt' | 'type' | 'imageUrl' | 'answer' | 'optionLetters' | 'groupId' | 'groupStart' | 'groupEnd',
     value: any
   ) => {
     const key = `${skill}_${num}`;
@@ -177,20 +189,60 @@ export default function EventExamConfigModal({
       options: { A: '', B: '', C: '', D: '' },
       answer: ''
     };
+    const nextItem: QuestionConfigItem = {
+      ...cur,
+      [field]: value
+    };
+    if (field === 'type' && value === 'MULTI_SELECT' && (!nextItem.optionLetters || nextItem.optionLetters.length === 0)) {
+      nextItem.optionLetters = DEFAULT_MULTI_LETTERS;
+      nextItem.groupStart = nextItem.groupStart || num;
+      nextItem.groupEnd = nextItem.groupEnd || num;
+    }
     setQuestions({
       ...questions,
-      [key]: {
-        ...cur,
-        [field]: value
-      }
+      [key]: nextItem
     });
   };
 
-  // Cập nhật tùy chọn A, B, C, D của Multiple Choice
+  // Đồng bộ cả cụm câu không phân biệt thứ tự (VD: Câu 21-23 cùng chọn 3 trong A-F)
+  const handleSyncUnorderedGroup = (skill: string, sourceNum: number, startNum: number, endNum: number) => {
+    const s = Math.max(1, Math.min(40, startNum));
+    const e = Math.max(s, Math.min(40, endNum));
+    const src = questions[`${skill}_${sourceNum}`];
+    if (!src) return;
+
+    const gid = s === e ? undefined : `${skill}_${s}_${e}`;
+    const updated = { ...questions };
+    for (let i = s; i <= e; i++) {
+      const k = `${skill}_${i}`;
+      const existing = updated[k] || {
+        prompt: '',
+        type: 'MULTI_SELECT',
+        imageUrl: '',
+        options: { A: '', B: '', C: '', D: '' },
+        answer: ''
+      };
+      updated[k] = {
+        ...existing,
+        type: 'MULTI_SELECT',
+        prompt: existing.prompt || src.prompt,
+        options: { ...src.options },
+        optionLetters: src.optionLetters || DEFAULT_MULTI_LETTERS,
+        groupId: gid,
+        groupStart: s,
+        groupEnd: e,
+        answer: src.answer
+      };
+    }
+    setQuestions(updated);
+    showToast(s === e ? `Đã cập nhật câu ${s}.` : `Đã liên kết nhóm câu ${s}-${e} (chấm không phân biệt thứ tự)!`);
+  };
+
+  // Cập nhật tùy chọn A..H của Multiple Choice / Multi Select
   const handleOptionChange = (
     skill: string,
     num: number,
-    optKey: 'A' | 'B' | 'C' | 'D',
+    optKey: string,
     value: string
   ) => {
     const key = `${skill}_${num}`;
@@ -213,7 +265,7 @@ export default function EventExamConfigModal({
     });
   };
 
-  // Tính năng Nhập Nhanh Bulk Import từ Text
+  // Tính năng Nhập Nhanh Bulk Import từ Text (hỗ trợ cả dải câu nhóm không phân biệt thứ tự: 21-23. A, B, C)
   const handleApplyBulkImport = () => {
     if (!bulkText.trim()) return;
 
@@ -221,6 +273,38 @@ export default function EventExamConfigModal({
     const updated = { ...questions };
 
     lines.forEach((line) => {
+      // 1. Dạng nhóm câu: "21-23. A, B, C" hoặc "Câu 11-12: B D"
+      const rangeMatch = line.match(/^(?:Câu\s*)?(\d+)\s*[-–to]+\s*(\d+)[\.\:\-\s]+(.+)$/i);
+      if (rangeMatch) {
+        const start = parseInt(rangeMatch[1], 10);
+        const end = parseInt(rangeMatch[2], 10);
+        const rawAns = rangeMatch[3].trim();
+        if (start >= 1 && end >= start && end <= 40) {
+          const gid = `${activeTab}_${start}_${end}`;
+          for (let n = start; n <= end; n++) {
+            const key = `${activeTab}_${n}`;
+            const cur = updated[key] || {
+              prompt: '',
+              type: 'MULTI_SELECT',
+              imageUrl: '',
+              options: { A: '', B: '', C: '', D: '' },
+              answer: ''
+            };
+            updated[key] = {
+              ...cur,
+              type: 'MULTI_SELECT',
+              optionLetters: cur.optionLetters || DEFAULT_MULTI_LETTERS,
+              groupId: gid,
+              groupStart: start,
+              groupEnd: end,
+              answer: rawAns
+            };
+          }
+        }
+        return;
+      }
+
+      // 2. Dạng đơn lẻ: "1. TRUE", "2: A", "5. centre/center"
       const match = line.match(/^(?:Câu\s*)?(\d+)[\.\:\-\s]+(.+)$/i);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -350,7 +434,11 @@ export default function EventExamConfigModal({
             prompt: val.prompt,
             type: val.type,
             imageUrl: val.imageUrl,
-            options: val.type === 'MULTIPLE_CHOICE' ? val.options : undefined
+            options: (val.type === 'MULTIPLE_CHOICE' || val.type === 'MULTI_SELECT') ? val.options : undefined,
+            optionLetters: val.type === 'MULTI_SELECT' ? val.optionLetters : undefined,
+            groupId: val.groupId,
+            groupStart: val.groupStart,
+            groupEnd: val.groupEnd
           });
 
           questionList.push({
@@ -834,13 +922,13 @@ export default function EventExamConfigModal({
                       📋 Dán danh sách đáp án hàng loạt cho phần {activeTab}:
                     </span>
                     <p className="text-[10px] text-indigo-800">
-                      Hỗ trợ định dạng: <code className="bg-white px-1 py-0.5 rounded">1. TRUE</code>, <code className="bg-white px-1 py-0.5 rounded">2. FALSE</code>, <code className="bg-white px-1 py-0.5 rounded">3: A</code>... Hệ thống sẽ tự động tách số câu và đáp án.
+                      Hỗ trợ: <code className="bg-white px-1 py-0.5 rounded">1. TRUE</code>, <code className="bg-white px-1 py-0.5 rounded">5. centre/center</code>, hoặc <strong className="text-indigo-950">nhóm nhiều câu không phân biệt thứ tự</strong> dạng <code className="bg-white px-1 py-0.5 rounded">21-23. A, B, C</code>.
                     </p>
                     <textarea
                       rows={5}
                       value={bulkText}
                       onChange={(e) => setBulkText(e.target.value)}
-                      placeholder="1. TRUE&#10;2. NOT GIVEN&#10;3. FALSE&#10;4. A&#10;5. centre/center"
+                      placeholder="1. TRUE&#10;2. NOT GIVEN&#10;3. FALSE&#10;4. A&#10;5. centre/center&#10;21-23. A, B, C"
                       className="w-full p-2.5 bg-white border border-indigo-300 rounded-xl text-xs font-mono outline-none focus:border-indigo-600"
                     />
                     <div className="flex justify-end gap-2">
@@ -886,6 +974,11 @@ export default function EventExamConfigModal({
                               {num}
                             </span>
                             <span className="text-xs font-black text-slate-800">Câu {num}</span>
+                            {cur.groupId && (
+                              <span className="text-[9px] px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-black">
+                                🔀 Nhóm {cur.groupStart}-{cur.groupEnd} (Bất kỳ thứ tự)
+                              </span>
+                            )}
                             <span
                               className={`text-[9px] px-2 py-0.5 rounded font-bold ${
                                 cur.answer ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'
@@ -905,8 +998,10 @@ export default function EventExamConfigModal({
                               className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-blue-700 outline-none focus:bg-white focus:border-blue-600"
                             >
                               <option value="FILL_IN_BLANK">📝 Điền từ / Tự luận ngắn</option>
-                              <option value="MULTIPLE_CHOICE">🔘 Trắc nghiệm (A, B, C, D)</option>
+                              <option value="MULTIPLE_CHOICE">🔘 Trắc nghiệm 1 đáp án (A, B, C, D)</option>
+                              <option value="MULTI_SELECT">🔀 Chọn nhiều đáp án (Không phân biệt thứ tự)</option>
                               <option value="TFNG">⚖️ True / False / Not Given</option>
+                              <option value="YNNG">✅ Yes / No / Not Given</option>
                             </select>
                           </div>
                         </div>
@@ -1000,10 +1095,127 @@ export default function EventExamConfigModal({
                               ))}
                             </div>
                           </div>
-                        ) : cur.type === 'TFNG' ? (
-                          <div className="flex items-center gap-2 p-2 bg-slate-50/80 rounded-xl border border-slate-200">
+                        ) : cur.type === 'MULTI_SELECT' ? (
+                          <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200 space-y-3">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-bold text-purple-900">Phạm vi lựa chọn:</span>
+                                {Object.entries(LETTER_PRESETS).map(([presetLabel, presetLetters]) => {
+                                  const activeLen = (cur.optionLetters || DEFAULT_MULTI_LETTERS).length;
+                                  return (
+                                    <button
+                                      key={presetLabel}
+                                      type="button"
+                                      onClick={() => handleQuestionFieldChange(activeTab, num, 'optionLetters', presetLetters)}
+                                      className={`px-2 py-0.5 rounded-md text-[11px] font-black cursor-pointer transition-all ${
+                                        activeLen === presetLetters.length
+                                          ? 'bg-purple-600 text-white'
+                                          : 'bg-white text-purple-800 border border-purple-200 hover:bg-purple-100'
+                                      }`}
+                                    >
+                                      {presetLabel}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-bold text-slate-600">Nhóm câu chung:</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={40}
+                                  value={cur.groupStart ?? num}
+                                  onChange={(e) => handleQuestionFieldChange(activeTab, num, 'groupStart', Number(e.target.value))}
+                                  className="w-12 px-1.5 py-0.5 text-xs font-bold text-center bg-white border border-purple-200 rounded-md"
+                                />
+                                <span className="text-xs text-slate-400">–</span>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={40}
+                                  value={cur.groupEnd ?? num}
+                                  onChange={(e) => handleQuestionFieldChange(activeTab, num, 'groupEnd', Number(e.target.value))}
+                                  className="w-12 px-1.5 py-0.5 text-xs font-bold text-center bg-white border border-purple-200 rounded-md"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleSyncUnorderedGroup(activeTab, num, cur.groupStart ?? num, cur.groupEnd ?? num)
+                                  }
+                                  className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white text-[11px] font-bold rounded-lg cursor-pointer shadow-2xs"
+                                  title="Đồng bộ cùng đáp án và nhóm không phân biệt thứ tự cho các câu từ Start đến End"
+                                >
+                                  🔗 Đồng bộ nhóm
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[11px] font-bold text-slate-600 mr-1">Đáp án đúng (chọn nhiều):</span>
+                              {(cur.optionLetters || DEFAULT_MULTI_LETTERS).map((opt) => {
+                                const selectedSet = new Set(
+                                  (cur.answer || '')
+                                    .toUpperCase()
+                                    .split(/[,&+;\s]+/)
+                                    .filter(Boolean)
+                                );
+                                const isChosen = selectedSet.has(opt);
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => {
+                                      if (isChosen) selectedSet.delete(opt);
+                                      else selectedSet.add(opt);
+                                      const ordered = (cur.optionLetters || DEFAULT_MULTI_LETTERS).filter((l) =>
+                                        selectedSet.has(l)
+                                      );
+                                      handleQuestionFieldChange(activeTab, num, 'answer', ordered.join(', '));
+                                    }}
+                                    className={`w-7 h-7 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                                      isChosen
+                                        ? 'bg-purple-600 text-white shadow-xs'
+                                        : 'bg-white text-slate-700 border border-slate-300 hover:bg-purple-50'
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                              <input
+                                type="text"
+                                placeholder="Hoặc nhập thẳng: A, B, C"
+                                value={cur.answer}
+                                onChange={(e) => handleQuestionFieldChange(activeTab, num, 'answer', e.target.value)}
+                                className="flex-1 min-w-[140px] ml-2 px-2.5 py-1 text-xs font-bold bg-white border border-purple-200 rounded-lg outline-none focus:border-purple-600"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {(cur.optionLetters || DEFAULT_MULTI_LETTERS).map((optKey) => (
+                                <div key={optKey} className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-md bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-black shrink-0">
+                                    {optKey}
+                                  </span>
+                                  <input
+                                    type="text"
+                                    placeholder={`Mô tả lựa chọn ${optKey} (không bắt buộc nếu có trong PDF/Passage)...`}
+                                    value={cur.options[optKey] || ''}
+                                    onChange={(e) => handleOptionChange(activeTab, num, optKey, e.target.value)}
+                                    className="flex-1 px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-lg outline-none focus:border-purple-600"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : cur.type === 'TFNG' || cur.type === 'YNNG' ? (
+                          <div className="flex items-center gap-2 p-2 bg-slate-50/80 rounded-xl border border-slate-200 flex-wrap">
                             <span className="text-[11px] font-bold text-slate-600 mr-2">Đáp án chuẩn:</span>
-                            {['TRUE', 'FALSE', 'NOT GIVEN'].map((choice) => (
+                            {(cur.type === 'YNNG'
+                              ? ['YES', 'NO', 'NOT GIVEN']
+                              : ['TRUE', 'FALSE', 'NOT GIVEN']
+                            ).map((choice) => (
                               <button
                                 key={choice}
                                 type="button"
@@ -1022,7 +1234,7 @@ export default function EventExamConfigModal({
                           <div>
                             <input
                               type="text"
-                              placeholder="Đáp án đúng (hỗ trợ nhiều đáp án cách nhau bằng gạch chéo: centre/center)..."
+                              placeholder="Đáp án đúng (vd: centre/center, (the) bank, 1,500, A, B, C)..."
                               value={cur.answer}
                               onChange={(e) => handleQuestionFieldChange(activeTab, num, 'answer', e.target.value)}
                               className="w-full px-3 py-2 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-600"

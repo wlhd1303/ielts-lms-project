@@ -12,21 +12,37 @@ export default function StudentExamDetailModal({
 }: StudentExamDetailModalProps) {
   const [detail, setDetail] = useState<ExamSubmissionResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [regrading, setRegrading] = useState(false);
+
+  const fetchDetail = async () => {
+    try {
+      setLoading(true);
+      const data = await bookingService.getRegistrationExamDetailAdmin(registrationId);
+      setDetail(data);
+    } catch (err) {
+      console.error('Lỗi khi tải chi tiết bài làm:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDetail = async () => {
-      try {
-        setLoading(true);
-        const data = await bookingService.getRegistrationExamDetailAdmin(registrationId);
-        setDetail(data);
-      } catch (err) {
-        console.error('Lỗi khi tải chi tiết bài làm:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDetail();
   }, [registrationId]);
+
+  const handleRegradeEvent = async () => {
+    if (!detail?.eventId) return;
+    try {
+      setRegrading(true);
+      await bookingService.regradeAllAdmin(detail.eventId);
+      await fetchDetail();
+    } catch (err) {
+      console.error('Lỗi khi chấm lại bài thi:', err);
+      alert('Không thể chấm lại bài thi lúc này.');
+    } finally {
+      setRegrading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 font-sans animate-[fadeIn_0.15s_ease-out]">
@@ -99,17 +115,19 @@ export default function StudentExamDetailModal({
 
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
                   {detail.reviewDetails && detail.reviewDetails.length > 0 ? (
-                    detail.reviewDetails.map((q) => (
+                    detail.reviewDetails.map((q) => {
+                      const isCorrect = Boolean(q.isCorrect ?? (q as any).correct);
+                      return (
                       <div
                         key={`${q.skill}_${q.questionNumber}`}
                         className={`p-3 rounded-xl border flex items-center justify-between gap-3 text-xs ${
-                          q.isCorrect ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'
+                          isCorrect ? 'bg-emerald-50/70 border-emerald-200' : 'bg-rose-50/70 border-rose-200'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span
                             className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] text-white shrink-0 ${
-                              q.isCorrect ? 'bg-emerald-600' : 'bg-rose-600'
+                              isCorrect ? 'bg-emerald-600' : 'bg-rose-600'
                             }`}
                           >
                             {q.questionNumber}
@@ -118,10 +136,10 @@ export default function StudentExamDetailModal({
                             <span className="font-bold text-slate-900 block">
                               {q.skill} - Câu {q.questionNumber}
                             </span>
-                            <div className="flex items-center gap-3 mt-0.5 text-[11px]">
+                            <div className="flex items-center gap-3 mt-0.5 text-[11px] flex-wrap">
                               <span>
                                 Trả lời:{' '}
-                                <strong className={q.isCorrect ? 'text-emerald-700' : 'text-rose-700 font-mono'}>
+                                <strong className={isCorrect ? 'text-emerald-700 font-mono' : 'text-rose-700 font-mono'}>
                                   {q.studentAnswer || '(Bỏ trống)'}
                                 </strong>
                               </span>
@@ -135,13 +153,14 @@ export default function StudentExamDetailModal({
 
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-black shrink-0 ${
-                            q.isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                            isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                           }`}
                         >
-                          {q.isCorrect ? '✓ ĐÚNG' : '✗ SAI'}
+                          {isCorrect ? '✓ ĐÚNG' : '✗ SAI'}
                         </span>
                       </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-6 text-slate-400 text-xs italic">
                       Học viên chưa nộp bài hoặc chưa có câu hỏi nào được lưu.
@@ -154,7 +173,19 @@ export default function StudentExamDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
+          {detail?.eventId ? (
+            <button
+              type="button"
+              onClick={handleRegradeEvent}
+              disabled={regrading}
+              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {regrading ? 'Đang chấm lại...' : '🔄 Chấm Lại Đợt Thi Này'}
+            </button>
+          ) : (
+            <div />
+          )}
           <button
             onClick={onClose}
             className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"

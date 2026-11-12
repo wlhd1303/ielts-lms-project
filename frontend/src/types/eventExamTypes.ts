@@ -1,4 +1,4 @@
-export type ExamQuestionType = 'MULTIPLE_CHOICE' | 'FILL_IN_BLANK' | 'TFNG';
+export type ExamQuestionType = 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'FILL_IN_BLANK' | 'TFNG' | 'YNNG';
 
 export interface PassageData {
   id: number; // 1, 2, 3
@@ -16,12 +16,11 @@ export interface StructuredQuestionPayload {
   prompt: string;
   type: ExamQuestionType;
   imageUrl?: string;
-  options?: {
-    A?: string;
-    B?: string;
-    C?: string;
-    D?: string;
-  };
+  options?: Record<string, string>;
+  optionLetters?: string[];
+  groupId?: string;
+  groupStart?: number;
+  groupEnd?: number;
 }
 
 export const DEFAULT_PASSAGES: PassageData[] = [
@@ -124,6 +123,10 @@ export const parseQuestionData = (rawText?: string): StructuredQuestionPayload =
           type: (parsed.type as ExamQuestionType) || 'FILL_IN_BLANK',
           imageUrl: parsed.imageUrl || '',
           options: parsed.options || { A: '', B: '', C: '', D: '' },
+          optionLetters: Array.isArray(parsed.optionLetters) ? parsed.optionLetters : undefined,
+          groupId: parsed.groupId || undefined,
+          groupStart: parsed.groupStart ? Number(parsed.groupStart) : undefined,
+          groupEnd: parsed.groupEnd ? Number(parsed.groupEnd) : undefined,
         };
       }
     }
@@ -140,10 +143,27 @@ export const parseQuestionData = (rawText?: string): StructuredQuestionPayload =
 };
 
 export const serializeQuestionData = (data: StructuredQuestionPayload): string => {
-  return JSON.stringify({
+  const payload: Record<string, any> = {
     prompt: data.prompt || '',
     type: data.type || 'FILL_IN_BLANK',
     imageUrl: data.imageUrl || '',
-    options: data.type === 'MULTIPLE_CHOICE' ? data.options : undefined,
-  });
+  };
+
+  if (data.type === 'MULTIPLE_CHOICE' || data.type === 'MULTI_SELECT') {
+    payload.options = data.options;
+  }
+  if (data.optionLetters && data.optionLetters.length > 0) {
+    payload.optionLetters = data.optionLetters;
+  }
+  if (data.groupId) {
+    payload.groupId = data.groupId;
+  }
+  if (data.groupStart !== undefined) {
+    payload.groupStart = data.groupStart;
+  }
+  if (data.groupEnd !== undefined) {
+    payload.groupEnd = data.groupEnd;
+  }
+
+  return JSON.stringify(payload);
 };

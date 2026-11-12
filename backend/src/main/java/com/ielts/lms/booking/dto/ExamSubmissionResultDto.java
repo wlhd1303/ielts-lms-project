@@ -1,5 +1,6 @@
 package com.ielts.lms.booking.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -7,7 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Data
 @Builder
@@ -46,6 +46,7 @@ public class ExamSubmissionResultDto {
         private String questionText;
         private String studentAnswer;
         private String correctAnswer;
-        private boolean isCorrect;
+        @JsonProperty("isCorrect")
+        private Boolean isCorrect;
     }
 }

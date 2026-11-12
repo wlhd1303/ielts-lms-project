@@ -11,6 +11,7 @@ import com.ielts.lms.booking.repository.TestEventQuestionRepository;
 import com.ielts.lms.booking.repository.TestEventRegistrationRepository;
 import com.ielts.lms.booking.repository.TestEventRepository;
 import com.ielts.lms.booking.repository.TestEventShiftRepository;
+import com.ielts.lms.booking.util.IeltsAnswerGrader;
 import com.ielts.lms.booking.util.IeltsScoreCalculator;
 import com.ielts.lms.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -386,8 +387,9 @@ public class TestEventExamService {
             Map<String, String> studentAnswers,
             LocalDateTime submitTime) {
 
-        // Lấy toàn bộ đáp án chuẩn của đề thi
+        // Lấy toàn bộ đáp án chuẩn của đề thi và chấm điểm tập trung (hỗ trợ nhóm câu không phân biệt thứ tự)
         List<TestEventQuestion> questions = questionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(event.getId());
+        Map<String, Boolean> evaluationMap = IeltsAnswerGrader.evaluateAllQuestions(questions, studentAnswers, objectMapper);
 
         int correctListening = 0;
         int correctReading = 0;
@@ -397,14 +399,10 @@ public class TestEventExamService {
         for (TestEventQuestion q : questions) {
             String skill = q.getSkill().toUpperCase().trim();
             int qNum = q.getQuestionNumber();
+            String key = skill + "_" + qNum;
 
-            // Tìm câu trả lời của học viên theo các dạng key: "LISTENING_1" hoặc "1"
-            String studentAns = studentAnswers.get(skill + "_" + qNum);
-            if (studentAns == null) {
-                studentAns = studentAnswers.get(String.valueOf(qNum));
-            }
-
-            boolean isCorrect = isAnswerCorrect(studentAns, q.getCorrectAnswer());
+            String studentAns = IeltsAnswerGrader.findStudentAnswer(q, studentAnswers);
+            boolean isCorrect = Boolean.TRUE.equals(evaluationMap.get(key));
 
             if (isCorrect) {
                 if ("LISTENING".equals(skill)) {
@@ -577,15 +575,13 @@ public class TestEventExamService {
         List<ExamSubmissionResultDto.QuestionReviewDetailDto> reviewList = null;
         if (isAdmin || Boolean.TRUE.equals(event.getAllowReview())) {
             List<TestEventQuestion> questions = questionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(event.getId());
+            Map<String, Boolean> evaluationMap = IeltsAnswerGrader.evaluateAllQuestions(questions, studentAnswers, objectMapper);
             reviewList = new ArrayList<>();
             for (TestEventQuestion q : questions) {
                 String skill = q.getSkill().toUpperCase().trim();
                 int qNum = q.getQuestionNumber();
-                String studentAns = studentAnswers.get(skill + "_" + qNum);
-                if (studentAns == null) {
-                    studentAns = studentAnswers.get(String.valueOf(qNum));
-                }
-                boolean isCorrect = isAnswerCorrect(studentAns, q.getCorrectAnswer());
+                String studentAns = IeltsAnswerGrader.findStudentAnswer(q, studentAnswers);
+                boolean isCorrect = Boolean.TRUE.equals(evaluationMap.get(skill + "_" + qNum));
                 reviewList.add(ExamSubmissionResultDto.QuestionReviewDetailDto.builder()
                         .skill(skill)
                         .questionNumber(qNum)
@@ -631,58 +627,6 @@ public class TestEventExamService {
             }
         }
         return allRegistrations;
-    }
-
-    /**
-     * So khớp đáp án của học viên với đáp án đúng:
-     * - Hỗ trợ nhiều biến thể qua '/' hoặc '|'
-     * - Khử khoảng trắng thừa, viết hoa thường, dấu câu ở 2 đầu
-     * - Hỗ trợ từ tùy chọn trong dấu ngoặc đơn, ví dụ "(the) bank" khớp cả "bank" và "the bank"
-     */
-    private boolean isAnswerCorrect(String studentAns, String rawCorrectAnswer) {
-        if (studentAns == null || rawCorrectAnswer == null) {
-            return false;
-        }
-
-        String cleanStudentAns = studentAns.trim().toLowerCase()
-                .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
-                .replaceAll("\\s+", " ");
-        if (cleanStudentAns.isEmpty()) {
-            return false;
-        }
-
-        String[] acceptableAnswers = rawCorrectAnswer.split("[/|]");
-        for (String ans : acceptableAnswers) {
-            String trimmedAns = ans.trim().toLowerCase();
-
-            // 1. So khớp trực tiếp chuẩn hóa
-            String cleanAns = trimmedAns
-                    .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
-                    .replaceAll("\\s+", " ");
-            if (cleanStudentAns.equalsIgnoreCase(cleanAns)) {
-                return true;
-            }
-
-            // 2. Hỗ trợ từ tùy chọn trong dấu ngoặc đơn: ví dụ "(the) bank", "bicycle(s)"
-            if (trimmedAns.contains("(") && trimmedAns.contains(")")) {
-                // Biến thể không lấy phần trong ngoặc: "(the) bank" -> "bank"
-                String withoutBracket = trimmedAns.replaceAll("\\([^)]*\\)", "").trim()
-                        .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
-                        .replaceAll("\\s+", " ");
-                if (!withoutBracket.isEmpty() && cleanStudentAns.equalsIgnoreCase(withoutBracket)) {
-                    return true;
-                }
-
-                // Biến thể lấy luôn phần trong ngoặc: "(the) bank" -> "the bank"
-                String withBracketContent = trimmedAns.replace("(", "").replace(")", "").trim()
-                        .replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "")
-                        .replaceAll("\\s+", " ");
-                if (!withBracketContent.isEmpty() && cleanStudentAns.equalsIgnoreCase(withBracketContent)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     /**
@@ -738,14 +682,13 @@ public class TestEventExamService {
             if (reg.getStudentAnswers() != null && !reg.getStudentAnswers().trim().isEmpty()) {
                 try {
                     Map<String, String> ansMap = objectMapper.readValue(reg.getStudentAnswers(), new TypeReference<Map<String, String>>() {});
+                    Map<String, Boolean> evalMap = IeltsAnswerGrader.evaluateAllQuestions(eventQuestions, ansMap, objectMapper);
                     for (TestEventQuestion q : eventQuestions) {
                         String key = q.getSkill().toUpperCase() + "_" + q.getQuestionNumber();
                         int[] st = questionStats.get(key);
                         if (st != null) {
                             st[1]++;
-                            String stdAns = ansMap.get(key);
-                            if (stdAns == null) stdAns = ansMap.get(String.valueOf(q.getQuestionNumber()));
-                            if (!isAnswerCorrect(stdAns, q.getCorrectAnswer())) {
+                            if (!Boolean.TRUE.equals(evalMap.get(key))) {
                                 st[0]++;
                             }
                         }

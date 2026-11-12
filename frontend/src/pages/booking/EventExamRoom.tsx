@@ -541,21 +541,24 @@ export default function EventExamRoom() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {resultRecord.reviewDetails.map((item, idx) => (
-                          <tr key={idx} className={item.isCorrect ? 'bg-emerald-50/30' : 'bg-rose-50/30'}>
+                        {resultRecord.reviewDetails.map((item, idx) => {
+                          const isCorrect = Boolean(item.isCorrect ?? (item as any).correct);
+                          return (
+                          <tr key={idx} className={isCorrect ? 'bg-emerald-50/30' : 'bg-rose-50/30'}>
                             <td className="p-3 font-bold">{item.questionNumber}</td>
                             <td className="p-3 text-slate-500 font-medium">{item.skill}</td>
                             <td className="p-3 font-semibold text-slate-800">{item.studentAnswer || '(Để trống)'}</td>
                             <td className="p-3 font-bold text-emerald-700">{item.correctAnswer}</td>
                             <td className="p-3 text-center">
-                              {item.isCorrect ? (
+                              {isCorrect ? (
                                 <span className="text-emerald-600 font-bold">✓ Đúng</span>
                               ) : (
                                 <span className="text-rose-500 font-bold">✗ Sai</span>
                               )}
                             </td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1182,13 +1185,176 @@ export default function EventExamRoom() {
               <div className="text-center py-12 text-slate-400 text-xs font-medium">
                 Chưa có câu hỏi nào được khai báo cho phần thi này.
               </div>
-            ) : (
-              currentSkillQuestions.map((q) => {
+            ) : (() => {
+              const renderedGroupIds = new Set<string>();
+              return currentSkillQuestions.map((q) => {
                 const answerKey = `${q.skill}_${q.questionNumber}`;
                 const val = answers[answerKey] !== undefined ? answers[answerKey] : (answers[String(q.questionNumber)] || '');
                 const isActive = activeQuestionNum === q.questionNumber;
                 const isFlagged = !!reviewFlags[answerKey];
                 const parsedQ = parseQuestionData(q.questionText);
+
+                // Nhóm nhiều câu hỏi không phân biệt thứ tự (VD: Câu 21-23 chọn 3 trong A-F)
+                if (parsedQ.groupId) {
+                  const groupQuestions = currentSkillQuestions.filter(
+                    (gq) => parseQuestionData(gq.questionText).groupId === parsedQ.groupId
+                  );
+                  if (groupQuestions.length >= 2) {
+                    if (renderedGroupIds.has(parsedQ.groupId)) {
+                      return null;
+                    }
+                    renderedGroupIds.add(parsedQ.groupId);
+
+                    const letters = parsedQ.optionLetters && parsedQ.optionLetters.length > 0
+                      ? parsedQ.optionLetters
+                      : ['A', 'B', 'C', 'D', 'E', 'F'];
+                    const isGroupActive = groupQuestions.some((gq) => gq.questionNumber === activeQuestionNum);
+                    const slotKeys = groupQuestions.map((gq) => `${gq.skill}_${gq.questionNumber}`);
+                    const selectedLetters = slotKeys
+                      .map((sk, i) => {
+                        const sv = answers[sk] !== undefined ? answers[sk] : (answers[String(groupQuestions[i].questionNumber)] || '');
+                        return sv.trim().toUpperCase();
+                      })
+                      .filter(Boolean);
+
+                    const toggleGroupLetter = (letter: string) => {
+                      const existingIdx = slotKeys.findIndex((sk, i) => {
+                        const sv = answers[sk] !== undefined ? answers[sk] : (answers[String(groupQuestions[i].questionNumber)] || '');
+                        return sv.trim().toUpperCase() === letter;
+                      });
+                      if (existingIdx !== -1) {
+                        handleAnswerChange(slotKeys[existingIdx], '');
+                        return;
+                      }
+                      const emptyIdx = slotKeys.findIndex((sk, i) => {
+                        const sv = answers[sk] !== undefined ? answers[sk] : (answers[String(groupQuestions[i].questionNumber)] || '');
+                        return !sv.trim();
+                      });
+                      if (emptyIdx !== -1) {
+                        handleAnswerChange(slotKeys[emptyIdx], letter);
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={`group_${parsedQ.groupId}`}
+                        className={`p-3.5 bg-white rounded-2xl border transition-all space-y-3 ${
+                          isGroupActive ? 'border-purple-500 ring-2 ring-purple-100 shadow-sm' : 'border-purple-200 shadow-2xs'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 flex-wrap">
+                          <div className="flex items-start gap-2.5">
+                            <div className="flex items-center gap-1 shrink-0 mt-0.5 flex-wrap">
+                              {groupQuestions.map((gq) => (
+                                <span
+                                  key={gq.questionNumber}
+                                  className="w-6 h-6 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center text-xs font-black"
+                                >
+                                  {gq.questionNumber}
+                                </span>
+                              ))}
+                            </div>
+                            <div>
+                              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 mb-1">
+                                🔀 Chọn {groupQuestions.length} đáp án (Không phân biệt thứ tự)
+                              </span>
+                              <div className="text-xs md:text-sm font-bold text-slate-900 leading-relaxed">
+                                {parsedQ.prompt || `Câu ${groupQuestions[0].questionNumber}–${groupQuestions[groupQuestions.length - 1].questionNumber}: Chọn ${groupQuestions.length} đáp án đúng`}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {parsedQ.imageUrl && (
+                          <div className="my-2 p-2 bg-slate-50 border border-slate-200 rounded-xl inline-block">
+                            <img
+                              src={parsedQ.imageUrl}
+                              alt={`Minh họa câu ${groupQuestions[0].questionNumber}`}
+                              className="max-h-56 max-w-full rounded-lg object-contain cursor-zoom-in"
+                              onClick={() => setPreviewImageUrl(parsedQ.imageUrl!)}
+                            />
+                          </div>
+                        )}
+
+                        {/* Các lựa chọn A..F để bấm chọn nhanh */}
+                        <div className="space-y-1.5">
+                          {letters.some((l) => Boolean(parsedQ.options?.[l])) ? (
+                            letters.map((optKey) => {
+                              const optText = parsedQ.options?.[optKey] || '';
+                              const isSelected = selectedLetters.includes(optKey);
+                              return (
+                                <label
+                                  key={optKey}
+                                  onClick={() => toggleGroupLetter(optKey)}
+                                  className={`flex items-start gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-purple-50 border-purple-500 shadow-2xs ring-1 ring-purple-400'
+                                      : 'bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-black transition-all ${
+                                      isSelected ? 'border-purple-600 bg-purple-600 text-white' : 'border-slate-300 bg-white'
+                                    }`}
+                                  >
+                                    {isSelected ? '✓' : ''}
+                                  </div>
+                                  <div className="flex-1 text-xs text-slate-800 leading-relaxed select-text">
+                                    <strong className="mr-1.5 font-bold">{optKey}.</strong>
+                                    <span>{optText || `Lựa chọn ${optKey}`}</span>
+                                  </div>
+                                </label>
+                              );
+                            })
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {letters.map((optKey) => {
+                                const isSelected = selectedLetters.includes(optKey);
+                                return (
+                                  <button
+                                    key={optKey}
+                                    type="button"
+                                    onClick={() => toggleGroupLetter(optKey)}
+                                    className={`w-9 h-9 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-200'
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                                    }`}
+                                  >
+                                    {optKey}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Các ô đáp án đồng bộ theo từng câu (có thể tự gõ hoặc bấm chip ở trên) */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-slate-100">
+                          {groupQuestions.map((gq) => {
+                            const gKey = `${gq.skill}_${gq.questionNumber}`;
+                            const gVal = answers[gKey] !== undefined ? answers[gKey] : (answers[String(gq.questionNumber)] || '');
+                            return (
+                              <div key={gKey} id={`q_box_${gKey}`} className="flex items-center gap-1.5 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                                <span className="text-[11px] font-black text-purple-800 pl-1 shrink-0">
+                                  Câu {gq.questionNumber}:
+                                </span>
+                                <input
+                                  type="text"
+                                  value={gVal}
+                                  placeholder="..."
+                                  onFocus={() => setActiveQuestionNum(gq.questionNumber)}
+                                  onChange={(e) => handleAnswerChange(gKey, e.target.value)}
+                                  className="w-full px-2 py-1 text-xs font-black text-slate-900 bg-white border border-slate-200 rounded-lg outline-none focus:border-purple-600 text-center"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                }
 
                 return (
                   <div
@@ -1251,7 +1417,7 @@ export default function EventExamRoom() {
                         <div className="space-y-1.5">
                           {(['A', 'B', 'C', 'D'] as const).map((optKey) => {
                             const optText = parsedQ.options?.[optKey] || '';
-                            const isSelected = (val || '').toUpperCase() === optKey;
+                            const isSelected = (val || '').trim().toUpperCase() === optKey;
                             return (
                               <label
                                 key={optKey}
@@ -1277,10 +1443,54 @@ export default function EventExamRoom() {
                             );
                           })}
                         </div>
-                      ) : parsedQ.type === 'TFNG' ? (
+                      ) : parsedQ.type === 'MULTI_SELECT' ? (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-1.5">
+                            {(parsedQ.optionLetters && parsedQ.optionLetters.length > 0
+                              ? parsedQ.optionLetters
+                              : ['A', 'B', 'C', 'D', 'E', 'F']
+                            ).map((optKey) => {
+                              const currentTokens = (val || '').toUpperCase().split(/[,&+;\s]+/).filter(Boolean);
+                              const isSelected = currentTokens.includes(optKey);
+                              return (
+                                <button
+                                  key={optKey}
+                                  type="button"
+                                  onClick={() => {
+                                    const nextSet = new Set(currentTokens);
+                                    if (isSelected) nextSet.delete(optKey);
+                                    else nextSet.add(optKey);
+                                    const lettersOrder = parsedQ.optionLetters || ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                                    const ordered = lettersOrder.filter((l) => nextSet.has(l));
+                                    handleAnswerChange(answerKey, ordered.join(', '));
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-purple-600 text-white shadow-xs'
+                                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                                  }`}
+                                >
+                                  {optKey}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Hoặc nhập nhiều đáp án (VD: A, B, C)..."
+                            value={val}
+                            onChange={(e) => handleAnswerChange(answerKey, e.target.value)}
+                            onFocus={() => setActiveQuestionNum(q.questionNumber)}
+                            className="w-full px-3 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-purple-600 transition-all"
+                          />
+                        </div>
+                      ) : parsedQ.type === 'TFNG' || parsedQ.type === 'YNNG' ? (
                         <div className="flex flex-wrap gap-2">
-                          {['TRUE', 'FALSE', 'NOT GIVEN'].map((choice) => {
-                            const isSelected = (val || '').toUpperCase() === choice;
+                          {(parsedQ.type === 'YNNG'
+                            ? ['YES', 'NO', 'NOT GIVEN']
+                            : ['TRUE', 'FALSE', 'NOT GIVEN']
+                          ).map((choice) => {
+                            const isSelected = (val || '').trim().toUpperCase() === choice;
                             return (
                               <button
                                 type="button"
@@ -1304,14 +1514,14 @@ export default function EventExamRoom() {
                           value={val}
                           onChange={(e) => handleAnswerChange(answerKey, e.target.value)}
                           onFocus={() => setActiveQuestionNum(q.questionNumber)}
-                          className="w-full px-3 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-600 transition-all uppercase placeholder:normal-case placeholder:font-normal"
+                          className="w-full px-3 py-2 text-xs font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-600 transition-all"
                         />
                       )}
                     </div>
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </div>
 
