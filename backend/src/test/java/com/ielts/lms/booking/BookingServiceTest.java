@@ -398,8 +398,8 @@ class BookingServiceTest {
     }
 
     @Test
-    @DisplayName("TC15: Đặt trước 17:00 (buổi sáng hoặc đầu giờ chiều) phải ném ra ngoại lệ vì chỉ mở từ 17h00")
-    void testBookSupportSession_Before17h00_Throws() {
+    @DisplayName("TC15: Đặt trước 16:00 (buổi sáng hoặc đầu giờ chiều) phải ném ra ngoại lệ vì chỉ mở từ 16h00")
+    void testBookSupportSession_Before16h00_Throws() {
         LocalDate futureDate = LocalDate.now().plusDays(2);
         CreateSupportBookingDto dto = new CreateSupportBookingDto();
         dto.setBookingDate(futureDate);
@@ -409,7 +409,7 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Khung giờ đặt lịch chỉ mở từ 17:00 đến 21:30");
+                .hasMessageContaining("Khung giờ đặt lịch chỉ mở từ 16:00 đến 21:30");
     }
 
     @Test

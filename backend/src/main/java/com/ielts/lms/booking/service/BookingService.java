@@ -465,7 +465,7 @@ public class BookingService {
 
     /**
      * Kiểm tra khung giờ làm việc:
-     * - Chỉ mở từ 17:00 đến 21:30 (Ca mở muộn nhất là 21:00, kết thúc lúc 21:30)
+     * - Mở từ 16:00 đến 21:30 (Ca mở muộn nhất là 21:00, kết thúc lúc 21:30)
      */
     private void validateOperatingHours(String startTime, String endTime) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
@@ -477,13 +477,13 @@ public class BookingService {
             throw new RuntimeException("Mỗi ca hỗ trợ có thời lượng chuẩn là 30 phút!");
         }
 
-        LocalTime openStart = LocalTime.of(17, 0);
+        LocalTime openStart = LocalTime.of(16, 0);
         LocalTime openEnd = LocalTime.of(21, 30);
 
         boolean inOperatingHours = !start.isBefore(openStart) && !end.isAfter(openEnd);
 
         if (!inOperatingHours) {
-            throw new RuntimeException("Khung giờ đặt lịch chỉ mở từ 17:00 đến 21:30 (ca muộn nhất bắt đầu lúc 21:00)!");
+            throw new RuntimeException("Khung giờ đặt lịch chỉ mở từ 16:00 đến 21:30 (ca muộn nhất bắt đầu lúc 21:00)!");
         }
     }
 

@@ -38,7 +38,7 @@ export default function BookingHub() {
   // Modal đặt lịch 30p
   const [bookingModalSlot, setBookingModalSlot] = useState<AvailableSlot | null>(null);
   const [isCustomTimeMode, setIsCustomTimeMode] = useState(false);
-  const [customStartTime, setCustomStartTime] = useState('17:00');
+  const [customStartTime, setCustomStartTime] = useState('16:00');
   const [selectedSkill, setSelectedSkill] = useState('SPEAKING');
   const [studentNote, setStudentNote] = useState('');
   const [submittingBooking, setSubmittingBooking] = useState(false);
@@ -183,7 +183,7 @@ export default function BookingHub() {
 
   const handleOpenCustomBookingModal = () => {
     setIsCustomTimeMode(true);
-    const start = customStartTime || '17:00';
+    const start = customStartTime || '16:00';
     const end = calculateEndTime(start);
     setBookingModalSlot({
       startTime: start,
@@ -1036,7 +1036,7 @@ export default function BookingHub() {
                     </label>
                     <input
                       type="time"
-                      min="17:00"
+                      min="16:00"
                       max="21:00"
                       value={customStartTime}
                       onChange={(e) => setCustomStartTime(e.target.value)}
@@ -1053,7 +1053,7 @@ export default function BookingHub() {
                   </div>
                 </div>
                 <p className="text-[11px] text-blue-700 font-medium">
-                  🕒 Giờ làm việc Trợ giảng: Mở từ <strong>17:00 đến 21:30</strong> (ca mở muộn nhất là <strong>21:00</strong>).
+                  🕒 Giờ làm việc Trợ giảng: Mở từ <strong>16:00 đến 21:30</strong> (ca mở muộn nhất là <strong>21:00</strong>).
                 </p>
               </div>
             ) : (
