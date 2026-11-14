@@ -279,11 +279,9 @@ public class DataInitializer {
     public CommandLineRunner initTaSchedule(BookingService bookingService, TaAvailabilityRepository taAvailabilityRepository) {
         return args -> {
             try {
-                if (taAvailabilityRepository.count() == 0) {
-                    LocalDate nextMonday = LocalDate.of(2026, 11, 16);
-                    bookingService.seedKhanhWeeklySchedule(nextMonday, null);
-                    System.out.println(">>> [DataInitializer] Đã tự động tạo 37 ca trực tuần tới cho Trợ giảng Khanh (16/11 - 22/11/2026)");
-                }
+                LocalDate nextMonday = LocalDate.of(2026, 11, 16);
+                bookingService.seedKhanhWeeklySchedule(nextMonday, null);
+                System.out.println(">>> [DataInitializer] Đã chuẩn hóa & nạp 37 ca trực tuần tới cho Trợ giảng Khanh (16/11 - 22/11/2026)");
             } catch (Exception e) {
                 System.err.println(">>> [DataInitializer] Lỗi khi khởi tạo lịch trực trợ giảng: " + e.getMessage());
             }

@@ -17,12 +17,19 @@ export default function BookingManagement() {
   const [loading, setLoading] = useState(false);
 
   // --- LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY) ---
+  const formatLocalDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const getMondayOfDate = (dateObj: Date): string => {
     const d = new Date(dateObj);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().split('T')[0];
+    const monday = new Date(d.getFullYear(), d.getMonth(), diff);
+    return formatLocalDate(monday);
   };
 
   const [selectedWeekStart, setSelectedWeekStart] = useState<string>(() => getMondayOfDate(new Date()));
@@ -380,15 +387,15 @@ export default function BookingManagement() {
   }, [activeSection, selectedWeekStart, selectedTaFilter]);
 
   const handlePrevWeek = () => {
-    const d = new Date(selectedWeekStart);
-    d.setDate(d.getDate() - 7);
-    setSelectedWeekStart(d.toISOString().split('T')[0]);
+    const [y, m, d] = selectedWeekStart.split('-').map(Number);
+    const prev = new Date(y, m - 1, d - 7);
+    setSelectedWeekStart(formatLocalDate(prev));
   };
 
   const handleNextWeek = () => {
-    const d = new Date(selectedWeekStart);
-    d.setDate(d.getDate() + 7);
-    setSelectedWeekStart(d.toISOString().split('T')[0]);
+    const [y, m, d] = selectedWeekStart.split('-').map(Number);
+    const next = new Date(y, m - 1, d + 7);
+    setSelectedWeekStart(formatLocalDate(next));
   };
 
   const handleCurrentWeek = () => {
@@ -410,9 +417,9 @@ export default function BookingManagement() {
   };
 
   const handleCopyWeek = async () => {
-    const toD = new Date(selectedWeekStart);
-    toD.setDate(toD.getDate() + 7);
-    const targetWeekStr = toD.toISOString().split('T')[0];
+    const [y, m, d] = selectedWeekStart.split('-').map(Number);
+    const toD = new Date(y, m - 1, d + 7);
+    const targetWeekStr = formatLocalDate(toD);
 
     const taIdToCopy = selectedTaFilter !== 'ALL' ? selectedTaFilter : 'khanh';
     const taNameToCopy = availableTas.find((t) => t.id === taIdToCopy)?.name || 'Trợ giảng Khanh';
@@ -446,10 +453,14 @@ export default function BookingManagement() {
   const handleCreateSlot = async () => {
     setSubmittingSlot(true);
     try {
+      const [slotY, slotM, slotD] = slotDate.split('-').map(Number);
+      const chosenDate = new Date(slotY, slotM - 1, slotD);
+      const targetMonday = getMondayOfDate(chosenDate);
+
       await bookingService.saveWeeklySchedule({
         taId: slotTaId,
         taName: slotTaName,
-        weekStartDate: selectedWeekStart,
+        weekStartDate: targetMonday,
         slots: [
           {
             availableDate: slotDate,
@@ -464,7 +475,12 @@ export default function BookingManagement() {
       });
       showToast('Đã thêm ca rảnh thành công!', 'success');
       setShowAddSlotModal(false);
-      fetchTaSchedule();
+
+      if (selectedWeekStart !== targetMonday) {
+        setSelectedWeekStart(targetMonday);
+      } else {
+        fetchTaSchedule();
+      }
     } catch (err: any) {
       showToast(err?.response?.data?.message || err?.message || 'Không thể thêm ca rảnh', 'error');
     } finally {
@@ -1426,12 +1442,11 @@ export default function BookingManagement() {
 
       {/* SECTION: QUẢN LÝ LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY) */}
       {activeSection === 'ta_schedule' && (() => {
-        const monday = new Date(selectedWeekStart);
+        const [startY, startM, startD] = selectedWeekStart.split('-').map(Number);
         const dayNames = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
         const weekDays = [0, 1, 2, 3, 4, 5, 6].map((offset) => {
-          const d = new Date(monday);
-          d.setDate(d.getDate() + offset);
-          const iso = d.toISOString().split('T')[0];
+          const d = new Date(startY, startM - 1, startD + offset);
+          const iso = formatLocalDate(d);
           const dayNum = d.getDate();
           const monthNum = d.getMonth() + 1;
           return {

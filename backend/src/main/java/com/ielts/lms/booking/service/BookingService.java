@@ -641,8 +641,9 @@ public class BookingService {
         String taId = "khanh";
         String taName = "Trợ giảng Khanh";
 
-        LocalDate weekEndDate = weekStartDate.plusDays(6);
-        List<TaAvailability> existingSlots = taAvailabilityRepository.findByAvailableDateBetweenAndTaIdOrderByAvailableDateAscStartTimeAsc(weekStartDate, weekEndDate, taId);
+        LocalDate cleanupStart = weekStartDate.minusDays(1);
+        LocalDate cleanupEnd = weekStartDate.plusDays(7);
+        List<TaAvailability> existingSlots = taAvailabilityRepository.findByAvailableDateBetweenAndTaIdOrderByAvailableDateAscStartTimeAsc(cleanupStart, cleanupEnd, taId);
         if (existingSlots != null && !existingSlots.isEmpty()) {
             for (TaAvailability ex : existingSlots) {
                 if ("OPEN".equalsIgnoreCase(ex.getStatus())) {

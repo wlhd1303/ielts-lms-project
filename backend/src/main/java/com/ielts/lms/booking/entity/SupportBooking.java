@@ -26,6 +26,7 @@ public class SupportBooking {
     @JsonIgnoreProperties({"studentClass", "permissions", "passwordHash"})
     private User user;
 
+    @Convert(converter = com.ielts.lms.booking.converter.LocalDateStringConverter.class)
     @Column(name = "booking_date", nullable = false)
     private LocalDate bookingDate;
 

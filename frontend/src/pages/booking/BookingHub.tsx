@@ -27,9 +27,16 @@ export default function BookingHub() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  const formatLocalDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // --- STATE TAB SUPPORT ---
   const [selectedDate, setSelectedDate] = useState<string>(
-    () => new Date().toISOString().split('T')[0]
+    () => formatLocalDate(new Date())
   );
   const [slots, setSlots] = useState<AvailableSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -398,7 +405,7 @@ export default function BookingHub() {
                   <input
                     type="date"
                     value={selectedDate}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={formatLocalDate(new Date())}
                     onChange={(e) => setSelectedDate(e.target.value)}
                     className="text-sm font-black text-slate-900 border border-slate-200 rounded-xl px-3 py-1.5 mt-0.5 outline-none focus:border-blue-600 bg-slate-50 cursor-pointer"
                   />

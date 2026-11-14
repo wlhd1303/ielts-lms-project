@@ -32,6 +32,7 @@ public class TaAvailability {
     @Column(name = "ta_name", nullable = false, length = 150)
     private String taName;
 
+    @Convert(converter = com.ielts.lms.booking.converter.LocalDateStringConverter.class)
     @Column(name = "available_date", nullable = false)
     private LocalDate availableDate;
 
