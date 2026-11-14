@@ -530,10 +530,20 @@ public class BookingService {
         List<TaAvailability> savedSlots = new ArrayList<>();
         if (dto.getSlots() != null) {
             for (TaSlotRequestDto s : dto.getSlots()) {
-                TaAvailability slot;
+                TaAvailability slot = null;
                 if (s.getId() != null) {
-                    slot = taAvailabilityRepository.findById(s.getId()).orElse(new TaAvailability());
-                } else {
+                    slot = taAvailabilityRepository.findById(s.getId()).orElse(null);
+                }
+                if (slot == null) {
+                    // Tránh tạo trùng lặp slot cho cùng trợ giảng, ngày và khung giờ
+                    List<TaAvailability> overlapping = taAvailabilityRepository.findOverlappingSlots(
+                            taId, s.getAvailableDate(), s.getStartTime().trim(), s.getEndTime().trim()
+                    );
+                    if (overlapping != null && !overlapping.isEmpty()) {
+                        slot = overlapping.get(0);
+                    }
+                }
+                if (slot == null) {
                     slot = new TaAvailability();
                 }
                 slot.setTaId(taId);
@@ -544,7 +554,9 @@ public class BookingService {
                 slot.setEndTime(s.getEndTime().trim());
                 slot.setSkill(s.getSkill() != null && !s.getSkill().isBlank() ? s.getSkill().trim() : "ALL");
                 slot.setMaxCapacity(s.getMaxCapacity() != null && s.getMaxCapacity() > 0 ? s.getMaxCapacity() : 1);
-                slot.setStatus(s.getStatus() != null && !s.getStatus().isBlank() ? s.getStatus().trim() : "OPEN");
+                if (slot.getId() == null || !"FULL".equalsIgnoreCase(slot.getStatus())) {
+                    slot.setStatus(s.getStatus() != null && !s.getStatus().isBlank() ? s.getStatus().trim() : "OPEN");
+                }
                 slot.setNote(s.getNote());
                 if (currentUser != null) {
                     slot.setCreatedBy(currentUser.getId());
@@ -628,6 +640,17 @@ public class BookingService {
         }
         String taId = "khanh";
         String taName = "Trợ giảng Khanh";
+
+        LocalDate weekEndDate = weekStartDate.plusDays(6);
+        List<TaAvailability> existingSlots = taAvailabilityRepository.findByAvailableDateBetweenAndTaIdOrderByAvailableDateAscStartTimeAsc(weekStartDate, weekEndDate, taId);
+        if (existingSlots != null && !existingSlots.isEmpty()) {
+            for (TaAvailability ex : existingSlots) {
+                if ("OPEN".equalsIgnoreCase(ex.getStatus())) {
+                    taAvailabilityRepository.delete(ex);
+                }
+            }
+            taAvailabilityRepository.flush();
+        }
 
         String[] weekdaySlots = {
             "17:30-18:00", "18:00-18:30", "18:30-19:00", "19:00-19:30",
