@@ -3,17 +3,48 @@ import {
   bookingService,
   type SupportBooking,
   type TestEvent,
-  type TestEventRegistration
+  type TestEventRegistration,
+  type TaAvailabilitySlot
 } from '../../services/bookingService';
 import EventExamConfigModal from './EventExamConfigModal';
 import StudentExamDetailModal from './StudentExamDetailModal';
 import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
 
 export default function BookingManagement() {
-  const [activeSection, setActiveSection] = useState<'support' | 'events' | 'online_exam'>('support');
+  const [activeSection, setActiveSection] = useState<'support' | 'ta_schedule' | 'events' | 'online_exam'>('support');
   const [adminBookings, setAdminBookings] = useState<SupportBooking[]>([]);
   const [adminEvents, setAdminEvents] = useState<TestEvent[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // --- LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY) ---
+  const getMondayOfDate = (dateObj: Date): string => {
+    const d = new Date(dateObj);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  };
+
+  const [selectedWeekStart, setSelectedWeekStart] = useState<string>(() => getMondayOfDate(new Date()));
+  const [selectedTaFilter, setSelectedTaFilter] = useState<string>('ALL');
+  const [taScheduleSlots, setTaScheduleSlots] = useState<TaAvailabilitySlot[]>([]);
+  const [loadingTaSchedule, setLoadingTaSchedule] = useState(false);
+  const [availableTas, setAvailableTas] = useState<Array<{ id: string; name: string }>>([
+    { id: 'khanh', name: 'Trợ giảng Khanh' }
+  ]);
+
+  // Modal Thêm ca rảnh
+  const [showAddSlotModal, setShowAddSlotModal] = useState(false);
+  const [slotTaId, setSlotTaId] = useState('khanh');
+  const [slotTaName, setSlotTaName] = useState('Trợ giảng Khanh');
+  const [slotDate, setSlotDate] = useState(selectedWeekStart);
+  const [slotStartTime, setSlotStartTime] = useState('17:30');
+  const [slotEndTime, setSlotEndTime] = useState('18:00');
+  const [slotSkill, setSlotSkill] = useState('ALL');
+  const [slotCapacity, setSlotCapacity] = useState(1);
+  const [slotNote, setSlotNote] = useState('');
+  const [submittingSlot, setSubmittingSlot] = useState(false);
+  const [seedingKhanhLoading, setSeedingKhanhLoading] = useState(false);
 
   // Modal Admin Đánh giá/Chấm điểm ca hỗ trợ 30p
   const [evaluatingBooking, setEvaluatingBooking] = useState<SupportBooking | null>(null);
@@ -133,9 +164,142 @@ export default function BookingManagement() {
     }
   };
 
+  const fetchTeachingAssistantsList = async () => {
+    try {
+      const tas = await bookingService.getTeachingAssistants();
+      const list = [{ id: 'khanh', name: 'Trợ giảng Khanh' }];
+      if (Array.isArray(tas)) {
+        tas.forEach((t: any) => {
+          if (t.id && !list.some((item) => item.id === t.id)) {
+            list.push({ id: t.id, name: t.fullName || t.name || t.id });
+          }
+        });
+      }
+      setAvailableTas(list);
+    } catch (err) {
+      console.error('Lỗi tải danh sách TA:', err);
+    }
+  };
+
+  const fetchTaSchedule = async () => {
+    setLoadingTaSchedule(true);
+    try {
+      const data = await bookingService.getWeeklySchedule(
+        selectedWeekStart,
+        selectedTaFilter !== 'ALL' ? selectedTaFilter : undefined
+      );
+      setTaScheduleSlots(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      console.error('Lỗi khi tải lịch rảnh trợ giảng:', err);
+      setTaScheduleSlots([]);
+    } finally {
+      setLoadingTaSchedule(false);
+    }
+  };
+
   useEffect(() => {
     fetchAdminData();
+    fetchTeachingAssistantsList();
   }, []);
+
+  useEffect(() => {
+    if (activeSection === 'ta_schedule') {
+      fetchTaSchedule();
+    }
+  }, [activeSection, selectedWeekStart, selectedTaFilter]);
+
+  const handlePrevWeek = () => {
+    const d = new Date(selectedWeekStart);
+    d.setDate(d.getDate() - 7);
+    setSelectedWeekStart(d.toISOString().split('T')[0]);
+  };
+
+  const handleNextWeek = () => {
+    const d = new Date(selectedWeekStart);
+    d.setDate(d.getDate() + 7);
+    setSelectedWeekStart(d.toISOString().split('T')[0]);
+  };
+
+  const handleCurrentWeek = () => {
+    setSelectedWeekStart(getMondayOfDate(new Date()));
+  };
+
+  const handleSeedKhanh = async () => {
+    if (!window.confirm(`Khởi tạo tự động 37 ca tuần từ ${selectedWeekStart} cho Trợ giảng Khanh?\n- T2, T4, T6, T7: 17:30 - 21:30 (ca cuối 21:00)\n- CN: 17:00 - 19:30\n- T3, T5: Nghỉ`)) return;
+    setSeedingKhanhLoading(true);
+    try {
+      const res = await bookingService.seedKhanhSchedule(selectedWeekStart);
+      showToast(`Đã tạo thành công ${res.length} ca rảnh tuần cho Trợ giảng Khanh!`, 'success');
+      await fetchTaSchedule();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể tạo lịch cho Khanh', 'error');
+    } finally {
+      setSeedingKhanhLoading(false);
+    }
+  };
+
+  const handleCopyWeek = async () => {
+    const toD = new Date(selectedWeekStart);
+    toD.setDate(toD.getDate() + 7);
+    const targetWeekStr = toD.toISOString().split('T')[0];
+
+    const taIdToCopy = selectedTaFilter !== 'ALL' ? selectedTaFilter : 'khanh';
+    const taNameToCopy = availableTas.find((t) => t.id === taIdToCopy)?.name || 'Trợ giảng Khanh';
+
+    if (!window.confirm(`Sao chép toàn bộ lịch rảnh của "${taNameToCopy}" từ tuần (${selectedWeekStart}) sang tuần kế tiếp (${targetWeekStr})?`)) return;
+
+    try {
+      const res = await bookingService.copyWeeklySchedule({
+        taId: taIdToCopy,
+        taName: taNameToCopy,
+        fromWeekStartDate: selectedWeekStart,
+        toWeekStartDate: targetWeekStr
+      });
+      showToast(`Đã sao chép thành công ${res.length} ca sang tuần ${targetWeekStr}!`, 'success');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể sao chép lịch', 'error');
+    }
+  };
+
+  const handleDeleteSlot = async (slotId: number) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa ca rảnh này không?')) return;
+    try {
+      await bookingService.deleteAvailabilitySlot(slotId);
+      showToast('Đã xóa ca rảnh thành công!', 'success');
+      fetchTaSchedule();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể xóa ca rảnh', 'error');
+    }
+  };
+
+  const handleCreateSlot = async () => {
+    setSubmittingSlot(true);
+    try {
+      await bookingService.saveWeeklySchedule({
+        taId: slotTaId,
+        taName: slotTaName,
+        weekStartDate: selectedWeekStart,
+        slots: [
+          {
+            availableDate: slotDate,
+            startTime: slotStartTime,
+            endTime: slotEndTime,
+            skill: slotSkill,
+            maxCapacity: slotCapacity,
+            note: slotNote,
+            status: 'OPEN'
+          }
+        ]
+      });
+      showToast('Đã thêm ca rảnh thành công!', 'success');
+      setShowAddSlotModal(false);
+      fetchTaSchedule();
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể thêm ca rảnh', 'error');
+    } finally {
+      setSubmittingSlot(false);
+    }
+  };
 
   // --- ACTIONS CHẤM ĐIỂM CA HỖ TRỢ ---
   const handleOpenEvaluate = (b: SupportBooking) => {
@@ -455,6 +619,14 @@ export default function BookingManagement() {
               💬 Ca Hỗ Trợ 1-1 ({adminBookings.length})
             </button>
             <button
+              onClick={() => setActiveSection('ta_schedule')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeSection === 'ta_schedule' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              📅 Lịch Rảnh Trợ Giảng
+            </button>
+            <button
               onClick={() => setActiveSection('events')}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeSection === 'events' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
@@ -477,6 +649,28 @@ export default function BookingManagement() {
               🎯 Thi Online & Bảng Điểm
             </button>
           </div>
+
+          {activeSection === 'ta_schedule' && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSeedKhanh}
+                disabled={seedingKhanhLoading}
+                className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                title="Khởi tạo nhanh 37 ca tuần cho Trợ giảng Khanh"
+              >
+                <span>⚡</span> {seedingKhanhLoading ? 'Đang tạo...' : 'Set Lịch Trợ Giảng Khanh'}
+              </button>
+              <button
+                onClick={() => {
+                  setSlotDate(selectedWeekStart);
+                  setShowAddSlotModal(true);
+                }}
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>➕</span> Mở Ca Rảnh
+              </button>
+            </div>
+          )}
 
           {activeSection === 'events' && (
             <button
@@ -594,6 +788,220 @@ export default function BookingManagement() {
           </div>
         </div>
       )}
+
+      {/* SECTION: QUẢN LÝ LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY) */}
+      {activeSection === 'ta_schedule' && (() => {
+        const monday = new Date(selectedWeekStart);
+        const dayNames = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+        const weekDays = [0, 1, 2, 3, 4, 5, 6].map((offset) => {
+          const d = new Date(monday);
+          d.setDate(d.getDate() + offset);
+          const iso = d.toISOString().split('T')[0];
+          const dayNum = d.getDate();
+          const monthNum = d.getMonth() + 1;
+          return {
+            offset,
+            dayName: dayNames[offset],
+            dateIso: iso,
+            dateFormatted: `${dayNum < 10 ? '0' + dayNum : dayNum}/${monthNum < 10 ? '0' + monthNum : monthNum}`
+          };
+        });
+
+        return (
+          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
+            {/* Thanh Điều Hướng & Bộ Lọc Tuần */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={handlePrevWeek}
+                    className="px-3 py-1.5 hover:bg-white rounded-lg text-xs font-bold text-slate-700 transition-all cursor-pointer"
+                    title="Tuần trước"
+                  >
+                    ◀ Tuần trước
+                  </button>
+                  <button
+                    onClick={handleCurrentWeek}
+                    className="px-3 py-1.5 hover:bg-white rounded-lg text-xs font-bold text-slate-700 transition-all cursor-pointer"
+                  >
+                    Tuần này
+                  </button>
+                  <button
+                    onClick={handleNextWeek}
+                    className="px-3 py-1.5 hover:bg-white rounded-lg text-xs font-bold text-slate-700 transition-all cursor-pointer"
+                    title="Tuần kế tiếp"
+                  >
+                    Tuần sau ▶
+                  </button>
+                </div>
+
+                <span className="text-xs font-black text-slate-800 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+                  📅 {weekDays[0].dateFormatted} — {weekDays[6].dateFormatted} ({selectedWeekStart})
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+                  <span>👤 Lọc Trợ giảng:</span>
+                  <select
+                    value={selectedTaFilter}
+                    onChange={(e) => setSelectedTaFilter(e.target.value)}
+                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    <option value="ALL">Tất cả Trợ giảng</option>
+                    {availableTas.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleCopyWeek}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1"
+                  title="Sao chép toàn bộ lịch tuần này sang tuần sau"
+                >
+                  <span>📋</span> Sao Chép Sang Tuần Sau
+                </button>
+
+                <button
+                  onClick={fetchTaSchedule}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Làm mới lịch"
+                >
+                  🔄
+                </button>
+              </div>
+            </div>
+
+            {/* Lưới Lịch 7 Ngày */}
+            {loadingTaSchedule ? (
+              <div className="py-12 text-center text-slate-400 font-bold text-xs flex items-center justify-center gap-2">
+                <span className="animate-spin text-base">⏳</span> Đang tải lịch rảnh trợ giảng...
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+                {weekDays.map((day) => {
+                  const daySlots = taScheduleSlots.filter((s) => s.availableDate === day.dateIso);
+                  const isToday = day.dateIso === new Date().toISOString().split('T')[0];
+
+                  return (
+                    <div
+                      key={day.dateIso}
+                      className={`rounded-2xl border flex flex-col min-h-[320px] transition-all ${
+                        isToday ? 'border-blue-400 bg-blue-50/20 shadow-xs' : 'border-slate-200/80 bg-slate-50/50'
+                      }`}
+                    >
+                      {/* Header Ngày */}
+                      <div className={`p-3 border-b text-center rounded-t-2xl ${
+                        isToday ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-800'
+                      }`}>
+                        <div className="text-xs font-black">{day.dayName}</div>
+                        <div className={`text-[11px] font-bold mt-0.5 ${isToday ? 'text-blue-100' : 'text-slate-500'}`}>
+                          {day.dateFormatted}
+                        </div>
+                        <div className="mt-1">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            daySlots.length > 0 ? (isToday ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700') : 'bg-slate-200/80 text-slate-500'
+                          }`}>
+                            {daySlots.length} ca
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Danh Sách Slot */}
+                      <div className="p-2 flex-1 space-y-2 overflow-y-auto max-h-[460px] custom-scrollbar">
+                        {daySlots.length === 0 ? (
+                          <div className="py-8 text-center text-slate-400 text-xs font-bold italic">
+                            ☕ Nghỉ / Chưa mở ca
+                          </div>
+                        ) : (
+                          daySlots.map((slot) => {
+                            const isOpen = slot.status === 'OPEN';
+                            const isFull = slot.status === 'FULL';
+
+                            return (
+                              <div
+                                key={slot.id}
+                                className={`p-2.5 rounded-xl border text-xs space-y-1.5 transition-all shadow-2xs group relative ${
+                                  isFull
+                                    ? 'bg-purple-50/60 border-purple-200/80 text-purple-900'
+                                    : isOpen
+                                    ? 'bg-white border-emerald-200/80 text-slate-800 hover:border-emerald-300'
+                                    : 'bg-slate-100 border-slate-200 text-slate-500'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between font-black text-xs">
+                                  <span className="flex items-center gap-1 text-slate-900">
+                                    <span>⏰</span> {slot.startTime} - {slot.endTime}
+                                  </span>
+                                  <button
+                                    onClick={() => slot.id && handleDeleteSlot(slot.id)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer"
+                                    title="Xóa ca rảnh này"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+
+                                <div className="text-[11px] font-bold text-slate-600 truncate flex items-center gap-1">
+                                  <span>👤</span> {slot.taName}
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-1 pt-1">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                                    isFull
+                                      ? 'bg-purple-100 text-purple-700'
+                                      : isOpen
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-slate-200 text-slate-600'
+                                  }`}>
+                                    {isFull ? 'Đầy chỗ' : isOpen ? 'Còn trống' : slot.status}
+                                  </span>
+
+                                  {slot.skill && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                      {slot.skill === 'ALL' ? 'Tất cả kỹ năng' : slot.skill}
+                                    </span>
+                                  )}
+
+                                  {slot.maxCapacity > 1 && (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600">
+                                      Nhóm (TĐ {slot.maxCapacity})
+                                    </span>
+                                  )}
+                                </div>
+
+                                {slot.note && (
+                                  <div className="text-[10px] text-slate-500 italic truncate" title={slot.note}>
+                                    📝 {slot.note}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Nút Thêm Ca Ngày Này */}
+                      <div className="p-2 border-t border-slate-100 bg-white/50 rounded-b-2xl">
+                        <button
+                          onClick={() => {
+                            setSlotDate(day.dateIso);
+                            setShowAddSlotModal(true);
+                          }}
+                          className="w-full py-1.5 text-center text-xs font-bold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <span>+</span> Thêm ca
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* SECTION 2: QUẢN LÝ CÁC KỲ THI THỬ & CA THI */}
       {activeSection === 'events' && (
@@ -1728,6 +2136,145 @@ export default function BookingManagement() {
           registrationId={viewingRegistrationId}
           onClose={() => setViewingRegistrationId(null)}
         />
+      )}
+
+      {/* MODAL THÊM CA RẢNH MỚI CHO TRỢ GIẢNG */}
+      {showAddSlotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-scaleUp">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <span>➕</span> Mở Ca Rảnh Mới Cho Trợ Giảng
+              </h3>
+              <button
+                onClick={() => setShowAddSlotModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Trợ Giảng Phụ Trách</label>
+                <select
+                  value={slotTaId}
+                  onChange={(e) => {
+                    const sel = availableTas.find((t) => t.id === e.target.value);
+                    setSlotTaId(e.target.value);
+                    if (sel) setSlotTaName(sel.name);
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  {availableTas.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Ngày Trực</label>
+                <input
+                  type="date"
+                  value={slotDate}
+                  onChange={(e) => setSlotDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Giờ Bắt Đầu</label>
+                  <select
+                    value={slotStartTime}
+                    onChange={(e) => {
+                      const start = e.target.value;
+                      setSlotStartTime(start);
+                      const [h, m] = start.split(':').map(Number);
+                      const total = h * 60 + m + 30;
+                      const endH = Math.floor(total / 60);
+                      const endM = total % 60;
+                      setSlotEndTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 cursor-pointer"
+                  >
+                    {['17:00', '17:30', '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00'].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Giờ Kết Thúc</label>
+                  <input
+                    type="text"
+                    value={slotEndTime}
+                    readOnly
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Kỹ Năng Hỗ Trợ</label>
+                  <select
+                    value={slotSkill}
+                    onChange={(e) => setSlotSkill(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 cursor-pointer"
+                  >
+                    <option value="ALL">Mọi kỹ năng</option>
+                    <option value="SPEAKING">Speaking (Nói)</option>
+                    <option value="WRITING">Writing (Viết)</option>
+                    <option value="READING">Reading (Đọc)</option>
+                    <option value="LISTENING">Listening (Nghe)</option>
+                    <option value="VOCABULARY">Từ vựng & Ngữ pháp</option>
+                    <option value="GENERAL">Giải đáp chung</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Sĩ Số Tối Đa</label>
+                  <select
+                    value={slotCapacity}
+                    onChange={(e) => setSlotCapacity(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 cursor-pointer"
+                  >
+                    <option value={1}>1 Học viên (1-1)</option>
+                    <option value={5}>5 Học viên (Nhóm R/L/W)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Ghi Chú Ca Trực (Tùy chọn)</label>
+                <input
+                  type="text"
+                  placeholder="VD: Online Google Meet / Trực tại P.102"
+                  value={slotNote}
+                  onChange={(e) => setSlotNote(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t">
+              <button
+                type="button"
+                onClick={() => setShowAddSlotModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={submittingSlot}
+                onClick={handleCreateSlot}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all cursor-pointer disabled:opacity-50"
+              >
+                {submittingSlot ? 'Đang lưu...' : 'Lưu Ca Rảnh'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL ĐIỀU HÀNH BẢNG XẾP HẠNG ĐỢT THI (ADMIN) */}

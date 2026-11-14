@@ -50,6 +50,9 @@ public class SupportBooking {
     @Column(name = "assigned_ta_name")
     private String assignedTaName;
 
+    @Column(name = "availability_id")
+    private Long availabilityId;
+
     @Column(name = "external_session_id", length = 100)
     private String externalSessionId;
 

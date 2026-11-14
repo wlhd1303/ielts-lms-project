@@ -16,6 +16,9 @@ public class AvailableSlotDto {
     private boolean bookedByMe; // true nếu chính user đang đăng nhập đã book slot này
     private Long bookingId;    // ID của booking nếu do user book
     private String assignedTaName; // Tên TA nếu có
+    private Long availabilityId; // ID của slot rảnh trong ta_availabilities
+    private String taId; // Mã / ID trợ giảng
+    private String note; // Ghi chú ca trực của TA (VD: Online Meet, Offline...)
     private String skill; // Kỹ năng nếu slot đã có người đặt (cho ca nhóm)
     private Integer currentRegistered; // Số học viên đã đăng ký
     private Integer maxCapacity; // Sức chứa tối đa (1 cho cá nhân, 5 cho Reading/Listening/Writing)

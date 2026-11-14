@@ -121,4 +121,30 @@ ALTER TABLE test_events
     ADD COLUMN IF NOT EXISTS is_leaderboard_public BOOLEAN DEFAULT TRUE,
     ADD COLUMN IF NOT EXISTS leaderboard_published_at TIMESTAMP NULL;
 
+-- ==============================================================================
+-- 7. MIGRATION BỔ SUNG: HỆ THỐNG LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS ta_availabilities (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ta_id VARCHAR(100) NOT NULL,
+    ta_name VARCHAR(150) NOT NULL,
+    available_date DATE NOT NULL,
+    day_of_week INT NOT NULL,
+    start_time VARCHAR(10) NOT NULL,
+    end_time VARCHAR(10) NOT NULL,
+    skill VARCHAR(50) NOT NULL DEFAULT 'ALL',
+    max_capacity INT NOT NULL DEFAULT 1,
+    status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+    note VARCHAR(255) NULL,
+    created_by BIGINT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ta_avail_date_status (available_date, status),
+    INDEX idx_ta_avail_ta_date (ta_id, available_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE support_bookings
+    ADD COLUMN IF NOT EXISTS availability_id BIGINT NULL;
+
+
 

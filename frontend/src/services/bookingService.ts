@@ -7,10 +7,52 @@ export interface AvailableSlot {
   bookedByMe: boolean;
   bookingId?: number;
   assignedTaName?: string;
+  availabilityId?: number;
+  taId?: string;
+  note?: string;
   skill?: string;
   currentRegistered?: number;
   maxCapacity?: number;
   isGroup?: boolean;
+}
+
+export interface TaAvailabilitySlot {
+  id?: number;
+  taId: string;
+  taName: string;
+  availableDate: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  skill: string;
+  maxCapacity: number;
+  status: 'OPEN' | 'FULL' | 'CANCELLED';
+  note?: string;
+  createdBy?: number;
+  createdAt?: string;
+}
+
+export interface BatchTaAvailabilityPayload {
+  taId: string;
+  taName: string;
+  weekStartDate: string;
+  slots: Array<{
+    id?: number;
+    availableDate: string;
+    startTime: string;
+    endTime: string;
+    skill?: string;
+    maxCapacity?: number;
+    status?: string;
+    note?: string;
+  }>;
+}
+
+export interface CopyWeekAvailabilityPayload {
+  taId: string;
+  taName?: string;
+  fromWeekStartDate: string;
+  toWeekStartDate: string;
 }
 
 export interface SupportBooking {
@@ -229,6 +271,7 @@ export const bookingService = {
     skill: string;
     studentNote?: string;
     preferredTaId?: string;
+    availabilityId?: number;
   }): Promise<SupportBooking> => {
     const res: any = await axiosClient.post('/api/booking/support/book', data);
     return res.data || res;
@@ -249,6 +292,32 @@ export const bookingService = {
 
   getTeachingAssistants: async (): Promise<any[]> => {
     const res: any = await axiosClient.get('/api/booking/support/teaching-assistants');
+    return res.data || res;
+  },
+
+  // --- LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY) ---
+  getWeeklySchedule: async (startDate: string, taId?: string): Promise<TaAvailabilitySlot[]> => {
+    const query = taId ? `startDate=${startDate}&taId=${encodeURIComponent(taId)}` : `startDate=${startDate}`;
+    const res: any = await axiosClient.get(`/api/admin/booking/ta-availability/week?${query}`);
+    return res.data || res;
+  },
+
+  saveWeeklySchedule: async (data: BatchTaAvailabilityPayload): Promise<TaAvailabilitySlot[]> => {
+    const res: any = await axiosClient.post('/api/admin/booking/ta-availability/batch', data);
+    return res.data || res;
+  },
+
+  copyWeeklySchedule: async (data: CopyWeekAvailabilityPayload): Promise<TaAvailabilitySlot[]> => {
+    const res: any = await axiosClient.post('/api/admin/booking/ta-availability/copy-week', data);
+    return res.data || res;
+  },
+
+  deleteAvailabilitySlot: async (id: number): Promise<any> => {
+    return await axiosClient.delete(`/api/admin/booking/ta-availability/${id}`);
+  },
+
+  seedKhanhSchedule: async (weekStartDate: string): Promise<TaAvailabilitySlot[]> => {
+    const res: any = await axiosClient.post(`/api/admin/booking/ta-availability/seed-khanh?weekStartDate=${weekStartDate}`);
     return res.data || res;
   },
 

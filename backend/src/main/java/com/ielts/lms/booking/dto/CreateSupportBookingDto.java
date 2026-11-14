@@ -22,5 +22,7 @@ public class CreateSupportBookingDto {
 
     private String studentNote;
 
+    private Long availabilityId; // ID của slot rảnh được chọn từ ta_availabilities
+
     private String preferredTaId; // Tuỳ chọn nếu học viên chọn TA cụ thể
 }

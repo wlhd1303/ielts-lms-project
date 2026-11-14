@@ -206,7 +206,9 @@ export default function BookingHub() {
         startTime: start,
         endTime: end,
         skill: selectedSkill,
-        studentNote: studentNote
+        studentNote: studentNote,
+        availabilityId: bookingModalSlot.availabilityId,
+        preferredTaId: bookingModalSlot.taId
       });
       showToast('Đặt ca hỗ trợ 30 phút thành công! Trợ giảng sẽ chuẩn bị hỗ trợ bạn.', 'success');
       setBookingModalSlot(null);
@@ -427,18 +429,17 @@ export default function BookingHub() {
             {/* Grid các khung giờ 30 phút */}
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <span>⏰</span> Khung giờ ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}
-                </h3>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span>⏰</span> Ca Hỗ Trợ Ngày {new Date(selectedDate).toLocaleDateString('vi-VN')}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Học viên chỉ có thể đăng ký vào các ca có Trợ giảng trực rảnh.
+                  </p>
+                </div>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={handleOpenCustomBookingModal}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-black bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:opacity-95 rounded-xl shadow-sm transition-all cursor-pointer"
-                  >
-                    <span>⚡</span> Tùy chọn giờ linh động
-                  </button>
-                  <span className="text-xs font-bold text-slate-400">
-                    {slots.filter((s) => s.available).length} ca khả dụng
+                  <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/60">
+                    {slots.filter((s) => s.available).length} ca có sẵn
                   </span>
                 </div>
               </div>
@@ -449,8 +450,12 @@ export default function BookingHub() {
                   <p className="text-xs font-bold text-slate-400 mt-3">Đang kiểm tra lịch trống...</p>
                 </div>
               ) : slots.length === 0 ? (
-                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 font-bold text-sm">
-                  Không có ca nào trong ngày này.
+                <div className="p-10 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-500 space-y-2">
+                  <span className="text-3xl block">☕</span>
+                  <p className="font-black text-sm text-slate-800">Ngày này chưa có Trợ giảng mở lịch trực.</p>
+                  <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+                    Vui lòng chọn ngày khác (ví dụ: Thứ 2, Thứ 4, Thứ 6, Thứ 7 hoặc Chủ Nhật) để xem các ca hỗ trợ đang mở nhé!
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -459,7 +464,7 @@ export default function BookingHub() {
                       return (
                         <div
                           key={index}
-                          className="bg-amber-50/80 border-2 border-amber-400 p-3.5 rounded-2xl shadow-sm text-center space-y-2 relative"
+                          className="bg-amber-50/80 border-2 border-amber-400 p-3.5 rounded-2xl shadow-sm text-center space-y-1.5 relative"
                         >
                           <span className="absolute top-2 right-2 text-xs font-black text-amber-600">
                             ⭐
@@ -470,6 +475,11 @@ export default function BookingHub() {
                           <p className="text-base font-black text-slate-900">
                             {slot.startTime} - {slot.endTime}
                           </p>
+                          {slot.assignedTaName && (
+                            <p className="text-[11px] font-bold text-slate-600 truncate">
+                              👤 {slot.assignedTaName}
+                            </p>
+                          )}
                           {slot.skill && (
                             <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
                               {slot.skill} {slot.isGroup && `(${slot.currentRegistered}/5)`}
@@ -477,7 +487,7 @@ export default function BookingHub() {
                           )}
                           <button
                             onClick={() => slot.bookingId && handleCancelBooking(slot.bookingId)}
-                            className="w-full py-1 text-[11px] font-black text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all cursor-pointer"
+                            className="w-full py-1 text-[11px] font-black text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all cursor-pointer mt-1"
                           >
                             Hủy ca này
                           </button>
@@ -495,6 +505,11 @@ export default function BookingHub() {
                           <p className="text-sm font-black text-slate-500">
                             {slot.startTime} - {slot.endTime}
                           </p>
+                          {slot.assignedTaName && (
+                            <p className="text-[10px] font-semibold text-slate-400 truncate">
+                              👤 {slot.assignedTaName}
+                            </p>
+                          )}
                           <span className="inline-block text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-md">
                             🔒 Khóa {slot.isGroup && '(Đủ 5/5)'}
                           </span>
@@ -526,6 +541,11 @@ export default function BookingHub() {
                         <p className="text-base font-black text-slate-900 group-hover:text-blue-600 transition-all">
                           {slot.startTime} - {slot.endTime}
                         </p>
+                        {slot.assignedTaName && (
+                          <p className="text-[11px] font-bold text-slate-600 truncate">
+                            👤 {slot.assignedTaName}
+                          </p>
+                        )}
                         <p className={`text-[11px] font-bold ${isGroupJoinable ? 'text-indigo-600' : 'text-emerald-600'}`}>
                           {isGroupJoinable ? `Ghép ${slot.skill} (còn ${5 - (slot.currentRegistered || 0)}) →` : 'Đặt 30 phút →'}
                         </p>
@@ -1037,13 +1057,23 @@ export default function BookingHub() {
                 </p>
               </div>
             ) : (
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-1 text-xs">
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 space-y-1.5 text-xs">
                 <p className="font-bold text-blue-900">
                   Ngày: <span className="font-black">{new Date(selectedDate).toLocaleDateString('vi-VN')}</span>
                 </p>
                 <p className="font-bold text-blue-900">
                   Khung giờ: <span className="font-black">{bookingModalSlot.startTime} - {bookingModalSlot.endTime} (30 phút)</span>
                 </p>
+                {bookingModalSlot.assignedTaName && (
+                  <p className="font-bold text-indigo-700 flex items-center gap-1 pt-1 border-t border-blue-100">
+                    <span>👤 Trợ giảng phụ trách:</span> <span className="font-black">{bookingModalSlot.assignedTaName}</span>
+                  </p>
+                )}
+                {bookingModalSlot.note && (
+                  <p className="text-[11px] text-slate-600 italic">
+                    📝 {bookingModalSlot.note}
+                  </p>
+                )}
                 {bookingModalSlot.isGroup && bookingModalSlot.skill && (
                   <div className="pt-2">
                     <span className="inline-block text-[11px] font-black text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-lg">

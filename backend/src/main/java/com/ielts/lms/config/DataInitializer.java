@@ -2,6 +2,11 @@ package com.ielts.lms.config;
 
 import com.ielts.lms.entity.User;
 import com.ielts.lms.repository.UserRepository;
+import com.ielts.lms.booking.repository.TaAvailabilityRepository;
+import com.ielts.lms.booking.service.BookingService;
+import java.time.LocalDate;
+import java.time.DayOfWeek;
+import java.time.temporal.TemporalAdjusters;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -267,6 +272,21 @@ public class DataInitializer {
             System.out.println(">>> PDF Google Drive Reading: " + rPdf);
             System.out.println(">>> Audio Cloudinary Listening: " + lAudio);
             System.out.println(">>> Ca thi 1 mở: " + activeStartTime + " - " + activeEndTime);
+        };
+    }
+
+    @Bean
+    public CommandLineRunner initTaSchedule(BookingService bookingService, TaAvailabilityRepository taAvailabilityRepository) {
+        return args -> {
+            try {
+                if (taAvailabilityRepository.count() == 0) {
+                    LocalDate nextMonday = LocalDate.of(2026, 11, 16);
+                    bookingService.seedKhanhWeeklySchedule(nextMonday, null);
+                    System.out.println(">>> [DataInitializer] Đã tự động tạo 37 ca trực tuần tới cho Trợ giảng Khanh (16/11 - 22/11/2026)");
+                }
+            } catch (Exception e) {
+                System.err.println(">>> [DataInitializer] Lỗi khi khởi tạo lịch trực trợ giảng: " + e.getMessage());
+            }
         };
     }
 }

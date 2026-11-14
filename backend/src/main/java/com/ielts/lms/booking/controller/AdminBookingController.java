@@ -1,9 +1,12 @@
 package com.ielts.lms.booking.controller;
 
+import com.ielts.lms.booking.dto.BatchTaAvailabilityDto;
+import com.ielts.lms.booking.dto.CopyWeekAvailabilityDto;
 import com.ielts.lms.booking.dto.CreateTestEventDto;
 import com.ielts.lms.booking.dto.EvaluateBookingDto;
 import com.ielts.lms.booking.dto.UpdateShiftScoreDto;
 import com.ielts.lms.booking.entity.SupportBooking;
+import com.ielts.lms.booking.entity.TaAvailability;
 import com.ielts.lms.booking.entity.TestEvent;
 import com.ielts.lms.booking.entity.TestEventRegistration;
 import com.ielts.lms.booking.service.BookingService;
@@ -12,10 +15,12 @@ import com.ielts.lms.entity.User;
 import com.ielts.lms.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -218,5 +223,59 @@ public class AdminBookingController {
         org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
         headers.setContentDispositionFormData("attachment", "leaderboard_event_" + eventId + ".csv");
         return ResponseEntity.ok().headers(headers).body(csvData);
+    }
+
+    // =========================================================================
+    // --- QUẢN LÝ LỊCH RẢNH TRỢ GIẢNG THEO TUẦN (TA AVAILABILITY) ---
+    // =========================================================================
+
+    /**
+     * Lấy danh sách ca rảnh theo tuần
+     */
+    @GetMapping("/ta-availability/week")
+    public ResponseEntity<List<TaAvailability>> getWeeklySchedule(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "taId", required = false) String taId) {
+        return ResponseEntity.ok(bookingService.getWeeklySchedule(startDate, taId));
+    }
+
+    /**
+     * Lưu hàng loạt ca rảnh trong tuần của Trợ giảng
+     */
+    @PostMapping("/ta-availability/batch")
+    public ResponseEntity<List<TaAvailability>> saveWeeklySchedule(
+            @Valid @RequestBody BatchTaAvailabilityDto dto) {
+        User currentUser = userService.getMyProfile();
+        return ResponseEntity.ok(bookingService.saveWeeklySchedule(dto, currentUser));
+    }
+
+    /**
+     * Sao chép toàn bộ lịch rảnh của Trợ giảng từ tuần nguồn sang tuần đích
+     */
+    @PostMapping("/ta-availability/copy-week")
+    public ResponseEntity<List<TaAvailability>> copyWeeklySchedule(
+            @Valid @RequestBody CopyWeekAvailabilityDto dto) {
+        User currentUser = userService.getMyProfile();
+        return ResponseEntity.ok(bookingService.copyWeeklySchedule(dto, currentUser));
+    }
+
+    /**
+     * Xóa 1 slot rảnh
+     */
+    @DeleteMapping("/ta-availability/{id}")
+    public ResponseEntity<java.util.Map<String, String>> deleteAvailabilitySlot(@PathVariable Long id) {
+        User currentUser = userService.getMyProfile();
+        bookingService.deleteAvailabilitySlot(id, currentUser);
+        return ResponseEntity.ok(java.util.Map.of("message", "Đã xóa slot rảnh thành công!"));
+    }
+
+    /**
+     * Khởi tạo lịch tuần sau cho Trợ giảng Khanh
+     */
+    @PostMapping("/ta-availability/seed-khanh")
+    public ResponseEntity<List<TaAvailability>> seedKhanhSchedule(
+            @RequestParam("weekStartDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStartDate) {
+        User currentUser = userService.getMyProfile();
+        return ResponseEntity.ok(bookingService.seedKhanhWeeklySchedule(weekStartDate, currentUser));
     }
 }
