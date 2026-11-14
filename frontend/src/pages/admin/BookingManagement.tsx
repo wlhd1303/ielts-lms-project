@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   bookingService,
   type SupportBooking,
@@ -45,6 +45,177 @@ export default function BookingManagement() {
   const [slotNote, setSlotNote] = useState('');
   const [submittingSlot, setSubmittingSlot] = useState(false);
   const [seedingKhanhLoading, setSeedingKhanhLoading] = useState(false);
+
+  // --- BỘ LỌC VÀ HIỂN THỊ CA HỖ TRỢ (SUPPORT BOOKINGS FILTERING) ---
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<'ALL' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'>('ALL');
+  const [bookingTimeFilter, setBookingTimeFilter] = useState<'ALL' | 'TODAY' | 'TOMORROW' | 'THIS_WEEK' | 'NEXT_WEEK' | 'CUSTOM'>('ALL');
+  const [bookingCustomDate, setBookingCustomDate] = useState<string>('');
+  const [bookingTaFilter, setBookingTaFilter] = useState<string>('ALL');
+  const [bookingSkillFilter, setBookingSkillFilter] = useState<string>('ALL');
+  const [bookingSearch, setBookingSearch] = useState<string>('');
+  const [bookingViewMode, setBookingViewMode] = useState<'CARDS' | 'TABLE'>('CARDS');
+
+  // Helper dates (ISO strings YYYY-MM-DD)
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const tomorrowIso = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const thisWeekMondayIso = useMemo(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const thisWeekSundayIso = useMemo(() => {
+    const [y, m, d] = thisWeekMondayIso.split('-').map(Number);
+    const date = new Date(y, m - 1, d + 6);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }, [thisWeekMondayIso]);
+
+  const nextWeekMondayIso = useMemo(() => {
+    const [y, m, d] = thisWeekMondayIso.split('-').map(Number);
+    const date = new Date(y, m - 1, d + 7);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }, [thisWeekMondayIso]);
+
+  const nextWeekSundayIso = useMemo(() => {
+    const [y, m, d] = nextWeekMondayIso.split('-').map(Number);
+    const date = new Date(y, m - 1, d + 6);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }, [nextWeekMondayIso]);
+
+  // Thống kê nhanh số ca
+  const bookingStats = useMemo(() => {
+    let total = adminBookings.length;
+    let confirmed = 0;
+    let completed = 0;
+    let cancelled = 0;
+    let todayCount = 0;
+    let tomorrowCount = 0;
+    let thisWeekCount = 0;
+    let nextWeekCount = 0;
+
+    adminBookings.forEach((b) => {
+      if (b.status === 'COMPLETED') completed++;
+      else if (b.status === 'CANCELLED') cancelled++;
+      else confirmed++;
+
+      if (b.bookingDate === todayIso) todayCount++;
+      if (b.bookingDate === tomorrowIso) tomorrowCount++;
+      if (b.bookingDate >= thisWeekMondayIso && b.bookingDate <= thisWeekSundayIso) thisWeekCount++;
+      if (b.bookingDate >= nextWeekMondayIso && b.bookingDate <= nextWeekSundayIso) nextWeekCount++;
+    });
+
+    return { total, confirmed, completed, cancelled, todayCount, tomorrowCount, thisWeekCount, nextWeekCount };
+  }, [adminBookings, todayIso, tomorrowIso, thisWeekMondayIso, thisWeekSundayIso, nextWeekMondayIso, nextWeekSundayIso]);
+
+  // Lọc ca hỗ trợ theo đa điều kiện
+  const filteredSupportBookings = useMemo(() => {
+    return adminBookings.filter((b) => {
+      // 1. Trạng thái
+      if (bookingStatusFilter === 'CONFIRMED') {
+        if (b.status === 'COMPLETED' || b.status === 'CANCELLED') return false;
+      } else if (bookingStatusFilter === 'COMPLETED') {
+        if (b.status !== 'COMPLETED') return false;
+      } else if (bookingStatusFilter === 'CANCELLED') {
+        if (b.status !== 'CANCELLED') return false;
+      }
+
+      // 2. Thời gian
+      if (bookingTimeFilter === 'TODAY') {
+        if (b.bookingDate !== todayIso) return false;
+      } else if (bookingTimeFilter === 'TOMORROW') {
+        if (b.bookingDate !== tomorrowIso) return false;
+      } else if (bookingTimeFilter === 'THIS_WEEK') {
+        if (b.bookingDate < thisWeekMondayIso || b.bookingDate > thisWeekSundayIso) return false;
+      } else if (bookingTimeFilter === 'NEXT_WEEK') {
+        if (b.bookingDate < nextWeekMondayIso || b.bookingDate > nextWeekSundayIso) return false;
+      } else if (bookingTimeFilter === 'CUSTOM' && bookingCustomDate) {
+        if (b.bookingDate !== bookingCustomDate) return false;
+      }
+
+      // 3. Trợ giảng
+      if (bookingTaFilter !== 'ALL') {
+        const matchesTa = (b.assignedTaId && b.assignedTaId.toLowerCase() === bookingTaFilter.toLowerCase()) ||
+                          (b.assignedTaName && b.assignedTaName.toLowerCase().includes(bookingTaFilter.toLowerCase()));
+        if (!matchesTa) return false;
+      }
+
+      // 4. Kỹ năng
+      if (bookingSkillFilter !== 'ALL') {
+        if (b.skill !== bookingSkillFilter) return false;
+      }
+
+      // 5. Từ khóa tìm kiếm
+      if (bookingSearch.trim()) {
+        const q = bookingSearch.toLowerCase();
+        const studentName = (b.user?.fullName || '').toLowerCase();
+        const username = (b.user?.username || '').toLowerCase();
+        const note = (b.studentNote || '').toLowerCase();
+        const ta = (b.assignedTaName || '').toLowerCase();
+        if (!studentName.includes(q) && !username.includes(q) && !note.includes(q) && !ta.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).sort((a, b) => {
+      if (a.bookingDate !== b.bookingDate) {
+        return a.bookingDate.localeCompare(b.bookingDate);
+      }
+      return (a.startTime || '').localeCompare(b.startTime || '');
+    });
+  }, [adminBookings, bookingStatusFilter, bookingTimeFilter, bookingCustomDate, bookingTaFilter, bookingSkillFilter, bookingSearch, todayIso, tomorrowIso, thisWeekMondayIso, thisWeekSundayIso, nextWeekMondayIso, nextWeekSundayIso]);
+
+  // Phân nhóm theo ngày cho Card View
+  const groupedSupportBookings = useMemo(() => {
+    const map: Record<string, SupportBooking[]> = {};
+    filteredSupportBookings.forEach((b) => {
+      const dateKey = b.bookingDate || 'Chưa xác định ngày';
+      if (!map[dateKey]) map[dateKey] = [];
+      map[dateKey].push(b);
+    });
+    return map;
+  }, [filteredSupportBookings]);
+
+  const formatVietnameseDateHeader = (isoDate: string) => {
+    if (!isoDate || isoDate === 'Chưa xác định ngày') return 'Chưa xác định ngày';
+    const parts = isoDate.split('-').map(Number);
+    if (parts.length !== 3) return isoDate;
+    const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const dayName = dayNames[dateObj.getDay()];
+    const dd = String(parts[2]).padStart(2, '0');
+    const mm = String(parts[1]).padStart(2, '0');
+    const yyyy = parts[0];
+    return `${dayName}, ${dd}/${mm}/${yyyy}`;
+  };
+
+  const getAvatarGradient = (name: string) => {
+    const colors = [
+      'from-blue-500 to-indigo-600',
+      'from-emerald-500 to-teal-600',
+      'from-violet-500 to-purple-600',
+      'from-rose-500 to-pink-600',
+      'from-amber-500 to-orange-600',
+      'from-cyan-500 to-blue-600'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % colors.length;
+    return colors[idx];
+  };
 
   // Modal Admin Đánh giá/Chấm điểm ca hỗ trợ 30p
   const [evaluatingBooking, setEvaluatingBooking] = useState<SupportBooking | null>(null);
@@ -653,14 +824,6 @@ export default function BookingManagement() {
           {activeSection === 'ta_schedule' && (
             <div className="flex items-center gap-2">
               <button
-                onClick={handleSeedKhanh}
-                disabled={seedingKhanhLoading}
-                className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-                title="Khởi tạo nhanh 37 ca tuần cho Trợ giảng Khanh"
-              >
-                <span>⚡</span> {seedingKhanhLoading ? 'Đang tạo...' : 'Set Lịch Trợ Giảng Khanh'}
-              </button>
-              <button
                 onClick={() => {
                   setSlotDate(selectedWeekStart);
                   setShowAddSlotModal(true);
@@ -685,107 +848,579 @@ export default function BookingManagement() {
 
       {/* SECTION 1: QUẢN LÝ CA HỖ TRỢ 30 PHÚT */}
       {activeSection === 'support' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <span>💬</span> Danh Sách Tất Cả Ca Hỗ Trợ 30 Phút ({adminBookings.length})
-            </h4>
+        <div className="space-y-4">
+          {/* 1. THỐNG KÊ NHANH (KPI METRIC CARDS) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Card 1: Tất cả ca */}
             <button
-              onClick={fetchAdminData}
-              className="text-xs font-bold text-blue-600 hover:underline cursor-pointer flex items-center gap-1"
+              onClick={() => setBookingStatusFilter('ALL')}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                bookingStatusFilter === 'ALL'
+                  ? 'bg-blue-50/70 border-blue-400 shadow-xs ring-2 ring-blue-500/20'
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+              }`}
             >
-              <span>🔄</span> Làm mới
+              <div className="flex items-center justify-between text-slate-500 text-xs font-bold mb-1">
+                <span>Tất cả ca hỗ trợ</span>
+                <span className="p-1.5 bg-slate-100 rounded-lg text-slate-700">💬</span>
+              </div>
+              <div className="text-2xl font-black text-slate-900">{bookingStats.total}</div>
+              <div className="text-[11px] text-slate-400 font-semibold mt-1">Toàn bộ dữ liệu hệ thống</div>
+            </button>
+
+            {/* Card 2: Đã đăng ký (Sắp tới) */}
+            <button
+              onClick={() => setBookingStatusFilter('CONFIRMED')}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                bookingStatusFilter === 'CONFIRMED'
+                  ? 'bg-emerald-50/70 border-emerald-400 shadow-xs ring-2 ring-emerald-500/20'
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between text-emerald-700 text-xs font-bold mb-1">
+                <span>Đã đăng ký (Sắp tới)</span>
+                <span className="p-1.5 bg-emerald-100 rounded-lg text-emerald-800">🟢</span>
+              </div>
+              <div className="text-2xl font-black text-emerald-600">{bookingStats.confirmed}</div>
+              <div className="text-[11px] text-emerald-600/80 font-semibold mt-1">Học viên chờ hỗ trợ</div>
+            </button>
+
+            {/* Card 3: Đã hoàn thành */}
+            <button
+              onClick={() => setBookingStatusFilter('COMPLETED')}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                bookingStatusFilter === 'COMPLETED'
+                  ? 'bg-indigo-50/70 border-indigo-400 shadow-xs ring-2 ring-indigo-500/20'
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between text-indigo-700 text-xs font-bold mb-1">
+                <span>Đã hoàn thành</span>
+                <span className="p-1.5 bg-indigo-100 rounded-lg text-indigo-800">🔵</span>
+              </div>
+              <div className="text-2xl font-black text-indigo-600">{bookingStats.completed}</div>
+              <div className="text-[11px] text-indigo-600/80 font-semibold mt-1">Đã hỗ trợ & hoàn tất</div>
+            </button>
+
+            {/* Card 4: Đã hủy */}
+            <button
+              onClick={() => setBookingStatusFilter('CANCELLED')}
+              className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                bookingStatusFilter === 'CANCELLED'
+                  ? 'bg-rose-50/70 border-rose-400 shadow-xs ring-2 ring-rose-500/20'
+                  : 'bg-white border-slate-200/80 hover:border-slate-300 shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center justify-between text-rose-700 text-xs font-bold mb-1">
+                <span>Đã hủy</span>
+                <span className="p-1.5 bg-rose-100 rounded-lg text-rose-800">🔴</span>
+              </div>
+              <div className="text-2xl font-black text-rose-600">{bookingStats.cancelled}</div>
+              <div className="text-[11px] text-rose-600/80 font-semibold mt-1">Ca bị hủy hoặc vắng</div>
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-black border-b">
-                <tr>
-                  <th className="p-3">Học viên</th>
-                  <th className="p-3">Ngày & Giờ</th>
-                  <th className="p-3">Kỹ năng</th>
-                  <th className="p-3">Ghi chú học viên</th>
-                  <th className="p-3">Trợ giảng</th>
-                  <th className="p-3">Điểm / Nhận xét</th>
-                  <th className="p-3">Trạng thái</th>
-                  <th className="p-3 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {adminBookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50/60 font-semibold">
-                    <td className="p-3 font-black text-slate-900">
-                      <div>{b.user?.fullName || b.user?.username || 'Học viên'}</div>
-                      <div className="text-[10px] font-medium text-slate-400">{b.user?.username || ''}</div>
-                    </td>
-                    <td className="p-3">
-                      <div>{b.bookingDate}</div>
-                      <div className="text-[10px] text-blue-600 font-bold">{b.startTime} - {b.endTime}</div>
-                    </td>
-                    <td className="p-3">
-                      <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-bold text-[10px]">
-                        {b.skill}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-600 max-w-xs truncate" title={b.studentNote || ''}>
-                      {b.studentNote || <span className="text-slate-300 italic">Không có ghi chú</span>}
-                    </td>
-                    <td className="p-3 text-slate-600 font-bold">{b.assignedTaName || 'Chưa gán'}</td>
-                    <td className="p-3">
-                      {b.score !== null && b.score !== undefined ? (
-                        <span className="font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          ⭐ {b.score}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 text-[10px]">Chưa chấm</span>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                          b.status === 'COMPLETED'
-                            ? 'bg-blue-100 text-blue-700'
-                            : b.status === 'CANCELLED'
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-emerald-100 text-emerald-700'
-                        }`}
-                      >
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEvaluate(b)}
-                          className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
-                          title="Chấm điểm & Nhận xét"
-                        >
-                          Chấm điểm
-                        </button>
-                        {b.status !== 'CANCELLED' && (
-                          <button
-                            onClick={() => handleCancelSupportBooking(b)}
-                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
-                            title="Hủy ca (đồng bộ hệ thống liên kết)"
-                          >
-                            Hủy
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteSupportBooking(b)}
-                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
-                          title="Xóa vĩnh viễn (xóa ở cả 2 bên)"
-                        >
-                          Xóa
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* 2. THANH BỘ LỌC ĐA NĂNG (FILTER & CONTROL BAR) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3.5">
+            {/* Hàng 1: Bộ Lọc Thời Gian (Time Filter Tabs) */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+                  <span>📅</span> Xem theo:
+                </span>
+                <button
+                  onClick={() => {
+                    setBookingTimeFilter('ALL');
+                    setBookingCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bookingTimeFilter === 'ALL'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                  }`}
+                >
+                  Tất cả ({bookingStats.total})
+                </button>
+                <button
+                  onClick={() => {
+                    setBookingTimeFilter('TODAY');
+                    setBookingCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bookingTimeFilter === 'TODAY'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                  }`}
+                >
+                  ⚡ Hôm nay ({bookingStats.todayCount})
+                </button>
+                <button
+                  onClick={() => {
+                    setBookingTimeFilter('TOMORROW');
+                    setBookingCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bookingTimeFilter === 'TOMORROW'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                  }`}
+                >
+                  Ngày mai ({bookingStats.tomorrowCount})
+                </button>
+                <button
+                  onClick={() => {
+                    setBookingTimeFilter('THIS_WEEK');
+                    setBookingCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bookingTimeFilter === 'THIS_WEEK'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                  }`}
+                >
+                  Tuần này ({bookingStats.thisWeekCount})
+                </button>
+                <button
+                  onClick={() => {
+                    setBookingTimeFilter('NEXT_WEEK');
+                    setBookingCustomDate('');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    bookingTimeFilter === 'NEXT_WEEK'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                  }`}
+                >
+                  Tuần sau ({bookingStats.nextWeekCount})
+                </button>
+              </div>
+
+              {/* Ô Chọn ngày cụ thể */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-500">Chọn ngày:</span>
+                <input
+                  type="date"
+                  value={bookingCustomDate}
+                  onChange={(e) => {
+                    setBookingCustomDate(e.target.value);
+                    if (e.target.value) setBookingTimeFilter('CUSTOM');
+                  }}
+                  className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {bookingTimeFilter === 'CUSTOM' && (
+                  <button
+                    onClick={() => {
+                      setBookingCustomDate('');
+                      setBookingTimeFilter('ALL');
+                    }}
+                    className="text-xs text-rose-600 hover:underline cursor-pointer font-bold"
+                  >
+                    Xóa
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Hàng 2: Trạng thái + Dropdown TA / Kỹ năng + Tìm kiếm + Chế độ xem */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Status Pills */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setBookingStatusFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      bookingStatusFilter === 'ALL' ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    onClick={() => setBookingStatusFilter('CONFIRMED')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      bookingStatusFilter === 'CONFIRMED' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-600 hover:text-emerald-700'
+                    }`}
+                  >
+                    🟢 Đã đăng ký
+                  </button>
+                  <button
+                    onClick={() => setBookingStatusFilter('COMPLETED')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      bookingStatusFilter === 'COMPLETED' ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-indigo-700'
+                    }`}
+                  >
+                    🔵 Hoàn thành
+                  </button>
+                  <button
+                    onClick={() => setBookingStatusFilter('CANCELLED')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      bookingStatusFilter === 'CANCELLED' ? 'bg-white text-rose-700 shadow-2xs' : 'text-slate-600 hover:text-rose-700'
+                    }`}
+                  >
+                    🔴 Đã hủy
+                  </button>
+                </div>
+
+                {/* Dropdown Trợ giảng */}
+                <select
+                  value={bookingTaFilter}
+                  onChange={(e) => setBookingTaFilter(e.target.value)}
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ALL">Tất cả Trợ giảng</option>
+                  {availableTas.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+
+                {/* Dropdown Kỹ năng */}
+                <select
+                  value={bookingSkillFilter}
+                  onChange={(e) => setBookingSkillFilter(e.target.value)}
+                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="ALL">Tất cả Kỹ năng</option>
+                  <option value="SPEAKING">Speaking (Nói)</option>
+                  <option value="WRITING">Writing (Viết)</option>
+                  <option value="READING">Reading (Đọc)</option>
+                  <option value="LISTENING">Listening (Nghe)</option>
+                  <option value="VOCABULARY">Từ vựng & Ngữ pháp</option>
+                  <option value="GENERAL">Giải đáp chung</option>
+                </select>
+              </div>
+
+              {/* Tìm kiếm & Đổi Chế độ hiển thị & Nút Làm mới */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+                  <input
+                    type="text"
+                    placeholder="Tìm học viên, username, ghi chú..."
+                    value={bookingSearch}
+                    onChange={(e) => setBookingSearch(e.target.value)}
+                    className="pl-8 pr-6 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 w-44 md:w-56"
+                  />
+                  {bookingSearch && (
+                    <button
+                      onClick={() => setBookingSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-bold"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setBookingViewMode('CARDS')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      bookingViewMode === 'CARDS' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                    title="Xem dạng thẻ theo ngày"
+                  >
+                    <span>📅</span> Thẻ Ngày
+                  </button>
+                  <button
+                    onClick={() => setBookingViewMode('TABLE')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      bookingViewMode === 'TABLE' ? 'bg-white text-blue-600 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                    title="Xem dạng bảng"
+                  >
+                    <span>📋</span> Bảng
+                  </button>
+                </div>
+
+                <button
+                  onClick={fetchAdminData}
+                  className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  title="Làm mới dữ liệu"
+                >
+                  🔄
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* 3. NỘI DUNG HIỂN THỊ CA HỖ TRỢ */}
+          {filteredSupportBookings.length === 0 ? (
+            <div className="bg-white p-12 rounded-2xl border border-slate-200/80 shadow-xs text-center space-y-3">
+              <div className="text-4xl">☕</div>
+              <h5 className="text-sm font-black text-slate-800">Không tìm thấy ca hỗ trợ nào</h5>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Không có buổi hỗ trợ nào khớp với các tiêu chí lọc hiện tại. Hãy thử thay đổi khung thời gian hoặc xóa bộ lọc.
+              </p>
+              <button
+                onClick={() => {
+                  setBookingStatusFilter('ALL');
+                  setBookingTimeFilter('ALL');
+                  setBookingCustomDate('');
+                  setBookingTaFilter('ALL');
+                  setBookingSkillFilter('ALL');
+                  setBookingSearch('');
+                }}
+                className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+              >
+                Đặt lại tất cả bộ lọc
+              </button>
+            </div>
+          ) : bookingViewMode === 'CARDS' ? (
+            /* --- CHẾ ĐỘ XEM THẺ THEO NHÓM NGÀY (GROUPED BY DATE CARDS) --- */
+            <div className="space-y-6">
+              {Object.entries(groupedSupportBookings).map(([dateKey, bookingsForDate]) => (
+                <div key={dateKey} className="space-y-3">
+                  {/* Header Phân Nhóm Ngày */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-100/90 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">📅</span>
+                      <span className="text-xs md:text-sm font-black text-slate-800">
+                        {formatVietnameseDateHeader(dateKey)}
+                      </span>
+                      {dateKey === todayIso && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-600 text-white shadow-xs">
+                          ⚡ Hôm nay
+                        </span>
+                      )}
+                      {dateKey === tomorrowIso && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-700">
+                          Ngày mai
+                        </span>
+                      )}
+                      {dateKey < todayIso && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600">
+                          Đã qua
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                      <span className="bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                        {bookingsForDate.length} ca hỗ trợ
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Lưới Thẻ Ca Trong Ngày */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    {bookingsForDate.map((b) => {
+                      const isCompleted = b.status === 'COMPLETED';
+                      const isCancelled = b.status === 'CANCELLED';
+                      const studentName = b.user?.fullName || b.user?.username || 'Học viên';
+                      const studentInitial = studentName.charAt(0).toUpperCase();
+
+                      return (
+                        <div
+                          key={b.id}
+                          className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
+                            isCancelled
+                              ? 'bg-rose-50/40 border-rose-200/80 opacity-75'
+                              : isCompleted
+                              ? 'bg-slate-50/80 border-slate-200/80 hover:border-blue-300 hover:shadow-xs'
+                              : 'bg-white border-blue-200/80 hover:border-blue-400 hover:shadow-md ring-1 ring-blue-50/50'
+                          }`}
+                        >
+                          <div>
+                            {/* Card Top: Khung giờ & Trạng thái */}
+                            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                              <div className="flex items-center gap-1.5 font-black text-slate-900 text-xs">
+                                <span className="text-blue-600">⏰</span>
+                                <span className="bg-slate-100 px-2 py-0.5 rounded-lg font-mono font-bold">
+                                  {b.startTime} - {b.endTime}
+                                </span>
+                              </div>
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 ${
+                                  isCompleted
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : isCancelled
+                                    ? 'bg-rose-100 text-rose-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}
+                              >
+                                {isCompleted ? '✓ Đã hoàn thành' : isCancelled ? '✕ Đã hủy' : '● Đã đăng ký'}
+                              </span>
+                            </div>
+
+                            {/* Thông tin học viên */}
+                            <div className="flex items-start gap-3 mt-3">
+                              <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${getAvatarGradient(studentName)} text-white font-black text-sm flex items-center justify-center shrink-0 shadow-xs`}>
+                                {studentInitial}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="font-black text-slate-900 text-xs truncate" title={studentName}>
+                                  {studentName}
+                                </div>
+                                <div className="text-[10px] font-medium text-slate-400 truncate">
+                                  @{b.user?.username || 'user'}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Kỹ năng & Trợ giảng & Điểm */}
+                            <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                              <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-black text-[10px] border border-blue-100">
+                                🎯 {b.skill}
+                              </span>
+                              <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold text-[10px] border border-slate-200">
+                                👤 {b.assignedTaName || 'Chưa gán trợ giảng'}
+                              </span>
+                              {b.score !== null && b.score !== undefined && (
+                                <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md font-black text-[10px] border border-amber-200 flex items-center gap-0.5">
+                                  ⭐ {b.score} điểm
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Ghi chú của học viên */}
+                            {b.studentNote && (
+                              <div className="mt-2.5 p-2 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-600">
+                                <span className="font-bold text-slate-700">💬 Ghi chú:</span> {b.studentNote}
+                              </div>
+                            )}
+
+                            {/* Nhận xét của trợ giảng */}
+                            {b.taComment && (
+                              <div className="mt-2 p-2 bg-emerald-50/60 rounded-xl border border-emerald-100 text-[11px] text-emerald-800">
+                                <span className="font-bold text-emerald-900">📝 Nhận xét:</span> {b.taComment}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Nút hành động */}
+                          <div className="flex items-center justify-end gap-1.5 pt-3 mt-3 border-t border-slate-100">
+                            <button
+                              onClick={() => handleOpenEvaluate(b)}
+                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg cursor-pointer transition-colors text-[11px] flex items-center gap-1"
+                            >
+                              <span>⭐</span> {b.score !== null && b.score !== undefined ? 'Sửa điểm' : 'Chấm điểm'}
+                            </button>
+                            {!isCancelled && (
+                              <button
+                                onClick={() => handleCancelSupportBooking(b)}
+                                className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                                title="Hủy ca hỗ trợ này"
+                              >
+                                Hủy ca
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteSupportBooking(b)}
+                              className="px-2 py-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                              title="Xóa vĩnh viễn"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* --- CHẾ ĐỘ XEM DẠNG BẢNG (TABLE VIEW) --- */
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-black border-b border-slate-100">
+                  <tr>
+                    <th className="p-3.5">Học viên</th>
+                    <th className="p-3.5">Ngày & Giờ</th>
+                    <th className="p-3.5">Kỹ năng</th>
+                    <th className="p-3.5">Ghi chú học viên</th>
+                    <th className="p-3.5">Trợ giảng</th>
+                    <th className="p-3.5">Điểm / Nhận xét</th>
+                    <th className="p-3.5">Trạng thái</th>
+                    <th className="p-3.5 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredSupportBookings.map((b) => {
+                    const studentName = b.user?.fullName || b.user?.username || 'Học viên';
+                    const studentInitial = studentName.charAt(0).toUpperCase();
+
+                    return (
+                      <tr key={b.id} className="hover:bg-slate-50/60 font-semibold transition-colors">
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${getAvatarGradient(studentName)} text-white font-black text-xs flex items-center justify-center shrink-0`}>
+                              {studentInitial}
+                            </div>
+                            <div>
+                              <div className="font-black text-slate-900">{studentName}</div>
+                              <div className="text-[10px] font-medium text-slate-400">@{b.user?.username || ''}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3.5">
+                          <div className="font-bold text-slate-800">{formatVietnameseDateHeader(b.bookingDate)}</div>
+                          <div className="text-[10px] text-blue-600 font-bold font-mono">{b.startTime} - {b.endTime}</div>
+                        </td>
+                        <td className="p-3.5">
+                          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-bold text-[10px] border border-blue-100">
+                            {b.skill}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-slate-600 max-w-xs truncate" title={b.studentNote || ''}>
+                          {b.studentNote || <span className="text-slate-300 italic">Không có</span>}
+                        </td>
+                        <td className="p-3.5 text-slate-700 font-bold">
+                          {b.assignedTaName || 'Chưa gán'}
+                        </td>
+                        <td className="p-3.5">
+                          {b.score !== null && b.score !== undefined ? (
+                            <span className="font-black text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                              ⭐ {b.score}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[10px]">Chưa chấm</span>
+                          )}
+                        </td>
+                        <td className="p-3.5">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                              b.status === 'COMPLETED'
+                                ? 'bg-blue-100 text-blue-700'
+                                : b.status === 'CANCELLED'
+                                ? 'bg-rose-100 text-rose-700'
+                                : 'bg-emerald-100 text-emerald-700'
+                            }`}
+                          >
+                            {b.status === 'COMPLETED' ? 'Đã hoàn thành' : b.status === 'CANCELLED' ? 'Đã hủy' : 'Đã đăng ký'}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleOpenEvaluate(b)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                              title="Chấm điểm & Nhận xét"
+                            >
+                              Chấm điểm
+                            </button>
+                            {b.status !== 'CANCELLED' && (
+                              <button
+                                onClick={() => handleCancelSupportBooking(b)}
+                                className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                                title="Hủy ca"
+                              >
+                                Hủy
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteSupportBooking(b)}
+                              className="px-2.5 py-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 font-bold rounded-lg cursor-pointer transition-colors text-[11px]"
+                              title="Xóa vĩnh viễn"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -2151,6 +2786,29 @@ export default function BookingManagement() {
                 className="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer"
               >
                 ✕
+              </button>
+            </div>
+
+            {/* Thẻ Mẫu Lịch Nhanh (Preset Template) */}
+            <div className="p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-xl flex items-center justify-between gap-3">
+              <div>
+                <div className="font-black text-emerald-900 text-xs flex items-center gap-1">
+                  <span>⚡</span> Áp dụng mẫu lịch nhanh ({selectedWeekStart})
+                </div>
+                <div className="text-[11px] text-emerald-700 font-medium leading-relaxed">
+                  37 ca Trợ giảng Khanh: T2, T4, T6, T7 tối (17:30 - 21:30), CN (17:00 - 19:30), nghỉ T3 & T5.
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={seedingKhanhLoading}
+                onClick={async () => {
+                  await handleSeedKhanh();
+                  setShowAddSlotModal(false);
+                }}
+                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs shrink-0 cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {seedingKhanhLoading ? 'Đang tạo...' : 'Áp dụng ngay'}
               </button>
             </div>
 
