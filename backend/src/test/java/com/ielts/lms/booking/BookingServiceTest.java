@@ -495,4 +495,61 @@ class BookingServiceTest {
         assertThat(slot17.isAvailable()).isTrue();
         verify(externalDbSyncService).cancelExternalSupportSession("ext-88");
     }
+
+    @Test
+    @DisplayName("TC20: Đặt lịch vào Chủ Nhật sau 18:30 (ca 18:30-19:00 hoặc muộn hơn) phải bị từ chối")
+    void testBookSupportSession_SundayAfter1830_Throws() {
+        LocalDate nextSunday = LocalDate.now().with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY));
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(nextSunday);
+        dto.setStartTime("18:30");
+        dto.setEndTime("19:00");
+        dto.setSkill("SPEAKING");
+
+        assertThatThrownBy(() -> bookingService.bookSupportSession(dto, testStudent))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Chủ Nhật trung tâm chỉ mở ca hỗ trợ từ 16:00 đến 18:30 (ca cuối 18:00 - 18:30)");
+    }
+
+    @Test
+    @DisplayName("TC21: Đặt lịch vào Chủ Nhật ca cuối 18:00 - 18:30 thành công")
+    void testBookSupportSession_SundayLastSlot1800_Success() {
+        LocalDate nextSunday = LocalDate.now().with(java.time.temporal.TemporalAdjusters.next(java.time.DayOfWeek.SUNDAY));
+        CreateSupportBookingDto dto = new CreateSupportBookingDto();
+        dto.setBookingDate(nextSunday);
+        dto.setStartTime("18:00");
+        dto.setEndTime("18:30");
+        dto.setSkill("SPEAKING");
+
+        when(bookingRepository.findUserOverlappingBookings(testStudent.getId(), nextSunday, "18:00", "18:30"))
+                .thenReturn(Collections.emptyList());
+        when(bookingRepository.findOverlappingBookings(nextSunday, "18:00", "18:30"))
+                .thenReturn(Collections.emptyList());
+        when(externalDbSyncService.getBusySlotsForDate(nextSunday)).thenReturn(Collections.emptyList());
+        when(bookingRepository.save(any(SupportBooking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SupportBooking result = bookingService.bookSupportSession(dto, testStudent);
+        assertThat(result).isNotNull();
+        assertThat(result.getStartTime()).isEqualTo("18:00");
+        assertThat(result.getEndTime()).isEqualTo("18:30");
+    }
+
+    @Test
+    @DisplayName("TC22: seedKhanhWeeklySchedule tạo đúng 35 ca tuần, riêng Chủ Nhật có 3 ca kết thúc lúc 18:30")
+    void testSeedKhanhWeeklySchedule_Exact35Slots() {
+        LocalDate monday = LocalDate.of(2026, 11, 16);
+        when(taAvailabilityRepository.findByAvailableDateBetweenAndTaIdOrderByAvailableDateAscStartTimeAsc(any(), any(), eq("khanh")))
+                .thenReturn(Collections.emptyList());
+        when(taAvailabilityRepository.save(any(TaAvailability.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<TaAvailability> slots = bookingService.seedKhanhWeeklySchedule(monday, null);
+        assertThat(slots).hasSize(35);
+
+        List<TaAvailability> sundaySlots = slots.stream()
+                .filter(s -> s.getAvailableDate().getDayOfWeek() == java.time.DayOfWeek.SUNDAY)
+                .toList();
+        assertThat(sundaySlots).hasSize(3);
+        assertThat(sundaySlots.get(2).getStartTime()).isEqualTo("18:00");
+        assertThat(sundaySlots.get(2).getEndTime()).isEqualTo("18:30");
+    }
 }

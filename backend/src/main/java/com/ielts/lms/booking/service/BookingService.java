@@ -193,8 +193,8 @@ public class BookingService {
             throw new RuntimeException("Giờ kết thúc phải sau giờ bắt đầu!");
         }
 
-        // Kiểm tra khung giờ làm việc của trung tâm (Mở tới 21h00, ca muộn nhất kết thúc lúc 21h30)
-        validateOperatingHours(startTime, endTime);
+        // Kiểm tra khung giờ làm việc của trung tâm (Thứ 2 - Thứ 7: mở tới 21h30, Chủ Nhật: ca cuối 18h00 - 18h30)
+        validateOperatingHours(startTime, endTime, bookingDate);
 
         // Nếu không truyền availabilityId, tìm xem ngày này có mở ca rảnh nào khớp không
         if (taSlot == null && taAvailabilityRepository != null) {
@@ -467,7 +467,7 @@ public class BookingService {
      * Kiểm tra khung giờ làm việc:
      * - Mở từ 16:00 đến 21:30 (Ca mở muộn nhất là 21:00, kết thúc lúc 21:30)
      */
-    private void validateOperatingHours(String startTime, String endTime) {
+    private void validateOperatingHours(String startTime, String endTime, LocalDate bookingDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
         LocalTime start = LocalTime.parse(startTime, formatter);
         LocalTime end = LocalTime.parse(endTime, formatter);
@@ -478,12 +478,18 @@ public class BookingService {
         }
 
         LocalTime openStart = LocalTime.of(16, 0);
-        LocalTime openEnd = LocalTime.of(21, 30);
+        // Riêng Chủ Nhật ca cuối cùng chỉ mở từ 18:00 đến 18:30 (kết thúc lúc 18:30)
+        boolean isSunday = bookingDate != null && bookingDate.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+        LocalTime openEnd = isSunday ? LocalTime.of(18, 30) : LocalTime.of(21, 30);
 
         boolean inOperatingHours = !start.isBefore(openStart) && !end.isAfter(openEnd);
 
         if (!inOperatingHours) {
-            throw new RuntimeException("Khung giờ đặt lịch chỉ mở từ 16:00 đến 21:30 (ca muộn nhất bắt đầu lúc 21:00)!");
+            if (isSunday) {
+                throw new RuntimeException("Chủ Nhật trung tâm chỉ mở ca hỗ trợ từ 16:00 đến 18:30 (ca cuối bắt đầu lúc 18:00 và kết thúc lúc 18:30)!");
+            } else {
+                throw new RuntimeException("Khung giờ đặt lịch chỉ mở từ 16:00 đến 21:30 (ca muộn nhất bắt đầu lúc 21:00)!");
+            }
         }
     }
 
@@ -530,6 +536,11 @@ public class BookingService {
         List<TaAvailability> savedSlots = new ArrayList<>();
         if (dto.getSlots() != null) {
             for (TaSlotRequestDto s : dto.getSlots()) {
+                if (s.getAvailableDate() != null && s.getAvailableDate().getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+                    if (s.getEndTime().trim().compareTo("18:30") > 0) {
+                        throw new RuntimeException("Chủ Nhật chỉ được mở ca rảnh đến 18:30 (ca cuối 18:00 - 18:30)!");
+                    }
+                }
                 TaAvailability slot = null;
                 if (s.getId() != null) {
                     slot = taAvailabilityRepository.findById(s.getId()).orElse(null);
@@ -658,7 +669,7 @@ public class BookingService {
             "19:30-20:00", "20:00-20:30", "20:30-21:00", "21:00-21:30"
         };
         String[] sundaySlots = {
-            "17:00-17:30", "17:30-18:00", "18:00-18:30", "18:30-19:00", "19:00-19:30"
+            "17:00-17:30", "17:30-18:00", "18:00-18:30"
         };
 
         List<TaSlotRequestDto> slotList = new ArrayList<>();

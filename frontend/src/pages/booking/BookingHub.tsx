@@ -201,12 +201,25 @@ export default function BookingHub() {
     setStudentNote('');
   };
 
+  const isSelectedDateSunday = (() => {
+    if (!selectedDate) return false;
+    const [y, m, d] = selectedDate.split('-').map(Number);
+    const day = new Date(y, m - 1, d).getDay();
+    return day === 0;
+  })();
+
   const handleConfirmBooking = async () => {
     if (!bookingModalSlot) return;
+    const start = isCustomTimeMode ? customStartTime : bookingModalSlot.startTime;
+    const end = isCustomTimeMode ? calculateEndTime(customStartTime) : bookingModalSlot.endTime;
+
+    if (isSelectedDateSunday && start > '18:00') {
+      showToast('Chủ Nhật chỉ được đặt ca hỗ trợ đến 18:30 (ca cuối 18:00 - 18:30)!', 'error');
+      return;
+    }
+
     setSubmittingBooking(true);
     try {
-      const start = isCustomTimeMode ? customStartTime : bookingModalSlot.startTime;
-      const end = isCustomTimeMode ? calculateEndTime(customStartTime) : bookingModalSlot.endTime;
 
       await bookingService.bookSupportSession({
         bookingDate: selectedDate,
@@ -1044,7 +1057,7 @@ export default function BookingHub() {
                     <input
                       type="time"
                       min="16:00"
-                      max="21:00"
+                      max={isSelectedDateSunday ? "18:00" : "21:00"}
                       value={customStartTime}
                       onChange={(e) => setCustomStartTime(e.target.value)}
                       className="w-full text-sm font-black text-slate-900 bg-white border border-blue-200 rounded-xl px-3 py-1.5 outline-none focus:border-blue-600 cursor-pointer"
@@ -1060,7 +1073,12 @@ export default function BookingHub() {
                   </div>
                 </div>
                 <p className="text-[11px] text-blue-700 font-medium">
-                  🕒 Giờ làm việc Trợ giảng: Mở từ <strong>16:00 đến 21:30</strong> (ca mở muộn nhất là <strong>21:00</strong>).
+                  🕒 Giờ làm việc Trợ giảng:{' '}
+                  {isSelectedDateSunday ? (
+                    <>Chủ Nhật mở từ <strong>16:00 đến 18:30</strong> (ca cuối là <strong>18:00 - 18:30</strong>).</>
+                  ) : (
+                    <>Thứ Hai - Thứ Bảy mở từ <strong>16:00 đến 21:30</strong> (ca cuối là <strong>21:00 - 21:30</strong>).</>
+                  )}
                 </p>
               </div>
             ) : (

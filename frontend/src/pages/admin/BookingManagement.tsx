@@ -403,7 +403,7 @@ export default function BookingManagement() {
   };
 
   const handleSeedKhanh = async () => {
-    if (!window.confirm(`Khởi tạo tự động 37 ca tuần từ ${selectedWeekStart} cho Trợ giảng Khanh?\n- T2, T4, T6, T7: 17:30 - 21:30 (ca cuối 21:00)\n- CN: 17:00 - 19:30\n- T3, T5: Nghỉ`)) return;
+    if (!window.confirm(`Khởi tạo tự động 35 ca tuần từ ${selectedWeekStart} cho Trợ giảng Khanh?\n- T2, T4, T6, T7: 17:30 - 21:30 (ca cuối 21:00)\n- CN: 17:00 - 18:30 (ca cuối 18:00 - 18:30)\n- T3, T5: Nghỉ`)) return;
     setSeedingKhanhLoading(true);
     try {
       const res = await bookingService.seedKhanhSchedule(selectedWeekStart);
@@ -456,6 +456,13 @@ export default function BookingManagement() {
       const [slotY, slotM, slotD] = slotDate.split('-').map(Number);
       const chosenDate = new Date(slotY, slotM - 1, slotD);
       const targetMonday = getMondayOfDate(chosenDate);
+
+      const isSunday = chosenDate.getDay() === 0;
+      if (isSunday && slotEndTime > '18:30') {
+        showToast('Chủ Nhật chỉ được mở ca rảnh đến 18:30 (ca cuối 18:00 - 18:30)!', 'error');
+        setSubmittingSlot(false);
+        return;
+      }
 
       await bookingService.saveWeeklySchedule({
         taId: slotTaId,
@@ -2811,7 +2818,7 @@ export default function BookingManagement() {
                   <span>⚡</span> Áp dụng mẫu lịch nhanh ({selectedWeekStart})
                 </div>
                 <div className="text-[11px] text-emerald-700 font-medium leading-relaxed">
-                  37 ca Trợ giảng Khanh: T2, T4, T6, T7 tối (17:30 - 21:30), CN (17:00 - 19:30), nghỉ T3 & T5.
+                  35 ca Trợ giảng Khanh: T2, T4, T6, T7 tối (17:30 - 21:30), CN (17:00 - 18:30), nghỉ T3 & T5.
                 </div>
               </div>
               <button
