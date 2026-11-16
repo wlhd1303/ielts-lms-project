@@ -4,7 +4,9 @@ import com.ielts.lms.booking.dto.AvailableSlotDto;
 import com.ielts.lms.booking.dto.CreateSupportBookingDto;
 import com.ielts.lms.booking.dto.EvaluateBookingDto;
 import com.ielts.lms.booking.entity.SupportBooking;
+import com.ielts.lms.booking.entity.TaAvailability;
 import com.ielts.lms.booking.repository.SupportBookingRepository;
+import com.ielts.lms.booking.repository.TaAvailabilityRepository;
 import com.ielts.lms.booking.service.BookingService;
 import com.ielts.lms.booking.service.ExternalDbSyncService;
 import com.ielts.lms.entity.User;
@@ -32,6 +34,9 @@ class BookingServiceTest {
 
     @Mock
     private SupportBookingRepository bookingRepository;
+
+    @Mock
+    private TaAvailabilityRepository taAvailabilityRepository;
 
     @Mock
     private ExternalDbSyncService externalDbSyncService;
