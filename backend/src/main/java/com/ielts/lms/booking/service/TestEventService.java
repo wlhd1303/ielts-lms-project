@@ -4,8 +4,10 @@ import com.ielts.lms.booking.dto.CreateTestEventDto;
 import com.ielts.lms.booking.dto.RegisterEventShiftDto;
 import com.ielts.lms.booking.dto.UpdateShiftScoreDto;
 import com.ielts.lms.booking.entity.TestEvent;
+import com.ielts.lms.booking.entity.TestEventQuestion;
 import com.ielts.lms.booking.entity.TestEventRegistration;
 import com.ielts.lms.booking.entity.TestEventShift;
+import com.ielts.lms.booking.repository.TestEventQuestionRepository;
 import com.ielts.lms.booking.repository.TestEventRegistrationRepository;
 import com.ielts.lms.booking.repository.TestEventRepository;
 import com.ielts.lms.booking.repository.TestEventShiftRepository;
@@ -29,12 +31,13 @@ public class TestEventService {
     private final TestEventRepository eventRepository;
     private final TestEventShiftRepository shiftRepository;
     private final TestEventRegistrationRepository registrationRepository;
+    private final TestEventQuestionRepository questionRepository;
 
     /**
-     * Lấy danh sách sự kiện thi đang mở đăng ký cho học viên
+     * Lấy danh sách sự kiện thi đang mở đăng ký cho học viên (chỉ lấy sự kiện OPEN và đã CÔNG KHAI)
      */
     public List<TestEvent> getOpenEvents() {
-        return eventRepository.findByStatusOrderByEventDateAsc("OPEN");
+        return eventRepository.findByStatusAndIsPublishedTrueOrderByEventDateAsc("OPEN");
     }
 
     /**
@@ -64,6 +67,7 @@ public class TestEventService {
         event.setPassageText(dto.getPassageText());
         event.setAllowReview(dto.getAllowReview() != null ? dto.getAllowReview() : true);
         event.setIsLeaderboardPublic(dto.getIsLeaderboardPublic() != null ? dto.getIsLeaderboardPublic() : true);
+        event.setIsPublished(dto.getIsPublished() != null ? dto.getIsPublished() : false);
 
         List<TestEventShift> shifts = new ArrayList<>();
         if (dto.getShifts() != null) {
@@ -109,6 +113,7 @@ public class TestEventService {
         if (dto.getPassageText() != null) event.setPassageText(dto.getPassageText());
         if (dto.getAllowReview() != null) event.setAllowReview(dto.getAllowReview());
         if (dto.getIsLeaderboardPublic() != null) event.setIsLeaderboardPublic(dto.getIsLeaderboardPublic());
+        if (dto.getIsPublished() != null) event.setIsPublished(dto.getIsPublished());
 
         if (dto.getShifts() != null) {
             List<TestEventShift> currentShifts = event.getShifts();
@@ -236,6 +241,10 @@ public class TestEventService {
             throw new RuntimeException("Sự kiện thi này hiện không mở đăng ký!");
         }
 
+        if (!Boolean.TRUE.equals(event.getIsPublished())) {
+            throw new RuntimeException("Kỳ thi này hiện đang tạm ẩn hoặc chưa được công khai!");
+        }
+
         if (event.getRegistrationDeadline() != null && LocalDateTime.now(VN_ZONE).isAfter(event.getRegistrationDeadline())) {
             throw new RuntimeException("Đã hết hạn đăng ký cho kỳ thi này!");
         }
@@ -349,5 +358,81 @@ public class TestEventService {
         }
 
         return registrationRepository.save(reg);
+    }
+
+    /**
+     * Admin bật / tắt trạng thái công khai (ẩn / hiện) kỳ thi
+     */
+    @Transactional
+    public TestEvent togglePublishEvent(Long eventId, Boolean isPublished) {
+        TestEvent event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kỳ thi thử có ID " + eventId));
+        if (isPublished != null) {
+            event.setIsPublished(isPublished);
+        } else {
+            event.setIsPublished(!Boolean.TRUE.equals(event.getIsPublished()));
+        }
+        return eventRepository.save(event);
+    }
+
+    /**
+     * Admin nhân bản (duplicate) kỳ thi sang bản nháp mới
+     */
+    @Transactional
+    public TestEvent duplicateEvent(Long eventId) {
+        TestEvent source = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy kỳ thi thử có ID " + eventId));
+
+        TestEvent clone = new TestEvent();
+        clone.setTitle(source.getTitle() + " (Bản sao)");
+        clone.setDescription(source.getDescription());
+        clone.setEventDate(source.getEventDate());
+        clone.setLocation(source.getLocation());
+        clone.setRegistrationDeadline(source.getRegistrationDeadline());
+        clone.setStatus("OPEN");
+        clone.setExamFormat(source.getExamFormat());
+        clone.setSkillType(source.getSkillType());
+        clone.setDurationMinutes(source.getDurationMinutes());
+        clone.setPdfUrl(source.getPdfUrl());
+        clone.setAudioUrl(source.getAudioUrl());
+        clone.setPassageText(source.getPassageText());
+        clone.setAllowReview(source.getAllowReview());
+        clone.setIsLeaderboardPublic(source.getIsLeaderboardPublic());
+        clone.setIsPublished(false); // Bản sao luôn để là Bản nháp / Chưa công khai
+
+        List<TestEventShift> clonedShifts = new ArrayList<>();
+        if (source.getShifts() != null) {
+            for (TestEventShift s : source.getShifts()) {
+                TestEventShift ns = new TestEventShift();
+                ns.setTestEvent(clone);
+                ns.setShiftName(s.getShiftName());
+                ns.setStartTime(s.getStartTime());
+                ns.setEndTime(s.getEndTime());
+                ns.setMaxCapacity(s.getMaxCapacity());
+                ns.setCurrentRegistered(0); // Reset số lượng học viên
+                clonedShifts.add(ns);
+            }
+        }
+        clone.setShifts(clonedShifts);
+
+        TestEvent saved = eventRepository.save(clone);
+
+        // Copy toàn bộ câu hỏi đề thi (nếu có)
+        List<TestEventQuestion> sourceQuestions = questionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(eventId);
+        if (sourceQuestions != null && !sourceQuestions.isEmpty()) {
+            List<TestEventQuestion> clonedQuestions = new ArrayList<>();
+            for (TestEventQuestion q : sourceQuestions) {
+                TestEventQuestion nq = new TestEventQuestion();
+                nq.setTestEvent(saved);
+                nq.setSkill(q.getSkill());
+                nq.setQuestionNumber(q.getQuestionNumber());
+                nq.setQuestionText(q.getQuestionText());
+                nq.setCorrectAnswer(q.getCorrectAnswer());
+                clonedQuestions.add(nq);
+            }
+            questionRepository.saveAll(clonedQuestions);
+        }
+
+        return saved;
     }
 }

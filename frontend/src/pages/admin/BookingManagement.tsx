@@ -9,6 +9,7 @@ import {
 import EventExamConfigModal from './EventExamConfigModal';
 import StudentExamDetailModal from './StudentExamDetailModal';
 import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
+import { exportAnswerSheetPdf, exportAnswerSheetCsv } from '../../utils/answerSheetExport';
 
 export default function BookingManagement() {
   const [activeSection, setActiveSection] = useState<'support' | 'ta_schedule' | 'events' | 'online_exam'>('support');
@@ -231,6 +232,11 @@ export default function BookingManagement() {
   const [evalTaName, setEvalTaName] = useState<string>('');
   const [evalPresent, setEvalPresent] = useState<boolean>(true);
 
+  // Bộ lọc trạng thái công khai của kỳ thi
+  const [eventPublishFilter, setEventPublishFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT' | 'CLOSED'>('ALL');
+  const [togglingPublishEventId, setTogglingPublishEventId] = useState<number | null>(null);
+  const [duplicatingEventId, setDuplicatingEventId] = useState<number | null>(null);
+
   // Modal Admin Tạo Event mới
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
   const [newEventTitle, setNewEventTitle] = useState('');
@@ -241,6 +247,7 @@ export default function BookingManagement() {
   const [newEventExamFormat, setNewEventExamFormat] = useState<'OFFLINE' | 'ONLINE'>('ONLINE');
   const [newEventSkillType, setNewEventSkillType] = useState<'LISTENING' | 'READING' | 'BOTH'>('READING');
   const [newEventDuration, setNewEventDuration] = useState<number>(60);
+  const [newEventIsPublished, setNewEventIsPublished] = useState<boolean>(true);
   const [shiftsInput, setShiftsInput] = useState([
     { shiftName: 'Ca Sáng', startTime: '08:30', endTime: '11:30', maxCapacity: 20 },
     { shiftName: 'Ca Chiều', startTime: '14:00', endTime: '17:00', maxCapacity: 20 }
@@ -257,6 +264,7 @@ export default function BookingManagement() {
   const [editExamFormat, setEditExamFormat] = useState<'OFFLINE' | 'ONLINE'>('ONLINE');
   const [editSkillType, setEditSkillType] = useState<'LISTENING' | 'READING' | 'BOTH'>('READING');
   const [editDuration, setEditDuration] = useState<number>(60);
+  const [editIsPublished, setEditIsPublished] = useState<boolean>(true);
   const [editShifts, setEditShifts] = useState<any[]>([]);
   const [submittingEditEvent, setSubmittingEditEvent] = useState(false);
 
@@ -580,6 +588,7 @@ export default function BookingManagement() {
         examFormat: newEventExamFormat,
         skillType: newEventExamFormat === 'ONLINE' ? newEventSkillType : undefined,
         durationMinutes: newEventExamFormat === 'ONLINE' ? newEventDuration : undefined,
+        isPublished: newEventIsPublished,
         shifts: shiftsInput
       });
       showToast('Tạo kỳ thi thử mới thành công!', 'success');
@@ -592,6 +601,7 @@ export default function BookingManagement() {
       setNewEventExamFormat('ONLINE');
       setNewEventSkillType('READING');
       setNewEventDuration(60);
+      setNewEventIsPublished(true);
       fetchAdminData();
     } catch (err: any) {
       const errorMsg = err?.response?.data?.message || err?.message || 'Không thể tạo kỳ thi. Vui lòng thử lại!';
@@ -626,6 +636,7 @@ export default function BookingManagement() {
     setEditExamFormat(ev.examFormat || 'ONLINE');
     setEditSkillType(ev.skillType || 'READING');
     setEditDuration(ev.durationMinutes || 60);
+    setEditIsPublished(ev.isPublished ?? true);
     setEditShifts(
       ev.shifts && ev.shifts.length > 0
         ? ev.shifts.map((s) => ({
@@ -657,6 +668,7 @@ export default function BookingManagement() {
         examFormat: editExamFormat,
         skillType: editExamFormat === 'ONLINE' ? editSkillType : undefined,
         durationMinutes: editExamFormat === 'ONLINE' ? editDuration : undefined,
+        isPublished: editIsPublished,
         shifts: editShifts
       });
       showToast('Cập nhật đợt thi thử thành công!', 'success');
@@ -669,6 +681,55 @@ export default function BookingManagement() {
       setSubmittingEditEvent(false);
     }
   };
+
+  // --- ACTIONS ẨN / HIỆN (PUBLISH TOGGLE) & NHÂN BẢN (DUPLICATE) KỲ THI ---
+  const handleTogglePublishEvent = async (ev: TestEvent) => {
+    const nextState = !Boolean(ev.isPublished);
+    const confirmMsg = nextState
+      ? `Công khai kỳ thi "${ev.title}"? Học viên sẽ nhìn thấy kỳ thi trên hệ thống và có thể vào phòng thi/đăng ký.`
+      : `Tạm ẩn kỳ thi "${ev.title}"? Kỳ thi sẽ chuyển về dạng Bản nháp và học viên không thể nhìn thấy hoặc làm bài.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setTogglingPublishEventId(ev.id);
+      const res = await bookingService.togglePublishEventAdmin(ev.id, nextState);
+      setAdminEvents((prev) =>
+        prev.map((item) => (item.id === ev.id ? { ...item, isPublished: res.isPublished } : item))
+      );
+      showToast(res.message || 'Đã cập nhật trạng thái công khai!', 'success');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Lỗi khi cập nhật trạng thái công khai.', 'error');
+    } finally {
+      setTogglingPublishEventId(null);
+    }
+  };
+
+  const handleDuplicateEvent = async (ev: TestEvent) => {
+    if (!window.confirm(`Nhân bản kỳ thi "${ev.title}"? Bản sao sẽ được tạo dưới dạng Bản nháp (Đang ẩn) và reset số lượng đăng ký.`)) return;
+
+    try {
+      setDuplicatingEventId(ev.id);
+      const cloned = await bookingService.duplicateEventAdmin(ev.id);
+      setAdminEvents((prev) => [cloned, ...prev]);
+      showToast(`Đã nhân bản kỳ thi: "${cloned.title}"! Bản sao đang ở trạng thái Bản nháp để bạn chỉnh sửa.`, 'success');
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Lỗi khi nhân bản kỳ thi.', 'error');
+    } finally {
+      setDuplicatingEventId(null);
+    }
+  };
+
+  // Bộ lọc danh sách kỳ thi Admin
+  const filteredAdminEvents = useMemo(() => {
+    return adminEvents.filter((ev) => {
+      const isPub = ev.isPublished === true;
+      const isOpen = ev.status === 'OPEN';
+      if (eventPublishFilter === 'PUBLISHED') return isPub && isOpen;
+      if (eventPublishFilter === 'DRAFT') return !isPub;
+      if (eventPublishFilter === 'CLOSED') return ev.status === 'CLOSED' || ev.status === 'COMPLETED';
+      return true;
+    });
+  }, [adminEvents, eventPublishFilter]);
 
   const handleDeleteEvent = async (eventId: number, title: string) => {
     if (!window.confirm(`Bạn có chắc chắn muốn xóa kỳ thi "${title}" không? Toàn bộ ca thi và danh sách thí sinh đăng ký sẽ bị xóa.`)) {
@@ -1662,80 +1723,159 @@ export default function BookingManagement() {
 
       {/* SECTION 2: QUẢN LÝ CÁC KỲ THI THỬ & CA THI */}
       {activeSection === 'events' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <span>🏆</span> Các Đợt Thi Thử Đang Mở ({adminEvents.length})
-            </h4>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
+          {/* Header & Tabs Lọc Trạng Thái Công Khai */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl overflow-x-auto max-w-full">
+              <button
+                type="button"
+                onClick={() => setEventPublishFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  eventPublishFilter === 'ALL' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Tất cả ({adminEvents.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventPublishFilter('PUBLISHED')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                  eventPublishFilter === 'PUBLISHED' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🟢</span> Đang công khai ({adminEvents.filter((e) => e.isPublished && e.status === 'OPEN').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventPublishFilter('DRAFT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                  eventPublishFilter === 'DRAFT' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🔒</span> Bản nháp / Tạm ẩn ({adminEvents.filter((e) => !e.isPublished).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setEventPublishFilter('CLOSED')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1 ${
+                  eventPublishFilter === 'CLOSED' ? 'bg-white text-slate-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>🏁</span> Đã kết thúc ({adminEvents.filter((e) => e.status === 'CLOSED' || e.status === 'COMPLETED').length})
+              </button>
+            </div>
+
             <button
-              onClick={() => setShowCreateEventModal(true)}
-              className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+              onClick={() => {
+                setNewEventIsPublished(true);
+                setShowCreateEventModal(true);
+              }}
+              className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
             >
-              + Tạo thêm kỳ thi mới
+              <span>➕</span> Tạo Kỳ Thi Mới
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {adminEvents.map((ev) => (
-              <div key={ev.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h5 className="font-black text-slate-900 text-sm leading-snug">{ev.title}</h5>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-white text-slate-700 border">
-                        📅 {ev.eventDate}
-                      </span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                        ev.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' :
-                        ev.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {ev.status || 'OPEN'}
-                      </span>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
-                        ev.examFormat === 'ONLINE' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {ev.examFormat === 'ONLINE' ? `💻 ONLINE (${ev.skillType || 'READING'})` : '🏛️ OFFLINE'}
+          {filteredAdminEvents.length === 0 ? (
+            <div className="p-12 text-center text-slate-400 font-bold text-xs bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+              Không có kỳ thi nào phù hợp với bộ lọc đã chọn.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredAdminEvents.map((ev) => (
+                <div key={ev.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3 hover:border-slate-300 transition-all shadow-2xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                          ev.isPublished
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                            : 'bg-amber-50 text-amber-800 border-amber-300'
+                        }`}>
+                          {ev.isPublished ? '🟢 Đang công khai' : '🔒 Bản nháp (Đang ẩn)'}
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                          ev.status === 'OPEN' ? 'bg-emerald-100 text-emerald-700' :
+                          ev.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'
+                        }`}>
+                          {ev.status || 'OPEN'}
+                        </span>
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded ${
+                          ev.examFormat === 'ONLINE' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {ev.examFormat === 'ONLINE' ? `💻 ONLINE (${ev.skillType || 'READING'})` : '🏛️ OFFLINE'}
+                        </span>
+                      </div>
+
+                      <h5 className="font-black text-slate-900 text-sm leading-snug">{ev.title}</h5>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded bg-white text-slate-700 border mt-1 inline-block">
+                        📅 Ngày thi: {ev.eventDate}
                       </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {ev.examFormat === 'ONLINE' && (
-                      <>
+
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => {
-                            setSelectedLeaderboardEvent(ev);
-                            setShowLeaderboardModal(true);
-                          }}
-                          className="px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
-                          title="Xem & điều hành Bảng Xếp Hạng đợt thi"
+                          onClick={() => handleTogglePublishEvent(ev)}
+                          disabled={togglingPublishEventId === ev.id}
+                          className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer flex items-center gap-1 shadow-2xs ${
+                            ev.isPublished
+                              ? 'text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                              : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-300'
+                          }`}
+                          title={ev.isPublished ? 'Tạm ẩn kỳ thi (chuyển sang Bản nháp)' : 'Công khai kỳ thi cho học viên'}
                         >
-                          🏆 BXH
+                          {togglingPublishEventId === ev.id ? '...' : ev.isPublished ? '🔒 Tạm Ẩn' : '👁️ Công Khai'}
                         </button>
                         <button
-                          onClick={() => setConfigExamEvent(ev)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-lg transition-colors cursor-pointer"
-                          title="Upload đề thi & bảng đáp án"
+                          onClick={() => handleDuplicateEvent(ev)}
+                          disabled={duplicatingEventId === ev.id}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Nhân bản (sao chép) kỳ thi này sang bản nháp mới"
                         >
-                          📝 Soạn Đề
+                          {duplicatingEventId === ev.id ? '...' : '📋 Nhân Bản'}
                         </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => handleOpenEditEvent(ev)}
-                      className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg transition-colors cursor-pointer"
-                      title="Chỉnh sửa thông tin kỳ thi"
-                    >
-                      ✏️ Sửa
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEvent(ev.id, ev.title)}
-                      className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 rounded-lg transition-colors cursor-pointer"
-                      title="Xóa kỳ thi này"
-                    >
-                      🗑️ Xóa
-                    </button>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {ev.examFormat === 'ONLINE' && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedLeaderboardEvent(ev);
+                                setShowLeaderboardModal(true);
+                              }}
+                              className="px-2.5 py-1 text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+                              title="Xem & điều hành Bảng Xếp Hạng đợt thi"
+                            >
+                              🏆 BXH
+                            </button>
+                            <button
+                              onClick={() => setConfigExamEvent(ev)}
+                              className="px-2.5 py-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/60 rounded-lg transition-colors cursor-pointer"
+                              title="Upload đề thi & bảng đáp án"
+                            >
+                              📝 Soạn Đề
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={() => handleOpenEditEvent(ev)}
+                          className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 rounded-lg transition-colors cursor-pointer"
+                          title="Chỉnh sửa thông tin kỳ thi"
+                        >
+                          ✏️ Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                          className="px-2.5 py-1 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200/60 rounded-lg transition-colors cursor-pointer"
+                          title="Xóa kỳ thi này"
+                        >
+                          🗑️ Xóa
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
                 <p className="text-xs text-slate-500 font-medium">{ev.location}</p>
 
                 <div className="space-y-1.5 pt-2">
@@ -1764,6 +1904,7 @@ export default function BookingManagement() {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -2170,6 +2311,19 @@ export default function BookingManagement() {
                 />
               </div>
 
+              <div className="flex items-center gap-2.5 p-3 bg-blue-50/70 rounded-xl border border-blue-200">
+                <input
+                  type="checkbox"
+                  id="newEventIsPublished"
+                  checked={newEventIsPublished}
+                  onChange={(e) => setNewEventIsPublished(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+                <label htmlFor="newEventIsPublished" className="text-xs font-bold text-slate-800 cursor-pointer">
+                  Công khai kỳ thi ngay lập tức (Bỏ chọn nếu muốn lưu dạng Bản nháp / Tạm ẩn)
+                </label>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-blue-50/60 rounded-xl border border-blue-200/70">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">Hình thức:</label>
@@ -2430,6 +2584,19 @@ export default function BookingManagement() {
                     <option value="COMPLETED">✅ Hoàn thành (COMPLETED)</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 p-3 bg-blue-50/70 rounded-xl border border-blue-200">
+                <input
+                  type="checkbox"
+                  id="editIsPublished"
+                  checked={editIsPublished}
+                  onChange={(e) => setEditIsPublished(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                />
+                <label htmlFor="editIsPublished" className="text-xs font-bold text-slate-800 cursor-pointer">
+                  Công khai kỳ thi cho học viên thấy ngay (Bỏ chọn nếu muốn tạm ẩn / lưu bản nháp)
+                </label>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-blue-50/60 rounded-xl border border-blue-200/70">

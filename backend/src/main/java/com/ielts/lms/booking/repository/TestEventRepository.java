@@ -11,5 +11,7 @@ public interface TestEventRepository extends JpaRepository<TestEvent, Long> {
 
     List<TestEvent> findByStatusOrderByEventDateAsc(String status);
 
+    List<TestEvent> findByStatusAndIsPublishedTrueOrderByEventDateAsc(String status);
+
     List<TestEvent> findAllByOrderByEventDateDesc();
 }

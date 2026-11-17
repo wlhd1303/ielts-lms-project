@@ -110,6 +110,29 @@ public class AdminBookingController {
     }
 
     /**
+     * Admin bật / tắt trạng thái công khai (ẩn / hiện) kỳ thi
+     */
+    @PutMapping("/events/{eventId}/publish-toggle")
+    public ResponseEntity<?> togglePublishEvent(
+            @PathVariable Long eventId,
+            @RequestBody(required = false) java.util.Map<String, Boolean> body) {
+        Boolean isPublished = body != null ? body.get("isPublished") : null;
+        TestEvent event = eventService.togglePublishEvent(eventId, isPublished);
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Đã cập nhật trạng thái công khai của kỳ thi!",
+                "isPublished", event.getIsPublished()
+        ));
+    }
+
+    /**
+     * Admin nhân bản (duplicate) kỳ thi
+     */
+    @PostMapping("/events/{eventId}/duplicate")
+    public ResponseEntity<TestEvent> duplicateEvent(@PathVariable Long eventId) {
+        return ResponseEntity.ok(eventService.duplicateEvent(eventId));
+    }
+
+    /**
      * Xem danh sách học viên đăng ký theo từng ca
      */
     @GetMapping("/events/shifts/{shiftId}/students")

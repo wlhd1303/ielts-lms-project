@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { bookingService, type ExamSubmissionResult } from '../../services/bookingService';
+import { exportAnswerSheetPdf, exportAnswerSheetCsv } from '../../utils/answerSheetExport';
 
 interface StudentExamDetailModalProps {
   registrationId: number;
@@ -173,19 +174,39 @@ export default function StudentExamDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2">
-          {detail?.eventId ? (
-            <button
-              type="button"
-              onClick={handleRegradeEvent}
-              disabled={regrading}
-              className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {regrading ? 'Đang chấm lại...' : '🔄 Chấm Lại Đợt Thi Này'}
-            </button>
-          ) : (
-            <div />
-          )}
+        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            {detail?.eventId && (
+              <button
+                type="button"
+                onClick={handleRegradeEvent}
+                disabled={regrading}
+                className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {regrading ? 'Đang chấm lại...' : '🔄 Chấm Lại'}
+              </button>
+            )}
+            {detail && detail.reviewDetails && detail.reviewDetails.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => exportAnswerSheetPdf(detail)}
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  title="In / Lưu phiếu đối chiếu ra PDF chuẩn in A4"
+                >
+                  <span>📄</span> Tải Phiếu PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => exportAnswerSheetCsv(detail)}
+                  className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                  title="Tải bảng đối chiếu ra file CSV mở bằng Excel"
+                >
+                  <span>📊</span> Tải File Excel (CSV)
+                </button>
+              </>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"

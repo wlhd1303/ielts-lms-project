@@ -35,6 +35,7 @@ public class CreateTestEventDto {
     private String passageText;
     private Boolean allowReview;
     private Boolean isLeaderboardPublic;
+    private Boolean isPublished;
 
     @NotEmpty(message = "Phải có ít nhất 1 ca thi")
     private List<ShiftDto> shifts;

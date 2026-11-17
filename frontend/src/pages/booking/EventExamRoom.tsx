@@ -10,6 +10,7 @@ import { parsePassageData, parseQuestionData, type PassageData } from '../../typ
 import TextHighlightViewer from '../../components/exam/TextHighlightViewer';
 import InteractivePdfViewer from '../../components/InteractivePdfViewer';
 import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
+import { exportAnswerSheetPdf, exportAnswerSheetCsv } from '../../utils/answerSheetExport';
 
 export default function EventExamRoom() {
   const { shiftId } = useParams();
@@ -521,6 +522,25 @@ export default function EventExamRoom() {
 
             {resultRecord.allowReview && resultRecord.reviewDetails && resultRecord.reviewDetails.length > 0 && (
               <div className="space-y-3 pt-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => exportAnswerSheetPdf(resultRecord)}
+                    className="flex-1 min-w-[170px] py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    title="In hoặc lưu phiếu đối chiếu ra PDF chuẩn in A4"
+                  >
+                    <span>📄</span> Tải Phiếu Đáp Án (PDF)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exportAnswerSheetCsv(resultRecord)}
+                    className="flex-1 min-w-[170px] py-2.5 px-4 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-300 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                    title="Tải bảng đối chiếu ra file CSV mở bằng Excel"
+                  >
+                    <span>📊</span> Tải File Excel (CSV)
+                  </button>
+                </div>
+
                 <button
                   onClick={() => setShowReview(!showReview)}
                   className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"

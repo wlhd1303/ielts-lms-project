@@ -9,6 +9,7 @@ import {
 } from '../../services/bookingService';
 import { authService } from '../../services/authService';
 import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
+import { exportAnswerSheetPdf, exportAnswerSheetCsv } from '../../utils/answerSheetExport';
 
 const SKILLS = [
   { key: 'SPEAKING', label: 'Speaking (Nói)', emoji: '🗣️' },
@@ -162,6 +163,25 @@ export default function BookingHub() {
       fetchEvents();
     } catch (err: any) {
       showToast(err?.response?.data?.message || err?.message || 'Không thể reset lượt thi.', 'error');
+    }
+  };
+
+  // Tải báo cáo đối chiếu bài làm và đáp án chuẩn
+  const [downloadingRegId, setDownloadingRegId] = useState<number | null>(null);
+
+  const handleDownloadReport = async (regId: number, type: 'pdf' | 'csv') => {
+    try {
+      setDownloadingRegId(regId);
+      const res = await bookingService.getMyExamResult(regId);
+      if (type === 'pdf') {
+        exportAnswerSheetPdf(res);
+      } else {
+        exportAnswerSheetCsv(res);
+      }
+    } catch (err: any) {
+      showToast(err?.response?.data?.message || err?.message || 'Không thể tải báo cáo bài thi lúc này.', 'error');
+    } finally {
+      setDownloadingRegId(null);
     }
   };
 
@@ -991,23 +1011,45 @@ export default function BookingHub() {
                         )}
 
                         {reg.shift?.id && (reg.status === 'ATTENDED' || reg.status === 'SUBMITTED') && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => navigate(`/exam/${reg.shift.id}`)}
-                              className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-black rounded-xl border border-slate-200/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              <span>📝</span>
-                              <span>Xem Chi Tiết Bài Làm & Đáp Án</span>
-                            </button>
-                            {isAdmin && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
                               <button
-                                onClick={() => handleAdminResetMyExam(reg.shift.id)}
-                                className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl border border-amber-200 transition-all cursor-pointer"
-                                title="Admin: Reset để thi lại từ đầu"
+                                onClick={() => navigate(`/exam/${reg.shift.id}`)}
+                                className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 text-xs font-black rounded-xl border border-slate-200/80 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                               >
-                                🔄 Reset
+                                <span>📝</span>
+                                <span>Xem Chi Tiết Bài Làm</span>
                               </button>
-                            )}
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleAdminResetMyExam(reg.shift.id)}
+                                  className="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold rounded-xl border border-amber-200 transition-all cursor-pointer"
+                                  title="Admin: Reset để thi lại từ đầu"
+                                >
+                                  🔄 Reset
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleDownloadReport(reg.id, 'pdf')}
+                                disabled={downloadingRegId === reg.id}
+                                className="flex-1 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                                title="Tải hoặc in phiếu đối chiếu đáp án PDF"
+                              >
+                                <span>📄</span>
+                                <span>{downloadingRegId === reg.id ? 'Đang tải...' : 'Tải Phiếu Đáp Án (PDF)'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleDownloadReport(reg.id, 'csv')}
+                                disabled={downloadingRegId === reg.id}
+                                className="py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-bold rounded-xl border border-blue-200 transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                title="Tải file Excel (CSV)"
+                              >
+                                <span>📊</span>
+                                <span>CSV</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>

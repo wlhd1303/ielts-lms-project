@@ -99,6 +99,7 @@ export interface TestEvent {
   passageText?: string;
   allowReview?: boolean;
   isLeaderboardPublic?: boolean;
+  isPublished?: boolean;
   shifts: TestEventShift[];
   createdAt?: string;
 }
@@ -158,6 +159,7 @@ export interface StartExamResponse {
   eventTitle: string;
   shiftName: string;
   skillType: string;
+  examFormat?: string;
   durationMinutes: number;
   startedAt: string;
   deadline: string;
@@ -185,6 +187,7 @@ export interface ExamSubmissionResult {
   eventTitle: string;
   shiftName: string;
   skillType: string;
+  examFormat?: string;
   listeningCorrectCount?: number;
   readingCorrectCount?: number;
   scoreListening?: number;
@@ -382,6 +385,16 @@ export const bookingService = {
 
   deleteEventAdmin: async (id: number): Promise<any> => {
     return await axiosClient.delete(`/api/admin/booking/events/${id}`);
+  },
+
+  togglePublishEventAdmin: async (eventId: number, isPublished?: boolean): Promise<{ message: string; isPublished: boolean }> => {
+    const res: any = await axiosClient.put(`/api/admin/booking/events/${eventId}/publish-toggle`, isPublished !== undefined ? { isPublished } : {});
+    return res.data || res;
+  },
+
+  duplicateEventAdmin: async (eventId: number): Promise<TestEvent> => {
+    const res: any = await axiosClient.post(`/api/admin/booking/events/${eventId}/duplicate`);
+    return res.data || res;
   },
 
   getShiftStudentsAdmin: async (shiftId: number): Promise<TestEventRegistration[]> => {

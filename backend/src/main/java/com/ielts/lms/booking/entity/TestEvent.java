@@ -65,6 +65,9 @@ public class TestEvent {
     @Column(name = "is_leaderboard_public")
     private Boolean isLeaderboardPublic = true;
 
+    @Column(name = "is_published")
+    private Boolean isPublished = false;
+
     @Column(name = "leaderboard_published_at")
     private Timestamp leaderboardPublishedAt;
 

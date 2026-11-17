@@ -184,6 +184,17 @@ public class TestEventExamService {
                     .build();
         }
 
+        boolean isAdmin = user != null && ("ROLE_ADMIN".equalsIgnoreCase(user.getRole()) || "ADMIN".equalsIgnoreCase(user.getRole()));
+        if (!isAdmin && !Boolean.TRUE.equals(event.getIsPublished())) {
+            return ExamAccessStatusDto.builder()
+                    .status("MISSED_WINDOW")
+                    .shiftId(shiftId)
+                    .eventId(event.getId())
+                    .eventTitle(event.getTitle())
+                    .shiftName(shift.getShiftName())
+                    .build();
+        }
+
         LocalDateTime serverTime = LocalDateTime.now(VN_ZONE);
         LocalDateTime[] window = calculateExamWindow(event, shift);
         LocalDateTime windowStart = window[0];
@@ -262,6 +273,11 @@ public class TestEventExamService {
 
         if (registration.getExamSubmittedAt() != null || "SUBMITTED".equals(registration.getStatus()) || "ATTENDED".equals(registration.getStatus())) {
             throw new RuntimeException("Bạn đã hoàn thành bài thi này trước đó!");
+        }
+
+        boolean isAdmin = user != null && ("ROLE_ADMIN".equalsIgnoreCase(user.getRole()) || "ADMIN".equalsIgnoreCase(user.getRole()));
+        if (!isAdmin && !Boolean.TRUE.equals(event.getIsPublished())) {
+            throw new RuntimeException("Kỳ thi này hiện đang tạm ẩn để cập nhật nội dung đề thi. Vui lòng quay lại sau!");
         }
 
         LocalDateTime serverTime = LocalDateTime.now(VN_ZONE);

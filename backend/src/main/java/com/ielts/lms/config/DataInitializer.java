@@ -172,6 +172,13 @@ public class DataInitializer {
 
             // 3. Tạo/Cập nhật Kỳ Thi Thử Trực Tuyến TestEvent sao chép toàn bộ dữ liệu từ MockTest
             java.util.List<com.ielts.lms.booking.entity.TestEvent> existingEvents = eventRepository.findAll();
+            for (com.ielts.lms.booking.entity.TestEvent ev : existingEvents) {
+                if (ev.getIsPublished() == null) {
+                    ev.setIsPublished("OPEN".equals(ev.getStatus()));
+                    eventRepository.save(ev);
+                }
+            }
+
             com.ielts.lms.booking.entity.TestEvent targetEvent = null;
 
             for (com.ielts.lms.booking.entity.TestEvent ev : existingEvents) {
@@ -195,6 +202,7 @@ public class DataInitializer {
             targetEvent.setPassageText(null);
             targetEvent.setEventDate(today);
             targetEvent.setStatus("OPEN");
+            targetEvent.setIsPublished(true);
             targetEvent.setPdfUrl(rPdf);
             targetEvent.setAudioUrl(lAudio);
             com.ielts.lms.booking.entity.TestEvent savedEvent = eventRepository.save(targetEvent);
