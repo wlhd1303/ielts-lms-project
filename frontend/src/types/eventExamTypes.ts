@@ -54,6 +54,36 @@ export const DEFAULT_PASSAGES: PassageData[] = [
   },
 ];
 
+/**
+ * Chuẩn hóa link hình ảnh, tự động nhận diện và chuyển đổi link Google Drive sang link ảnh trực tiếp CDN
+ */
+export const normalizeImageUrl = (url?: string): string => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (!trimmed) return '';
+
+  const isDrive = trimmed.includes('drive.google.com') || trimmed.includes('docs.google.com');
+  if (isDrive) {
+    const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      const fileId = match[1];
+      // lh3.googleusercontent.com/d/ID là direct CDN URL tốt nhất của Google để nhúng vào thẻ <img>
+      return `https://lh3.googleusercontent.com/d/${fileId}`;
+    }
+  }
+
+  return trimmed;
+};
+
+/**
+ * Trích xuất Google Drive File ID nếu là link drive (dùng cho fallback)
+ */
+export const getGoogleDriveFileId = (url?: string): string | null => {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/) || url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/);
+  return match && match[1] ? match[1] : null;
+};
+
 export const parsePassageData = (rawText?: string): PassageData[] => {
   if (!rawText || !rawText.trim()) {
     return DEFAULT_PASSAGES;
@@ -77,7 +107,7 @@ export const parsePassageData = (rawText?: string): PassageData[] => {
             title: p.title || def.title,
             instruction: p.instruction !== undefined ? p.instruction : def.instruction,
             content: p.content || '',
-            imageUrl: p.imageUrl || '',
+            imageUrl: normalizeImageUrl(p.imageUrl || ''),
           };
         });
       }
@@ -101,7 +131,11 @@ export const parsePassageData = (rawText?: string): PassageData[] => {
 };
 
 export const serializePassageData = (passages: PassageData[]): string => {
-  return JSON.stringify({ passages });
+  const normalized = passages.map((p) => ({
+    ...p,
+    imageUrl: normalizeImageUrl(p.imageUrl || '')
+  }));
+  return JSON.stringify({ passages: normalized });
 };
 
 export const parseQuestionData = (rawText?: string): StructuredQuestionPayload => {
@@ -121,7 +155,7 @@ export const parseQuestionData = (rawText?: string): StructuredQuestionPayload =
         return {
           prompt: parsed.prompt || '',
           type: (parsed.type as ExamQuestionType) || 'FILL_IN_BLANK',
-          imageUrl: parsed.imageUrl || '',
+          imageUrl: normalizeImageUrl(parsed.imageUrl || ''),
           options: parsed.options || { A: '', B: '', C: '', D: '' },
           optionLetters: Array.isArray(parsed.optionLetters) ? parsed.optionLetters : undefined,
           groupId: parsed.groupId || undefined,
@@ -146,7 +180,7 @@ export const serializeQuestionData = (data: StructuredQuestionPayload): string =
   const payload: Record<string, any> = {
     prompt: data.prompt || '',
     type: data.type || 'FILL_IN_BLANK',
-    imageUrl: data.imageUrl || '',
+    imageUrl: normalizeImageUrl(data.imageUrl || ''),
   };
 
   if (data.type === 'MULTIPLE_CHOICE' || data.type === 'MULTI_SELECT') {

@@ -9,7 +9,9 @@ import {
   parsePassageData,
   serializePassageData,
   parseQuestionData,
-  serializeQuestionData
+  serializeQuestionData,
+  normalizeImageUrl,
+  getGoogleDriveFileId
 } from '../../types/eventExamTypes';
 
 interface EventExamConfigModalProps {
@@ -154,10 +156,11 @@ export default function EventExamConfigModal({
 
   // Cập nhật thông tin Passage
   const handlePassageChange = (id: number, field: keyof PassageData, value: string) => {
+    const val = field === 'imageUrl' ? normalizeImageUrl(value) : value;
     setPassages((prev) => {
       const exists = prev.some((p) => p.id === id);
       if (exists) {
-        return prev.map((p) => (p.id === id ? { ...p, [field]: value } : p));
+        return prev.map((p) => (p.id === id ? { ...p, [field]: val } : p));
       } else {
         return [
           ...prev,
@@ -167,7 +170,7 @@ export default function EventExamConfigModal({
             instruction: '',
             imageUrl: '',
             content: '',
-            [field]: value,
+            [field]: val,
           },
         ];
       }
@@ -189,9 +192,10 @@ export default function EventExamConfigModal({
       options: { A: '', B: '', C: '', D: '' },
       answer: ''
     };
+    const val = field === 'imageUrl' && typeof value === 'string' ? normalizeImageUrl(value) : value;
     const nextItem: QuestionConfigItem = {
       ...cur,
-      [field]: value
+      [field]: val
     };
     if (field === 'type' && value === 'MULTI_SELECT' && (!nextItem.optionLetters || nextItem.optionLetters.length === 0)) {
       nextItem.optionLetters = DEFAULT_MULTI_LETTERS;
@@ -718,7 +722,7 @@ export default function EventExamConfigModal({
                       <div className="flex items-center gap-2">
                         <input
                           type="text"
-                          placeholder="https://res.cloudinary.com/.../passage_map.png hoặc link hình ảnh trực tiếp"
+                          placeholder="https://drive.google.com/file/d/... hoặc link hình ảnh trực tiếp"
                           value={activePassage.imageUrl || ''}
                           onChange={(e) => handlePassageChange(editingPassageTab, 'imageUrl', e.target.value)}
                           className="flex-1 p-2 bg-white border border-blue-200 rounded-xl text-xs font-medium text-slate-800 outline-none focus:border-blue-600"
@@ -727,14 +731,27 @@ export default function EventExamConfigModal({
                       {activePassage.imageUrl && (
                         <div className="pt-1 flex items-center gap-3">
                           <img
-                            src={activePassage.imageUrl}
+                            src={normalizeImageUrl(activePassage.imageUrl)}
                             alt="Passage Preview"
-                            className="h-16 w-28 object-cover rounded-lg border border-blue-200 cursor-pointer"
-                            onClick={() => setPreviewImageUrl(activePassage.imageUrl || null)}
+                            className="h-16 w-28 object-cover rounded-lg border border-blue-200 cursor-pointer bg-slate-100"
+                            onClick={() => setPreviewImageUrl(normalizeImageUrl(activePassage.imageUrl) || null)}
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              const driveId = getGoogleDriveFileId(activePassage.imageUrl);
+                              if (driveId && !img.dataset.fallbackTried) {
+                                img.dataset.fallbackTried = 'true';
+                                img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                              }
+                            }}
                           />
-                          <span className="text-[10px] text-slate-500">
-                            Hình ảnh này sẽ được hiển thị ngay bên trên hoặc bên cạnh văn bản bài đọc/nghe, học viên có thể phóng to khi làm bài.
-                          </span>
+                          <div className="flex flex-col text-[10px] text-slate-500">
+                            <span>Hình ảnh này sẽ được hiển thị ngay bên trên hoặc bên cạnh văn bản bài đọc/nghe, học viên có thể phóng to khi làm bài.</span>
+                            {getGoogleDriveFileId(activePassage.imageUrl) && (
+                              <span className="text-amber-700 font-semibold mt-0.5">
+                                💡 Nhận diện ảnh Google Drive: Nhớ bật quyền chia sẻ <strong>"Bất kỳ ai có đường liên kết"</strong> (Công khai) trên Drive.
+                              </span>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1021,7 +1038,7 @@ export default function EventExamConfigModal({
                           <div>
                             <input
                               type="text"
-                              placeholder="🖼️ Link ảnh Map/Diagram (nếu có)..."
+                              placeholder="🖼️ Link ảnh Map/Diagram (Drive, Cloudinary...)"
                               value={cur.imageUrl || ''}
                               onChange={(e) => handleQuestionFieldChange(activeTab, num, 'imageUrl', e.target.value)}
                               className="w-full px-3 py-2 text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-600"
@@ -1033,18 +1050,33 @@ export default function EventExamConfigModal({
                         {cur.imageUrl && (
                           <div className="flex items-center gap-2 pt-0.5">
                             <img
-                              src={cur.imageUrl}
+                              src={normalizeImageUrl(cur.imageUrl)}
                               alt={`Minh họa câu ${num}`}
-                              className="h-12 w-20 object-cover rounded-lg border border-slate-200 cursor-pointer"
-                              onClick={() => setPreviewImageUrl(cur.imageUrl || null)}
+                              className="h-12 w-20 object-cover rounded-lg border border-slate-200 cursor-pointer bg-slate-100"
+                              onClick={() => setPreviewImageUrl(normalizeImageUrl(cur.imageUrl) || null)}
+                              onError={(e) => {
+                                const img = e.currentTarget;
+                                const driveId = getGoogleDriveFileId(cur.imageUrl);
+                                if (driveId && !img.dataset.fallbackTried) {
+                                  img.dataset.fallbackTried = 'true';
+                                  img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                                }
+                              }}
                             />
-                            <button
-                              type="button"
-                              onClick={() => setPreviewImageUrl(cur.imageUrl || null)}
-                              className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer"
-                            >
-                              🔍 Xem ảnh minh họa câu {num}
-                            </button>
+                            <div className="flex flex-col">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewImageUrl(normalizeImageUrl(cur.imageUrl) || null)}
+                                className="text-[11px] font-bold text-blue-600 hover:underline cursor-pointer text-left"
+                              >
+                                🔍 Xem ảnh minh họa câu {num}
+                              </button>
+                              {getGoogleDriveFileId(cur.imageUrl) && (
+                                <span className="text-[10px] text-amber-700 font-semibold">
+                                  💡 Nhớ mở quyền Google Drive: <strong>"Bất kỳ ai có đường liên kết"</strong> (Công khai).
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -1284,9 +1316,17 @@ export default function EventExamConfigModal({
               ✕ Đóng
             </button>
             <img
-              src={previewImageUrl}
+              src={normalizeImageUrl(previewImageUrl)}
               alt="Map Preview"
               className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/20"
+              onError={(e) => {
+                const img = e.currentTarget;
+                const driveId = getGoogleDriveFileId(previewImageUrl);
+                if (driveId && !img.dataset.fallbackTried) {
+                  img.dataset.fallbackTried = 'true';
+                  img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                }
+              }}
             />
           </div>
         </div>

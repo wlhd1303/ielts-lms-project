@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { normalizeImageUrl, getGoogleDriveFileId } from '../../types/eventExamTypes';
 
 interface TextHighlightViewerProps {
   content: string;
@@ -209,14 +210,22 @@ export default function TextHighlightViewer({
         {imageUrl && (
           <div className="my-4 p-3 bg-slate-50 border border-slate-200/90 rounded-2xl flex flex-col items-center">
             <img
-              src={imageUrl}
+              src={normalizeImageUrl(imageUrl)}
               alt="Passage Diagram / Map"
-              className="max-h-80 w-auto rounded-xl object-contain shadow-xs cursor-zoom-in hover:opacity-95 transition-opacity"
-              onClick={() => onImageClick?.(imageUrl)}
+              className="max-h-80 w-auto rounded-xl object-contain shadow-xs cursor-zoom-in hover:opacity-95 transition-opacity bg-slate-100"
+              onClick={() => onImageClick?.(normalizeImageUrl(imageUrl))}
+              onError={(e) => {
+                const img = e.currentTarget;
+                const driveId = getGoogleDriveFileId(imageUrl);
+                if (driveId && !img.dataset.fallbackTried) {
+                  img.dataset.fallbackTried = 'true';
+                  img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                }
+              }}
             />
             <button
               type="button"
-              onClick={() => onImageClick?.(imageUrl)}
+              onClick={() => onImageClick?.(normalizeImageUrl(imageUrl))}
               className="mt-2 text-[11px] font-sans font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
             >
               <span>🔍</span>

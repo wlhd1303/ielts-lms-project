@@ -6,7 +6,13 @@ import {
   type StartExamResponse,
   type ExamSubmissionResult,
 } from '../../services/bookingService';
-import { parsePassageData, parseQuestionData, type PassageData } from '../../types/eventExamTypes';
+import {
+  parsePassageData,
+  parseQuestionData,
+  type PassageData,
+  normalizeImageUrl,
+  getGoogleDriveFileId
+} from '../../types/eventExamTypes';
 import TextHighlightViewer from '../../components/exam/TextHighlightViewer';
 import InteractivePdfViewer from '../../components/InteractivePdfViewer';
 import EventLeaderboardModal from '../../components/booking/EventLeaderboardModal';
@@ -1288,10 +1294,18 @@ export default function EventExamRoom() {
                         {parsedQ.imageUrl && (
                           <div className="my-2 p-2 bg-slate-50 border border-slate-200 rounded-xl inline-block">
                             <img
-                              src={parsedQ.imageUrl}
+                              src={normalizeImageUrl(parsedQ.imageUrl)}
                               alt={`Minh họa câu ${groupQuestions[0].questionNumber}`}
-                              className="max-h-56 max-w-full rounded-lg object-contain cursor-zoom-in"
-                              onClick={() => setPreviewImageUrl(parsedQ.imageUrl!)}
+                              className="max-h-56 max-w-full rounded-lg object-contain cursor-zoom-in bg-slate-100"
+                              onClick={() => setPreviewImageUrl(normalizeImageUrl(parsedQ.imageUrl!))}
+                              onError={(e) => {
+                                const img = e.currentTarget;
+                                const driveId = getGoogleDriveFileId(parsedQ.imageUrl);
+                                if (driveId && !img.dataset.fallbackTried) {
+                                  img.dataset.fallbackTried = 'true';
+                                  img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                                }
+                              }}
                             />
                           </div>
                         )}
@@ -1417,14 +1431,22 @@ export default function EventExamRoom() {
                     {parsedQ.imageUrl && (
                       <div className="my-2.5 p-2 bg-slate-50 border border-slate-200 rounded-xl inline-block">
                         <img
-                          src={parsedQ.imageUrl}
+                          src={normalizeImageUrl(parsedQ.imageUrl)}
                           alt={`Minh họa câu ${q.questionNumber}`}
-                          className="max-h-56 max-w-full rounded-lg object-contain cursor-zoom-in hover:opacity-95"
-                          onClick={() => setPreviewImageUrl(parsedQ.imageUrl!)}
+                          className="max-h-56 max-w-full rounded-lg object-contain cursor-zoom-in hover:opacity-95 bg-slate-100"
+                          onClick={() => setPreviewImageUrl(normalizeImageUrl(parsedQ.imageUrl!))}
+                          onError={(e) => {
+                            const img = e.currentTarget;
+                            const driveId = getGoogleDriveFileId(parsedQ.imageUrl);
+                            if (driveId && !img.dataset.fallbackTried) {
+                              img.dataset.fallbackTried = 'true';
+                              img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                            }
+                          }}
                         />
                         <span
                           className="text-[10px] text-blue-600 font-bold mt-1 block text-center cursor-pointer hover:underline"
-                          onClick={() => setPreviewImageUrl(parsedQ.imageUrl!)}
+                          onClick={() => setPreviewImageUrl(normalizeImageUrl(parsedQ.imageUrl!))}
                         >
                           🔍 Nhấp để phóng to bản đồ/sơ đồ
                         </span>
@@ -1676,9 +1698,17 @@ export default function EventExamRoom() {
               ✕ Đóng ảnh
             </button>
             <img
-              src={previewImageUrl}
+              src={normalizeImageUrl(previewImageUrl)}
               alt="Map Enlarged"
-              className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/20"
+              className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/20 bg-slate-900"
+              onError={(e) => {
+                const img = e.currentTarget;
+                const driveId = getGoogleDriveFileId(previewImageUrl);
+                if (driveId && !img.dataset.fallbackTried) {
+                  img.dataset.fallbackTried = 'true';
+                  img.src = `https://drive.google.com/thumbnail?id=${driveId}&sz=w1600`;
+                }
+              }}
             />
           </div>
         </div>
