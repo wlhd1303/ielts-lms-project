@@ -95,7 +95,8 @@ public class DataInitializer {
             String upcomingStartTime = String.format("%02d:00", Math.min(23, currentHour + 2));
             String upcomingEndTime = String.format("%02d:30", Math.min(23, currentHour + 4));
 
-            // Đọc dữ liệu mẫu chuẩn từ TiDB (Lớp IELTS Luyện Đề: Reading Vol 3 Test 1 & Listening Test 1)
+            // Đọc dữ liệu mẫu chuẩn từ TiDB (Lớp IELTS Luyện Đề: Reading Vol 3 Test 1 & Listening Test 1, cùng 5 Kỳ thi Reading Nền)
+            com.fasterxml.jackson.databind.JsonNode readingTestsNode = null;
             com.fasterxml.jackson.databind.JsonNode readingNode = null;
             com.fasterxml.jackson.databind.JsonNode listeningNode = null;
 
@@ -103,6 +104,9 @@ public class DataInitializer {
                 if (is != null) {
                     com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                     com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(is);
+                    if (root.has("readingTests") && root.get("readingTests").isArray()) {
+                        readingTestsNode = root.get("readingTests");
+                    }
                     readingNode = root.get("readingTest");
                     listeningNode = root.get("listeningTest");
                 }
@@ -170,7 +174,7 @@ public class DataInitializer {
                 System.out.println(">>> [DataInitializer] Đã đồng bộ " + lQuestions.size() + " câu hỏi Listening từ TiDB");
             }
 
-            // 3. Dọn dẹp toàn bộ các kỳ thi test cũ và Tạo Kỳ Thi Thử Trực Tuyến chính thức
+            // 3. Dọn dẹp toàn bộ các kỳ thi test cũ
             java.util.List<com.ielts.lms.booking.entity.TestEvent> existingEvents = eventRepository.findAll();
             for (com.ielts.lms.booking.entity.TestEvent ev : existingEvents) {
                 if ("dữ liệu test".equalsIgnoreCase(ev.getTitle()) 
@@ -184,84 +188,104 @@ public class DataInitializer {
                 }
             }
 
-            String officialReadingTitle = "IELTS Academic Practice Examination • Reading Test 1 Nền";
-            com.ielts.lms.booking.entity.TestEvent targetEvent = eventRepository.findAll().stream()
-                    .filter(ev -> officialReadingTitle.equalsIgnoreCase(ev.getTitle()))
-                    .findFirst()
-                    .orElseGet(com.ielts.lms.booking.entity.TestEvent::new);
-
-            targetEvent.setTitle(officialReadingTitle);
-            targetEvent.setDescription("Kỳ thi thử IELTS Reading chính thức - Đề Reading Test 1 Nền gồm 3 bài đọc (Passage 1: Urban farming, Passage 2: Forest management in Pennsylvania, Passage 3: Conquering Earth’s space junk problem) và 40 câu hỏi hoàn chỉnh với tính năng tự động chấm điểm và xem lại bài làm chi tiết.");
-            targetEvent.setLocation("Phòng Thi Trực Tuyến (Online Exam Room)");
-            targetEvent.setExamFormat("ONLINE");
-            targetEvent.setSkillType("READING");
-            targetEvent.setDurationMinutes(60);
-            targetEvent.setAllowReview(true);
-            targetEvent.setIsPublished(true);
-            targetEvent.setIsLeaderboardPublic(true);
-            targetEvent.setEventDate(today);
-            targetEvent.setStatus("OPEN");
-            targetEvent.setPdfUrl(rPdf);
-            if (readingNode != null && readingNode.has("passageText")) {
-                targetEvent.setPassageText(readingNode.get("passageText").asText());
+            // 4. Đồng bộ 5 kỳ thi IELTS Reading Nền vào test_events, test_event_shifts, test_event_questions
+            java.util.List<com.fasterxml.jackson.databind.JsonNode> testNodes = new java.util.ArrayList<>();
+            if (readingTestsNode != null) {
+                for (com.fasterxml.jackson.databind.JsonNode tn : readingTestsNode) {
+                    testNodes.add(tn);
+                }
+            } else if (readingNode != null) {
+                testNodes.add(readingNode);
             }
 
-            com.ielts.lms.booking.entity.TestEvent savedEvent = eventRepository.save(targetEvent);
+            for (com.fasterxml.jackson.databind.JsonNode tNode : testNodes) {
+                Long tId = tNode.has("id") ? tNode.get("id").asLong() : null;
+                String tTitle = tNode.has("title") ? tNode.get("title").asText() : "IELTS Academic Practice Examination • Reading Test";
+                String tDesc = tNode.has("description") ? tNode.get("description").asText() : "";
+                String tPdf = tNode.has("pdfUrl") ? tNode.get("pdfUrl").asText() : "";
+                String tPassages = tNode.has("passageText") ? tNode.get("passageText").asText() : "";
 
-            // Cập nhật ca thi trực tuyến mở cả ngày để học viên có thể vào thi bất kỳ lúc nào
-            if (savedEvent.getShifts() == null || savedEvent.getShifts().isEmpty()) {
-                com.ielts.lms.booking.entity.TestEventShift shift1 = new com.ielts.lms.booking.entity.TestEventShift();
-                shift1.setTestEvent(savedEvent);
-                shift1.setShiftName("Ca Thi Trực Tuyến (Vào Thi Ngay)");
-                shift1.setStartTime("00:00");
-                shift1.setEndTime("23:59");
-                shift1.setMaxCapacity(100);
-                shift1.setCurrentRegistered(0);
+                com.ielts.lms.booking.entity.TestEvent targetEvent = null;
+                if (tId != null) {
+                    targetEvent = eventRepository.findById(tId).orElse(null);
+                }
+                if (targetEvent == null) {
+                    targetEvent = eventRepository.findAll().stream()
+                            .filter(ev -> tTitle.equalsIgnoreCase(ev.getTitle()))
+                            .findFirst()
+                            .orElseGet(com.ielts.lms.booking.entity.TestEvent::new);
+                }
 
-                shiftRepository.save(shift1);
-            } else {
-                com.ielts.lms.booking.entity.TestEventShift s1 = savedEvent.getShifts().get(0);
-                s1.setShiftName("Ca Thi Trực Tuyến (Vào Thi Ngay)");
-                s1.setStartTime("00:00");
-                s1.setEndTime("23:59");
-                shiftRepository.save(s1);
-            }
+                targetEvent.setTitle(tTitle);
+                targetEvent.setDescription(tDesc);
+                targetEvent.setLocation("Phòng Thi Trực Tuyến (Online Exam Room)");
+                targetEvent.setExamFormat("ONLINE");
+                targetEvent.setSkillType("READING");
+                targetEvent.setDurationMinutes(60);
+                targetEvent.setAllowReview(true);
+                targetEvent.setIsPublished(true);
+                targetEvent.setIsLeaderboardPublic(true);
+                targetEvent.setEventDate(today);
+                targetEvent.setStatus("OPEN");
+                targetEvent.setPdfUrl(tPdf);
+                targetEvent.setPassageText(tPassages);
 
-            // Tự động làm mới phiên thi cũ từ các ngày trước để tài khoản test luôn mở đề thi được ngay
-            for (com.ielts.lms.booking.entity.TestEventShift sh : savedEvent.getShifts()) {
-                java.util.List<com.ielts.lms.booking.entity.TestEventRegistration> regs = registrationRepository.findByShiftId(sh.getId());
-                for (com.ielts.lms.booking.entity.TestEventRegistration reg : regs) {
-                    if (reg.getExamStartedAt() != null && reg.getExamStartedAt().toLocalDateTime().toLocalDate().isBefore(today)) {
-                        reg.setStatus("REGISTERED");
-                        reg.setExamStartedAt(null);
-                        reg.setExamSubmittedAt(null);
-                        registrationRepository.save(reg);
+                com.ielts.lms.booking.entity.TestEvent savedEvent = eventRepository.save(targetEvent);
+
+                // Cập nhật ca thi trực tuyến mở cả ngày để học viên có thể vào thi bất kỳ lúc nào
+                java.util.List<com.ielts.lms.booking.entity.TestEventShift> shifts = shiftRepository.findByTestEventId(savedEvent.getId());
+                if (shifts == null || shifts.isEmpty()) {
+                    com.ielts.lms.booking.entity.TestEventShift shift1 = new com.ielts.lms.booking.entity.TestEventShift();
+                    shift1.setTestEvent(savedEvent);
+                    shift1.setShiftName("Ca Thi Trực Tuyến (Vào Thi Ngay)");
+                    shift1.setStartTime("00:00");
+                    shift1.setEndTime("23:59");
+                    shift1.setMaxCapacity(100);
+                    shift1.setCurrentRegistered(0);
+                    shiftRepository.save(shift1);
+                } else {
+                    com.ielts.lms.booking.entity.TestEventShift s1 = shifts.get(0);
+                    s1.setShiftName("Ca Thi Trực Tuyến (Vào Thi Ngay)");
+                    s1.setStartTime("00:00");
+                    s1.setEndTime("23:59");
+                    shiftRepository.save(s1);
+                }
+
+                // Tự động làm mới phiên thi cũ từ các ngày trước để tài khoản test luôn mở đề thi được ngay
+                shifts = shiftRepository.findByTestEventId(savedEvent.getId());
+                if (shifts != null) {
+                    for (com.ielts.lms.booking.entity.TestEventShift sh : shifts) {
+                        java.util.List<com.ielts.lms.booking.entity.TestEventRegistration> regs = registrationRepository.findByShiftId(sh.getId());
+                        for (com.ielts.lms.booking.entity.TestEventRegistration reg : regs) {
+                            if (reg.getExamStartedAt() != null && reg.getExamStartedAt().toLocalDateTime().toLocalDate().isBefore(today)) {
+                                reg.setStatus("REGISTERED");
+                                reg.setExamStartedAt(null);
+                                reg.setExamSubmittedAt(null);
+                                registrationRepository.save(reg);
+                            }
+                        }
                     }
                 }
+
+                // Đồng bộ chính xác 40 câu hỏi Reading vào test_event_questions
+                if (tNode.has("questions") && tNode.get("questions").isArray()) {
+                    eventQuestionRepository.deleteAll(eventQuestionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(savedEvent.getId()));
+
+                    java.util.List<com.ielts.lms.booking.entity.TestEventQuestion> eventQuestions = new java.util.ArrayList<>();
+                    for (com.fasterxml.jackson.databind.JsonNode qNode : tNode.get("questions")) {
+                        com.ielts.lms.booking.entity.TestEventQuestion eq = new com.ielts.lms.booking.entity.TestEventQuestion();
+                        eq.setTestEvent(savedEvent);
+                        eq.setSkill("READING");
+                        eq.setQuestionNumber(qNode.get("questionNumber").asInt());
+                        eq.setQuestionText(qNode.has("questionText") ? qNode.get("questionText").asText() : "");
+                        eq.setCorrectAnswer(qNode.has("correctAnswer") ? qNode.get("correctAnswer").asText() : "");
+                        eventQuestions.add(eq);
+                    }
+                    eventQuestionRepository.saveAll(eventQuestions);
+                    System.out.println(">>> [DataInitializer] Đã đồng bộ hoàn tất " + eventQuestions.size()
+                            + " câu hỏi cho Sự kiện thi Online ID " + savedEvent.getId() + " - " + savedEvent.getTitle());
+                }
             }
-
-            // 4. Đồng bộ chính xác 40 câu hỏi Reading từ MockTest vào test_event_questions
-            eventQuestionRepository.deleteAll(eventQuestionRepository.findByTestEventIdOrderBySkillAscQuestionNumberAsc(savedEvent.getId()));
-
-            java.util.List<com.ielts.lms.booking.entity.TestEventQuestion> eventQuestions = new java.util.ArrayList<>();
-
-            for (com.ielts.lms.entity.MockQuestion rq : mockQuestionRepository.findByMockTestId(mockReading.getId())) {
-                com.ielts.lms.booking.entity.TestEventQuestion eq = new com.ielts.lms.booking.entity.TestEventQuestion();
-                eq.setTestEvent(savedEvent);
-                eq.setSkill("READING");
-                eq.setQuestionNumber(rq.getQuestionNumber());
-                eq.setQuestionText(rq.getQuestionText());
-                eq.setCorrectAnswer(rq.getCorrectAnswer());
-                eventQuestions.add(eq);
-            }
-
-            eventQuestionRepository.saveAll(eventQuestions);
-
-            System.out.println(">>> [DataInitializer] Đã đồng bộ hoàn tất " + eventQuestions.size() 
-                    + " câu hỏi IELTS Reading Test 1 Nền cho Sự kiện thi Online ID " + savedEvent.getId());
-            System.out.println(">>> Tiêu đề đề thi: " + savedEvent.getTitle());
-            System.out.println(">>> PDF đề thi: " + rPdf);
-            System.out.println(">>> Ca thi mở: 00:00 - 23:59 (Trực tuyến)");
         };
     }
 

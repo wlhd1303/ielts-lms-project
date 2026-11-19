@@ -3,4 +3,5 @@ target/
 .env
 .DS_Store
 .gitnexus/
-.claude/skills/gitnexus/
+.claude/skills/gitnexus/
+scratch/
