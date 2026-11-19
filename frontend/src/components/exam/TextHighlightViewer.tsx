@@ -35,17 +35,32 @@ export default function TextHighlightViewer({
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
       const containerRect = containerRef.current.getBoundingClientRect();
+      const scrollTop = containerRef.current.scrollTop;
+      const scrollLeft = containerRef.current.scrollLeft;
 
       setSelectedRange(range.cloneRange());
       setToolbarPos({
-        top: rect.top - containerRect.top - 42,
-        left: Math.max(10, rect.left - containerRect.left + rect.width / 2 - 80)
+        top: Math.max(10, rect.top - containerRect.top + scrollTop - 44),
+        left: Math.max(10, Math.min(containerRef.current.clientWidth - 190, rect.left - containerRect.left + scrollLeft + rect.width / 2 - 80))
       });
     } else {
       setToolbarPos(null);
       setSelectedRange(null);
     }
   };
+
+  // Tự động ẩn toolbar khi người dùng hủy bôi đen
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        setToolbarPos(null);
+        setSelectedRange(null);
+      }
+    };
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
 
   // Áp dụng Highlight vàng cho vùng đã chọn
   const applyHighlight = () => {
@@ -63,8 +78,12 @@ export default function TextHighlightViewer({
         removeSingleHighlight(mark);
       });
 
-      mark.appendChild(selectedRange.extractContents());
-      selectedRange.insertNode(mark);
+      try {
+        selectedRange.surroundContents(mark);
+      } catch {
+        mark.appendChild(selectedRange.extractContents());
+        selectedRange.insertNode(mark);
+      }
 
       window.getSelection()?.removeAllRanges();
       setToolbarPos(null);

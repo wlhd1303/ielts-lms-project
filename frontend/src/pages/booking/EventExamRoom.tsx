@@ -302,7 +302,8 @@ export default function EventExamRoom() {
       localStorage.removeItem(`event_pdf_hl_${shiftIdNum}`);
       setAccessStatus((prev) => (prev ? { ...prev, status: 'SUBMITTED' } : null));
     } catch (err: any) {
-      alert(err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi nộp bài.');
+      const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Có lỗi xảy ra khi nộp bài.';
+      alert(msg);
     } finally {
       setSubmitting(false);
     }

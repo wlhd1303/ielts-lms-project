@@ -79,6 +79,15 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Chuẩn hóa error response data: nếu trả về JSON dạng chuỗi thì tự động parse thành object
+    if (error.response && typeof error.response.data === 'string' && error.response.data.trim().startsWith('{')) {
+      try {
+        error.response.data = JSON.parse(error.response.data);
+      } catch (e) {
+        // ignore
+      }
+    }
+
     // Nếu lỗi 401 và không phải request đăng nhập/refresh
     if (
       error.response?.status === 401 && 

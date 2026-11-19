@@ -67,6 +67,7 @@ class TestEventExamServiceTest {
         testEvent.setSkillType("READING");
         testEvent.setDurationMinutes(60);
         testEvent.setPdfUrl("https://example.com/reading-test.pdf");
+        testEvent.setIsPublished(true);
 
         testShift = new TestEventShift();
         testShift.setId(10L);
@@ -115,8 +116,10 @@ class TestEventExamServiceTest {
     @Test
     @DisplayName("Kiểm tra trạng thái khi chưa đến giờ mở đề -> EARLY")
     void testGetExamAccessStatus_Early() {
-        // Đặt giờ thi vào tương lai (ví dụ 23:00)
-        testShift.setStartTime("23:59");
+        // Đặt giờ thi vào ngày mai
+        testEvent.setEventDate(LocalDate.now(TestEventExamService.VN_ZONE).plusDays(1));
+        testShift.setStartTime("19:00");
+        testShift.setEndTime("21:00");
         when(shiftRepository.findById(10L)).thenReturn(Optional.of(testShift));
         when(registrationRepository.findByShiftIdAndUserId(10L, 100L)).thenReturn(Optional.of(testRegistration));
 
@@ -129,12 +132,9 @@ class TestEventExamServiceTest {
     @Test
     @DisplayName("Kiểm tra trạng thái trong khung giờ mở đề của ca thi -> OPEN_WINDOW")
     void testGetExamAccessStatus_OpenWindow() {
-        // Đặt giờ bắt đầu lùi lại 10 phút trước và kết thúc sau 2 tiếng
-        LocalTime now = LocalTime.now(TestEventExamService.VN_ZONE);
-        String startTimeStr = String.format("%02d:%02d", now.getHour(), Math.max(0, now.getMinute() - 10));
-        String endTimeStr = String.format("%02d:%02d", Math.min(23, now.getHour() + 2), now.getMinute());
-        testShift.setStartTime(startTimeStr);
-        testShift.setEndTime(endTimeStr);
+        testEvent.setEventDate(LocalDate.now(TestEventExamService.VN_ZONE));
+        testShift.setStartTime("00:00");
+        testShift.setEndTime("23:59");
 
         when(shiftRepository.findById(10L)).thenReturn(Optional.of(testShift));
         when(registrationRepository.findByShiftIdAndUserId(10L, 100L)).thenReturn(Optional.of(testRegistration));
@@ -147,11 +147,9 @@ class TestEventExamServiceTest {
     @Test
     @DisplayName("Bắt đầu làm bài trong ca thi thành công và trả về đề không kèm đáp án")
     void testStartExam_Success() {
-        LocalTime now = LocalTime.now(TestEventExamService.VN_ZONE);
-        String startTimeStr = String.format("%02d:%02d", now.getHour(), Math.max(0, now.getMinute() - 10));
-        String endTimeStr = String.format("%02d:%02d", Math.min(23, now.getHour() + 2), now.getMinute());
-        testShift.setStartTime(startTimeStr);
-        testShift.setEndTime(endTimeStr);
+        testEvent.setEventDate(LocalDate.now(TestEventExamService.VN_ZONE));
+        testShift.setStartTime("00:00");
+        testShift.setEndTime("23:59");
 
         TestEventQuestion q1 = new TestEventQuestion();
         q1.setSkill("READING");

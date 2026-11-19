@@ -63,7 +63,25 @@ public class GlobalExceptionHandler {
         errorResponse.put("timestamp", LocalDateTime.now().toString());
         errorResponse.put("status", HttpStatus.BAD_REQUEST.value());
         errorResponse.put("error", "Yêu cầu không hợp lệ");
-        errorResponse.put("message", ex.getMessage());
+        String message = ex.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            message = ex.getClass().getSimpleName();
+        }
+        errorResponse.put("message", message);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleAllOtherExceptions(Exception ex) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("timestamp", LocalDateTime.now().toString());
+        errorResponse.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        errorResponse.put("error", "Lỗi hệ thống");
+        String message = ex.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            message = ex.getClass().getSimpleName();
+        }
+        errorResponse.put("message", message);
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

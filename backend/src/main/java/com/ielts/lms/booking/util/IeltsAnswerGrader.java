@@ -142,18 +142,39 @@ public final class IeltsAnswerGrader {
             Map<String, Boolean> results,
             boolean[] graded) {
 
-        // Tìm tập pool đáp án từ câu đầu tiên có correctAnswer không rỗng trong nhóm
+        // Tập pool đáp án chuẩn cho toàn bộ nhóm câu hỏi (luôn là mutable list)
         List<String> remainingPool = new ArrayList<>();
         String groupType = "MULTI_SELECT";
+
+        // Bước 1: Kiểm tra xem có câu nào chứa toàn bộ danh sách đáp án phân cách bằng dấu phẩy/gạch chéo (vd: "A, D" hoặc "A/D")
         for (int idx : indices) {
             String raw = metas.get(idx).question.getCorrectAnswer();
             if (raw != null && !raw.trim().isEmpty()) {
-                remainingPool = parseUnorderedPoolTokens(raw, indices.size());
-                groupType = metas.get(idx).type;
-                break;
+                List<String> tokens = parseUnorderedPoolTokens(raw, indices.size());
+                if (tokens.size() >= indices.size()) {
+                    remainingPool = new ArrayList<>(tokens);
+                    groupType = metas.get(idx).type != null ? metas.get(idx).type : groupType;
+                    break;
+                }
             }
         }
 
+        // Bước 2: Nếu chưa có pool đầy đủ, gom đáp án của từng câu trong nhóm lại (mỗi câu 1 chữ cái: Q12="A", Q13="D")
+        if (remainingPool.size() < indices.size()) {
+            remainingPool.clear();
+            for (int idx : indices) {
+                String raw = metas.get(idx).question.getCorrectAnswer();
+                if (raw != null && !raw.trim().isEmpty()) {
+                    List<String> tokens = parseUnorderedPoolTokens(raw, 1);
+                    remainingPool.addAll(tokens);
+                    if (metas.get(idx).type != null) {
+                        groupType = metas.get(idx).type;
+                    }
+                }
+            }
+        }
+
+        // Bước 3: Chấm điểm từng câu trong nhóm dựa trên pool khả dụng
         for (int idx : indices) {
             QuestionMeta meta = metas.get(idx);
             String studentAns = findStudentAnswer(meta.question, studentAnswers);
@@ -499,7 +520,7 @@ public final class IeltsAnswerGrader {
             }
             return chars;
         }
-        return Collections.singletonList(sanitized);
+        return new ArrayList<>(Collections.singletonList(sanitized));
     }
 
     private static List<String> splitFlexibleSetTokens(String text) {
@@ -520,7 +541,7 @@ public final class IeltsAnswerGrader {
             }
             return out;
         }
-        return Collections.singletonList(sanitized);
+        return new ArrayList<>(Collections.singletonList(sanitized));
     }
 
     private static List<String> parseStudentSetTokens(String studentAns, List<String> expectedSet) {

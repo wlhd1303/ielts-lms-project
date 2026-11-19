@@ -152,4 +152,42 @@ public class IeltsAnswerGraderTest {
         String json = objectMapper.writeValueAsString(item);
         assertTrue(json.contains("\"isCorrect\":true"), "JSON phải chứa chính xác key \"isCorrect\":true nhưng nhận được: " + json);
     }
+
+    @Test
+    @DisplayName("6. Chấm nhóm câu hỏi với đáp án riêng rẽ cho từng câu (vd Q12=A, Q13=D) không bị lỗi UnsupportedOperationException")
+    void testDiscretePoolGroupAnswers() {
+        List<TestEventQuestion> questions = new ArrayList<>();
+
+        TestEventQuestion q12 = new TestEventQuestion();
+        q12.setQuestionNumber(12);
+        q12.setSkill("READING");
+        q12.setCorrectAnswer("A");
+        q12.setQuestionText("{\"prompt\": \"Choose TWO\", \"type\": \"MULTIPLE_CHOICE\", \"groupId\": \"READING_12_13\", \"groupStart\": 12, \"groupEnd\": 13}");
+        questions.add(q12);
+
+        TestEventQuestion q13 = new TestEventQuestion();
+        q13.setQuestionNumber(13);
+        q13.setSkill("READING");
+        q13.setCorrectAnswer("D");
+        q13.setQuestionText("{\"prompt\": \"Choose TWO\", \"type\": \"MULTIPLE_CHOICE\", \"groupId\": \"READING_12_13\", \"groupStart\": 12, \"groupEnd\": 13}");
+        questions.add(q13);
+
+        // Học viên đảo thứ tự: Q12 điền D, Q13 điền A -> cả 2 đều đúng
+        Map<String, String> answersSwapped = Map.of(
+                "READING_12", "D",
+                "READING_13", "A"
+        );
+        Map<String, Boolean> resSwapped = IeltsAnswerGrader.evaluateAllQuestions(questions, answersSwapped, objectMapper);
+        assertTrue(resSwapped.get("READING_12"));
+        assertTrue(resSwapped.get("READING_13"));
+
+        // Học viên chọn 1 đúng 1 sai: Q12 điền A, Q13 điền B
+        Map<String, String> answersPartial = Map.of(
+                "READING_12", "A",
+                "READING_13", "B"
+        );
+        Map<String, Boolean> resPartial = IeltsAnswerGrader.evaluateAllQuestions(questions, answersPartial, objectMapper);
+        assertTrue(resPartial.get("READING_12"));
+        assertFalse(resPartial.get("READING_13"));
+    }
 }
