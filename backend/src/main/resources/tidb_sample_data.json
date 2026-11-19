@@ -1,768 +1,249 @@
 {
   "readingTest": {
     "id": 90009,
-    "title": "Reading Vol 3 Test 1",
-    "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
+    "title": "IELTS Academic Practice Examination • Reading Test 1 Nền",
+    "pdfUrl": "/reading-test-1-nen.pdf",
+    "passageText": "{\"passages\": [{\"id\": 1, \"title\": \"Passage 1: Urban farming\", \"instruction\": \"You should spend about 20 minutes on Questions 1–13, which are based on Reading Passage 1 below.\", \"imageUrl\": \"\", \"content\": \"Urban farming\\nIn Paris, urban farmers are trying a soil-free approach to agriculture that uses less space and fewer resources. Could it help cities face the threats to our food supplies?\\n\\nOn top of a striking new exhibition hall in southern Paris, the world’s largest urban rooftop farm has started to bear fruit. Strawberries that are small, intensely flavoured and resplendently red sprout abundantly from large plastic tubes. Peer inside and you see the tubes are completely hollow, the roots of dozens of strawberry plants dangling down inside them. From identical vertical tubes nearby burst row upon row of lettuces; near those are aromatic herbs, such as basil, sage and peppermint. Opposite, in narrow, horizontal trays packed not with soil but with coconut fibre, grow cherry tomatoes, shiny aubergines and brightly coloured chards.\\n\\nPascal Hardy, an engineer and sustainable development consultant, began experimenting with vertical farming and aeroponic growing towers – as the soil-free plastic tubes are known – on his Paris apartment block roof five years ago. The urban rooftop space above the exhibition hall is somewhat bigger: 14,000 square metres and almost exactly the size of a couple of football pitches. Already, the team of young urban farmers who tend it have picked, in one day, 3,000 lettuces and 150 punnets of strawberries. When the remaining two thirds of the vast open area are in production, 20 staff will harvest up to 1,000 kg of perhaps 35 different varieties of fruit and vegetables, every day. ‘We’re not ever, obviously, going to feed the whole city this way,’ cautions Hardy. ‘In the urban environment you’re working with very significant practical constraints, clearly, on what you can do and where. But if enough unused space can be developed like this, there’s no reason why you shouldn’t eventually target maybe between 5% and 10% of consumption.’\\n\\nPerhaps most significantly, however, this is a real-life showcase for the work of Hardy’s flourishing urban agriculture consultancy, Agripolis, which is currently fielding enquiries from around the world to design, build and equip a new breed of soil-free inner-city farm. ‘The method’s advantages are many,’ he says. ‘First, I don’t much like the fact that most of the fruit and vegetables we eat have been treated with something like 17 different pesticides, or that the intensive farming techniques that produced them are such huge generators of greenhouse gases. I don’t much like the fact, either, that they’ve travelled an average of 2,000 refrigerated kilometres to my plate, that their quality is so poor, because the varieties are selected for their capacity to withstand such substantial journeys, or that 80% of the price I pay goes to wholesalers and transport companies, not the producers.\\n\\nProduce grown using this soil-free method, on the other hand – which relies solely on a small quantity of water, enriched with organic nutrients, pumped around a closed circuit of pipes, towers and trays – is ‘produced up here, and sold locally, just down there. It barely travels at all,’ Hardy says. ‘You can select crop varieties for their flavour, not their resistance to the transport and storage chain, and you can pick them when they’re really at their best, and not before.’ No soil is exhausted, and the water that gently showers the plants’ roots every 12 minutes is recycled, so the method uses 90% less water than a classic intensive farm for the same yield.\\n\\nUrban farming is not, of course, a new phenomenon. Inner-city agriculture is booming from Shanghai to Detroit and Tokyo to Bangkok. Strawberries are being grown in disused shipping containers, mushrooms in underground carparks. Aeroponic farming, he says, is ‘virtuous’. The equipment weighs little, can be installed on almost any flat surface and is cheap to buy: roughly 100 to 150 per square metre. It is cheap to run, too, consuming a tiny fraction of the electricity used by some techniques.\\n\\nProduce grown this way typically sells at prices that, while generally higher than those of classic intensive agriculture, are lower than soil-based organic growers. There are limits to what farmers can grow this way, of course, and much of the produce is suited to the summer months. ‘Root vegetables we cannot do, at least not yet,’ he says. ‘Radishes are OK, but carrots, potatoes, that kind of thing – the roots are simply too long. Fruit trees are obviously not an option. And beans tend to take up a lot of space for not much return.’ Nevertheless, urban farming of the kind being practised in Paris is one part of a bigger and fast-changing picture that is bringing food production closer to our lives.\"}, {\"id\": 2, \"title\": \"Passage 2: Forest management in Pennsylvania, USA\", \"instruction\": \"You should spend about 20 minutes on Questions 14–26, which are based on Reading Passage 2 below.\", \"imageUrl\": \"\", \"content\": \"Forest management in Pennsylvania, USA\\nHow managing low-quality wood (also known as low-use wood) for bioenergy can encourage sustainable forest management\\n\\nA. A tree’s ‘value’ depends on several factors including its species, size, form, condition, quality, function, and accessibility, and depends on the management goals for a given forest. The same tree can be valued very differently by each person who looks at it. A large, straight black cherry tree has high value as timber to be cut into logs or made into furniture, but for a landowner more interested in wildlife habitat, the real value of that stem (or trunk) may be the food it provides to animals. Likewise, if the tree suffers from black knot disease, its value for timber decreases, but to a woodworker interested in making bowls, it brings an opportunity for a unique and beautiful piece of art.\\n\\nB. In the past, Pennsylvania landowners were solely interested in the value of their trees as high-quality timber. The norm was to remove the stems of highest quality and leave behind poorly formed trees that were not as well suited to the site where they grew. This practice, called ‘high-grading’, has left a legacy of ‘low-use wood’ in the forests. Some people even call these ‘junk trees’, and they are abundant in Pennsylvania. These trees have lower economic value for traditional timber markets, compete for growth with higher-value trees, shade out desirable regeneration and decrease the health of a stand leaving it more vulnerable to poor weather and disease. Management that specifically targets low-use wood can help landowners manage these forest health issues, and wood energy markets help promote this.\\n\\nC. Wood energy markets can accept less expensive wood material of lower quality than would be suitable for traditional timber markets. Most wood used for energy in Pennsylvania is used to produce heat or electricity through combustion. Many schools and hospitals use wood boiler systems to heat and power their facilities, many homes are primarily heated with wood, and some coal plants incorporate wood into their coal streams to produce electricity. Wood can also be gasified for electrical generation and can even be made into liquid fuels like ethanol and gasoline for lorries and cars. All these products are made primarily from low-use wood. Several tree- and plant-cutting approaches, which could greatly improve the long-term quality of a forest, focus strongly or solely on the use of wood for those markets.\\n\\nD. One such approach is called a Timber Stand Improvement (TSI) Cut. In a TSI Cut, really poor-quality tree and plant material is cut down to allow more space, light, and other resources to the highest-valued stems that remain. Removing invasive plants might be another primary goal of a TSI Cut. The stems that are left behind might then grow in size and develop more foliage and larger crowns or tops that produce more coverage for wildlife; they have a better chance to regenerate in a less crowded environment. TSI Cuts can be tailored to one farmer’s specific management goals for his or her land.\\n\\nE. Another approach that might yield a high amount of low-use wood is a Salvage Cut. With the many pests and pathogens visiting forests including hemlock wooly adelgid, Asian longhorned beetle, emerald ash borer, and gypsy moth, to name just a few, it is important to remember that those working in the forests can help ease these issues through cutting procedures. These types of cut reduce the number of sick trees and seek to manage the future spread of a pest problem. They leave vigorous trees that have stayed healthy enough to survive the outbreak.\\n\\nF. A Shelterwood Cut, which only takes place in a mature forest that has already been thinned several times, involves removing all the mature trees when other seedlings have become established. This then allows the forester to decide which tree species are regenerated. It leaves a young forest where all trees are at a similar point in their growth. It can also be used to develop a two-tier forest so that there are two harvests and the money that comes in is spread out over a decade or more.\\n\\nG. Thinnings and dense and dead wood removal for fire prevention also center on the production of low-use wood. However, it is important to remember that some retention of what many would classify as low-use wood is very important. The tops of trees that have been cut down should be left on the site so that their nutrients cycle back into the soil. In addition, trees with many cavities are extremely important habitats for insect predators like woodpeckers, bats and small mammals. They help control problem insects and increase the health and resilience of the forest. It is also important to remember that not all small trees are low-use. For example, many species like hawthorn provide food for wildlife. Finally, rare species of trees in a forest should also stay behind as they add to its structural diversity.\\n\\n*Stand – An area covered with trees that have common features (e. g. size)\"}, {\"id\": 3, \"title\": \"Passage 3: Conquering Earth’s space junk problem\", \"instruction\": \"You should spend about 20 minutes on Questions 27–40, which are based on Reading Passage 3 below.\", \"imageUrl\": \"\", \"content\": \"Conquering Earth’s space junk problem\\nSatellites, rocket shards and collision debris are creating major traffic risks in orbit around the planet. Researchers are working to reduce these threats\\n\\nA. Last year, commercial companies, military and civil departments and amateurs sent more than 400 satellites into orbit, over four times the yearly average in the previous decade. Numbers could rise even more sharply if leading space companies follow through on plans to deploy hundreds to thousands of large constellations of satellites to space in the next few years. All that traffic can lead to disaster. Ten years ago, a US commercial Iridium satellite smashed into an inactive Russian communications satellite called Cosmos-2251, creating thousands of new pieces of space shrapnel that now threaten other satellites in low Earth orbit – the zone stretching up to 2,000 kilometres in altitude. Altogether, there are roughly 20,000 human-made objects in orbit, from working satellites to small rocket pieces. And satellite operators can’t steer away from every potential crash, because each move consumes time and fuel that could otherwise be used for the spacecraft’s main job.\\n\\nB. Concern about space junk goes back to the beginning of the satellite era, but the number of objects in orbit is rising so rapidly that researchers are investigating new ways of attacking the problem. Several teams are trying to improve methods for assessing what is in orbit, so that satellite operators can work more efficiently in ever-more-crowded space. Some researchers are now starting to compile a massive data set that includes the best possible information on where everything is in orbit. Others are developing taxonomies of space – working on measuring properties such as the shape and size of an object, so that satellite operators know how much to worry about what’s coming their way. The alternative, many say, is unthinkable. Just a few uncontrolled space crashes could generate enough debris to set off a runaway cascade of fragments, rendering near-Earth space unusable. ‘If we go on like this, we will reach a point of no return,’ says Carolin Frueh, an astrodynamical researcher at Purdue University in West Lafayette, Indiana.\\n\\nC. Even as our ability to monitor space objects increases, so too does the total number of items in orbit. That means companies, governments and other players in space are collaborating in new ways to avoid a shared threat. International groups such as the Inter-Agency Space Debris Coordination Committee have developed guidelines on space sustainability. Those include inactivating satellites at the end of their useful life by venting pressurised materials or leftover fuel that might lead to explosions. The intergovernmental groups also advise lowering satellites deep enough into the atmosphere that they will burn up or disintegrate within 25 years. But so far, only about half of all missions have abided by this 25-year goal, says Holger Krag, head of the European Space Agency’s space-debris office in Darmstadt, Germany. Operators of the planned large constellations of satellites say they will be responsible stewards in their enterprises in space, but Krag worries that problems could increase, despite their best intentions. ‘What happens to those that fail or go bankrupt?’ he asks. ‘They are probably not going to spend money to remove their satellites from space.’\\n\\nD. In theory, given the vastness of space, satellite operators should have plenty of room for all these missions to fly safely without ever nearing another object. So some scientists are tackling the problem of space junk by trying to find out where all the debris is to a high degree of precision. That would alleviate the need for many of the unnecessary manoeuvres that are carried out to avoid potential collisions. ‘If you knew precisely where everything was, you would almost never have a problem,’ says Marlon Sorge, a space-debris specialist at the Aerospace Corporation in El Segundo, California.\\n\\nE. The field is called space traffic management, because it’s similar to managing traffic on the roads or in the air. Think about a busy day at an airport, says Moriba Jah, an astrodynamicist at the University of Texas at Austin: planes line up in the sky, landing and taking off close to one another in a carefully choreographed routine. Air-traffic controllers know the location of the planes down to one metre in accuracy. The same can’t be said for space debris. Not all objects in orbit are known, and even those included in databases are not tracked consistently.\\n\\nF. An additional problem is that there is no authoritative catalogue that accurately lists the orbits of all known space debris. Jah illustrates this with a web-based database that he has developed. It draws on several sources, such as catalogues maintained by the US and Russian governments, to visualise where objects are in space. When he types in an identifier for a particular space object, the database draws a purple line to designate its orbit. Only this doesn’t quite work for a number of objects, such as a Russian rocket body designated in the database as object number 32280. When Jah enters that number, the database draws two purple lines: the US and Russian sources contain two completely different orbits for the same object. Jah says that it is almost impossible to tell which is correct, unless a third source of information made it possible to cross-correlate. Jah describes himself as a space environmentalist: ‘I want to make space a place that is safe to operate, that is free and useful for generations to come.’ Until that happens, he argues, the space community will continue devolving into a tragedy in which all spaceflight operators are polluting a common resource.\"}]}",
     "questions": [
       {
-        "correctAnswer": "FALSE",
-        "id": 90106,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90101,
         "questionNumber": 1,
-        "questionText": "Fishbourne Palace was the first structure to be built on its site. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Urban farming in Paris:\\n• Vertical tubes are used to grow strawberries, [1] and herbs.\\n(Choose NO MORE THAN TWO WORDS AND/OR A NUMBER from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "lettuces"
       },
       {
-        "correctAnswer": "TRUE",
-        "id": 90107,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90102,
         "questionNumber": 2,
-        "questionText": "Fishbourne Palace was renovated more than once. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Urban farming in Paris:\\n• There will eventually be a daily harvest of as much as [2] in weight of fruit and vegetables.\\n(Choose NO MORE THAN TWO WORDS AND/OR A NUMBER from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "1,000 kg"
       },
       {
-        "correctAnswer": "FALSE",
-        "id": 90108,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90103,
         "questionNumber": 3,
-        "questionText": "Fishbourne Palace was large in comparison with Roman palaces in Italy. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Urban farming in Paris:\\n• It may be possible that the farm’s produce will account for as much as 10% of the city’s [3] overall.\\n(Choose NO MORE THAN TWO WORDS AND/OR A NUMBER from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "consumption"
       },
       {
-        "correctAnswer": "TRUE",
-        "id": 90109,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90104,
         "questionNumber": 4,
-        "questionText": "Research is continuing in the area close to Fishbourne Palace. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Intensive farming versus aeroponic urban farming\\nIntensive farming (Growth):\\n• wide range of [4] used\\n• techniques pollute air\\n• quality not good\\n(Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "pesticides"
       },
       {
-        "correctAnswer": "FALSE",
-        "id": 90110,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90105,
         "questionNumber": 5,
-        "questionText": "Researchers agree on the identity of the person for whom Fishbourne Palace was constructed. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Intensive farming versus aeroponic urban farming\\nIntensive farming (Selection):\\n• varieties of fruit and vegetables chosen that can survive long [5]\\n(Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "journeys"
       },
       {
-        "correctAnswer": "NOT GIVEN",
-        "id": 90111,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90106,
         "questionNumber": 6,
-        "questionText": "Fishbourne Palace was burnt down by local people. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Intensive farming versus aeroponic urban farming\\nIntensive farming (Sale):\\n• [6] receive very little of overall income\\n(Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "producers"
       },
       {
-        "correctAnswer": "Roman army",
-        "id": 90112,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90107,
         "questionNumber": 7,
-        "questionText": "The first buildings on the site contained food for the [7].........."
+        "questionText": "{\"prompt\": \"Intensive farming versus aeroponic urban farming\\nAeroponic urban farming (Selection):\\n• produce chosen because of its [7]\\n(Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "flavour"
       },
       {
-        "correctAnswer": "formal gardens",
-        "id": 90113,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90108,
         "questionNumber": 8,
-        "questionText": "The palace building surrounded [8].........."
+        "questionText": "{\"prompt\": \"Urban farming can take place above or below ground.\\n(Write TRUE, FALSE or NOT GIVEN)\", \"type\": \"TFNG\"}",
+        "correctAnswer": "TRUE"
       },
       {
-        "correctAnswer": "floors",
-        "id": 90114,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90109,
         "questionNumber": 9,
-        "questionText": "In the 2nd and 3rd centuries, color was added to the [9].......... of the palace."
+        "questionText": "{\"prompt\": \"Some of the equipment used in aeroponic farming can be made by hand.\\n(Write TRUE, FALSE or NOT GIVEN)\", \"type\": \"TFNG\"}",
+        "correctAnswer": "NOT GIVEN"
       },
       {
-        "correctAnswer": "wall",
-        "id": 90115,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90110,
         "questionNumber": 10,
-        "questionText": "The first part of the palace to be found was part of a [10].........."
+        "questionText": "{\"prompt\": \"Urban farming relies more on electricity than some other types of farming.\\n(Write TRUE, FALSE or NOT GIVEN)\", \"type\": \"TFNG\"}",
+        "correctAnswer": "FALSE"
       },
       {
-        "correctAnswer": "93",
-        "id": 90116,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90111,
         "questionNumber": 11,
-        "questionText": "Sallustius Lucullus - he may have lived there until approximately [11].......... AD"
+        "questionText": "{\"prompt\": \"Fruit and vegetables grown on an aeroponic urban farm are cheaper than traditionally grown organic produce.\\n(Write TRUE, FALSE or NOT GIVEN)\", \"type\": \"TFNG\"}",
+        "correctAnswer": "TRUE"
       },
       {
-        "correctAnswer": "gold ring",
-        "id": 90117,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90112,
         "questionNumber": 12,
-        "questionText": "Catuarus - his [12].......... was found there"
+        "questionText": "{\"prompt\": \"Most produce can be grown on an aeroponic urban farm at any time of the year.\\n(Write TRUE, FALSE or NOT GIVEN)\", \"type\": \"TFNG\"}",
+        "correctAnswer": "FALSE"
       },
       {
-        "correctAnswer": "museum",
-        "id": 90118,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90113,
         "questionNumber": 13,
-        "questionText": "A [13].......... has been built on the site to help protect it."
+        "questionText": "{\"prompt\": \"Beans take longer to grow on an urban farm than other vegetables.\\n(Write TRUE, FALSE or NOT GIVEN)\", \"type\": \"TFNG\"}",
+        "correctAnswer": "NOT GIVEN"
       },
       {
-        "correctAnswer": "vii",
-        "id": 90119,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90114,
         "questionNumber": 14,
-        "questionText": "Paragraph A heading (i-vii)"
+        "questionText": "{\"prompt\": \"Which paragraph contains the following information: Bad outcomes for a forest when people focus only on its financial reward (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Paragraph A\", \"B\": \"Paragraph B\", \"C\": \"Paragraph C\", \"D\": \"Paragraph D\", \"E\": \"Paragraph E\", \"F\": \"Paragraph F\", \"G\": \"Paragraph G\"}}",
+        "correctAnswer": "B"
       },
       {
-        "correctAnswer": "iii",
-        "id": 90120,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90115,
         "questionNumber": 15,
-        "questionText": "Paragraph B heading (i-vii)"
+        "questionText": "{\"prompt\": \"Which paragraph contains the following information: Reference to the aspects of any tree that contribute to its worth (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Paragraph A\", \"B\": \"Paragraph B\", \"C\": \"Paragraph C\", \"D\": \"Paragraph D\", \"E\": \"Paragraph E\", \"F\": \"Paragraph F\", \"G\": \"Paragraph G\"}}",
+        "correctAnswer": "A"
       },
       {
-        "correctAnswer": "vi",
-        "id": 90121,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90116,
         "questionNumber": 16,
-        "questionText": "Paragraph C heading (i-vii)"
+        "questionText": "{\"prompt\": \"Which paragraph contains the following information: Mention of the potential use of wood to help run vehicles (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Paragraph A\", \"B\": \"Paragraph B\", \"C\": \"Paragraph C\", \"D\": \"Paragraph D\", \"E\": \"Paragraph E\", \"F\": \"Paragraph F\", \"G\": \"Paragraph G\"}}",
+        "correctAnswer": "C"
       },
       {
-        "correctAnswer": "i",
-        "id": 90122,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90117,
         "questionNumber": 17,
-        "questionText": "Paragraph D heading (i-vii)"
+        "questionText": "{\"prompt\": \"Which paragraph contains the following information: Examples of insects that attack trees (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Paragraph A\", \"B\": \"Paragraph B\", \"C\": \"Paragraph C\", \"D\": \"Paragraph D\", \"E\": \"Paragraph E\", \"F\": \"Paragraph F\", \"G\": \"Paragraph G\"}}",
+        "correctAnswer": "E"
       },
       {
-        "correctAnswer": "iv",
-        "id": 90123,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90118,
         "questionNumber": 18,
-        "questionText": "Paragraph E heading (i-vii)"
+        "questionText": "{\"prompt\": \"Which paragraph contains the following information: An alternative name for trees that produce low-use wood (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Paragraph A\", \"B\": \"Paragraph B\", \"C\": \"Paragraph C\", \"D\": \"Paragraph D\", \"E\": \"Paragraph E\", \"F\": \"Paragraph F\", \"G\": \"Paragraph G\"}}",
+        "correctAnswer": "B"
       },
       {
-        "correctAnswer": "ii",
-        "id": 90124,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90119,
         "questionNumber": 19,
-        "questionText": "Paragraph F heading (i-vii)"
+        "questionText": "{\"prompt\": \"Match each purpose with the correct timber cut: To remove trees that are diseased (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"a TSI Cut\", \"B\": \"a Salvage Cut\", \"C\": \"a Shelterwood Cut\"}}",
+        "correctAnswer": "B"
       },
       {
-        "correctAnswer": "C",
-        "id": 90125,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90120,
         "questionNumber": 20,
-        "questionText": "Certain members can influence the rest of the group to alter a previous decision. (A-D)"
+        "questionText": "{\"prompt\": \"Match each purpose with the correct timber cut: To generate income across a number of years (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"a TSI Cut\", \"B\": \"a Salvage Cut\", \"C\": \"a Shelterwood Cut\"}}",
+        "correctAnswer": "C"
       },
       {
-        "correctAnswer": "B",
-        "id": 90126,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90121,
         "questionNumber": 21,
-        "questionText": "Individual verification of a proposed choice is important for a successful decision outcome. (A-D)"
+        "questionText": "{\"prompt\": \"Match each purpose with the correct timber cut: To create a forest whose trees are close in age (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"a TSI Cut\", \"B\": \"a Salvage Cut\", \"C\": \"a Shelterwood Cut\"}}",
+        "correctAnswer": "C"
       },
       {
-        "correctAnswer": "A",
-        "id": 90127,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90122,
         "questionNumber": 22,
-        "questionText": "The more individuals taking part in a decision, the better the decision will be. (A-D)"
+        "questionText": "{\"prompt\": \"Some dead wood is removed to avoid the possibility of [22]. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "fire"
       },
       {
-        "correctAnswer": "B",
-        "id": 90128,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90123,
         "questionNumber": 23,
-        "questionText": "The decision-making process of certain insects produces excellent results even when fine distinctions are required. (A-D)"
+        "questionText": "{\"prompt\": \"The [23] from the tops of cut trees can help improve soil quality. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "nutrients"
       },
       {
-        "correctAnswer": "threatened",
-        "id": 90129,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90124,
         "questionNumber": 24,
-        "questionText": "A Bristol University study looked at how insects make decisions when their home has been [24].........."
+        "questionText": "{\"prompt\": \"Some damaged trees should be left, as their [24] provide habitats for a range of creatures. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "cavities"
       },
       {
-        "correctAnswer": "scouts",
-        "id": 90130,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90125,
         "questionNumber": 25,
-        "questionText": "The ants in the experiment relied on the use of individuals called [25].......... to find new nests."
+        "questionText": "{\"prompt\": \"Some trees that are small, such as [25], are a source of food for animals and insects. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "hawthorn"
       },
       {
-        "correctAnswer": "leaders",
-        "id": 90131,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90126,
         "questionNumber": 26,
-        "questionText": "The study emphasized the necessity, for people as well as insects, of having active [26].......... in order to execute decisions successfully."
+        "questionText": "{\"prompt\": \"Any trees that are [26] should be left to grow, as they add to the variety of species in the forest. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "rare"
       },
       {
-        "correctAnswer": "F",
-        "id": 90132,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90127,
         "questionNumber": 27,
-        "questionText": "Which paragraph mentions: the methods some companies use to try to keep their most creative employees? (A-H)"
+        "questionText": "{\"prompt\": \"Which section contains the following information: A reference to the cooperation that takes place to try and minimise risk\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Section A\", \"B\": \"Section B\", \"C\": \"Section C\", \"D\": \"Section D\", \"E\": \"Section E\", \"F\": \"Section F\"}}",
+        "correctAnswer": "C"
       },
       {
-        "correctAnswer": "A",
-        "id": 90133,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90128,
         "questionNumber": 28,
-        "questionText": "Which paragraph mentions: a new way of getting help with your personal difficulties? (A-H)"
+        "questionText": "{\"prompt\": \"Which section contains the following information: An explanation of a person’s aims\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Section A\", \"B\": \"Section B\", \"C\": \"Section C\", \"D\": \"Section D\", \"E\": \"Section E\", \"F\": \"Section F\"}}",
+        "correctAnswer": "F"
       },
       {
-        "correctAnswer": "C",
-        "id": 90134,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90129,
         "questionNumber": 29,
-        "questionText": "Which paragraph mentions: how much investment goes into safeguarding the ideas of individuals? (A-H)"
+        "questionText": "{\"prompt\": \"Which section contains the following information: A description of a major collision that occurred in space\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Section A\", \"B\": \"Section B\", \"C\": \"Section C\", \"D\": \"Section D\", \"E\": \"Section E\", \"F\": \"Section F\"}}",
+        "correctAnswer": "A"
       },
       {
-        "correctAnswer": "B",
-        "id": 90135,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90130,
         "questionNumber": 30,
-        "questionText": "Which paragraph mentions: two examples of companies which have succeeded through being innovative? (A-H)"
+        "questionText": "{\"prompt\": \"Which section contains the following information: A comparison between tracking objects in space and the efficiency of a transportation system\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Section A\", \"B\": \"Section B\", \"C\": \"Section C\", \"D\": \"Section D\", \"E\": \"Section E\", \"F\": \"Section F\"}}",
+        "correctAnswer": "E"
       },
       {
-        "correctAnswer": "E",
-        "id": 90136,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90131,
         "questionNumber": 31,
-        "questionText": "Which paragraph mentions: how some innovators manage to avoid spending large sums of money on testing out their ideas? (A-H)"
+        "questionText": "{\"prompt\": \"Which section contains the following information: A reference to efforts to classify space junk\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Section A\", \"B\": \"Section B\", \"C\": \"Section C\", \"D\": \"Section D\", \"E\": \"Section E\", \"F\": \"Section F\"}}",
+        "correctAnswer": "B"
       },
       {
-        "correctAnswer": "G",
-        "id": 90137,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90132,
         "questionNumber": 32,
-        "questionText": "Which paragraph mentions: a commonly held opinion about product designers that needs to be proved wrong? (A-H)"
+        "questionText": "{\"prompt\": \"The Inter-Agency Space Debris Coordination Committee:\\nThe committee gives advice on how the [32] of space can be achieved. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "sustainability"
       },
       {
-        "correctAnswer": "F",
-        "id": 90138,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90133,
         "questionNumber": 33,
-        "questionText": "Which paragraph mentions: the target of one large company that has changed its business focus? (A-H)"
+        "questionText": "{\"prompt\": \"The Inter-Agency Space Debris Coordination Committee:\\nThe committee advises that when satellites are no longer active, any unused [33] or pressurised material that could cause explosions should be removed. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "fuel"
       },
       {
-        "correctAnswer": "TRUE",
-        "id": 90139,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90134,
         "questionNumber": 34,
-        "questionText": "Umagic Systems is an example of a new innovative company. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"The Inter-Agency Space Debris Coordination Committee:\\n...or pressurised material that could cause [34] should be removed. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "explosions"
       },
       {
-        "correctAnswer": "NOT GIVEN",
-        "id": 90140,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90135,
         "questionNumber": 35,
-        "questionText": "Amazon and Wal-Mart have exchanged successful ideas on innovation. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"The Inter-Agency Space Debris Coordination Committee:\\nAlthough operators of large satellite constellations accept that they have obligations as stewards of space, Holger Krag points out that the operators that become [35] are unlikely to prioritise removing their satellites from space. (Choose ONE WORD ONLY from the passage)\", \"type\": \"FILL_IN_BLANK\"}",
+        "correctAnswer": "bankrupt"
       },
       {
-        "correctAnswer": "FALSE",
-        "id": 90141,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90136,
         "questionNumber": 36,
-        "questionText": "Using financial rewards to encourage innovation is an outdated practice. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Match each statement with the correct person: Knowing the exact location of space junk would help prevent any possible danger. (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Carolin Frueh\", \"B\": \"Holger Krag\", \"C\": \"Marlon Sorge\", \"D\": \"Moriba Jah\"}}",
+        "correctAnswer": "C"
       },
       {
-        "correctAnswer": "TRUE",
-        "id": 90142,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90137,
         "questionNumber": 37,
-        "questionText": "IBM failed to understand David Post's 'virtual experts' idea. (TRUE/FALSE/NOT GIVEN)"
+        "questionText": "{\"prompt\": \"Match each statement with the correct person: Space should be available to everyone and should be preserved for the future. (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Carolin Frueh\", \"B\": \"Holger Krag\", \"C\": \"Marlon Sorge\", \"D\": \"Moriba Jah\"}}",
+        "correctAnswer": "D"
       },
       {
-        "correctAnswer": "C",
-        "id": 90143,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90138,
         "questionNumber": 38,
-        "questionText": "What point does the writer make about intellectual property? (A/B/C/D)"
+        "questionText": "{\"prompt\": \"Match each statement with the correct person: A recommendation regarding satellites is widely ignored. (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Carolin Frueh\", \"B\": \"Holger Krag\", \"C\": \"Marlon Sorge\", \"D\": \"Moriba Jah\"}}",
+        "correctAnswer": "B"
       },
       {
-        "correctAnswer": "A",
-        "id": 90144,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90139,
         "questionNumber": 39,
-        "questionText": "Peter Chemin is an example of someone who has realized that: (A/B/C/D)"
+        "questionText": "{\"prompt\": \"Match each statement with the correct person: There is conflicting information about where some satellites are in space. (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Carolin Frueh\", \"B\": \"Holger Krag\", \"C\": \"Marlon Sorge\", \"D\": \"Moriba Jah\"}}",
+        "correctAnswer": "D"
       },
       {
-        "correctAnswer": "D",
-        "id": 90145,
-        "mockTest": {
-          "audioUrl": null,
-          "hibernateLazyInitializer": {},
-          "id": 90009,
-          "pdfUrl": "https://drive.google.com/file/d/1tg4E0SJGrd9284lYXjiv5w76nkqdT0Kz/preview",
-          "studentClass": {
-            "hibernateLazyInitializer": {},
-            "id": 30003,
-            "name": "Lớp IELTS Luyện Đề"
-          },
-          "title": "Reading Vol 3 Test 1",
-          "type": "READING"
-        },
+        "id": 90140,
         "questionNumber": 40,
-        "questionText": "In conclusion, the writer suggests that: (A/B/C/D)"
+        "questionText": "{\"prompt\": \"Match each statement with the correct person: There is a risk we will not be able to undo the damage that occurs in space. (NB You may use any letter more than once)\", \"type\": \"MULTIPLE_CHOICE\", \"options\": {\"A\": \"Carolin Frueh\", \"B\": \"Holger Krag\", \"C\": \"Marlon Sorge\", \"D\": \"Moriba Jah\"}}",
+        "correctAnswer": "A"
       }
     ]
   },
